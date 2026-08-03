@@ -1,7 +1,18 @@
 import { useState } from 'react'
 import TierListAnswer from './TierListAnswer'
 import RankingAnswer from './RankingAnswer'
+import { findTeamBadge } from '../lib/teamBadge'
 import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
+
+function TeamLabel({ name }: { name: string }) {
+  const badge = findTeamBadge(name)
+  return (
+    <span className="flex min-w-[110px] items-center gap-1.5">
+      {badge && <img src={badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}
+      {name}
+    </span>
+  )
+}
 
 // Variante totalmente controlada, sin guardado automático ni botones propios de "Guardar":
 // el componente padre decide cuándo persistir el valor (p.ej. al pulsar "Siguiente").
@@ -42,12 +53,12 @@ export function QuestionDraftInput({
     const current = (value as { home: number; away: number } | undefined) ?? { home: 0, away: 0 }
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="min-w-[90px]">{question.config.home_team ?? 'Local'}</span>
+        <TeamLabel name={question.config.home_team ?? 'Local'} />
         <input
           type="number"
           min={0}
           value={current.home}
-          onChange={(e) => onChange({ home: Number(e.target.value), away: current.away })}
+          onChange={(e) => onChange({ home: Math.max(0, Number(e.target.value) || 0), away: current.away })}
           className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
         />
         <span>-</span>
@@ -55,10 +66,10 @@ export function QuestionDraftInput({
           type="number"
           min={0}
           value={current.away}
-          onChange={(e) => onChange({ home: current.home, away: Number(e.target.value) })}
+          onChange={(e) => onChange({ home: current.home, away: Math.max(0, Number(e.target.value) || 0) })}
           className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
         />
-        <span className="min-w-[90px]">{question.config.away_team ?? 'Visitante'}</span>
+        <TeamLabel name={question.config.away_team ?? 'Visitante'} />
       </div>
     )
   }
@@ -219,12 +230,12 @@ function ScorePredictionInput({
   const [away, setAway] = useState(value.away)
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
-      <span className="min-w-[90px]">{homeTeam}</span>
+      <TeamLabel name={homeTeam} />
       <input
         type="number"
         min={0}
         defaultValue={value.home}
-        onChange={(e) => setHome(Number(e.target.value))}
+        onChange={(e) => setHome(Math.max(0, Number(e.target.value) || 0))}
         className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
       />
       <span>-</span>
@@ -232,10 +243,10 @@ function ScorePredictionInput({
         type="number"
         min={0}
         defaultValue={value.away}
-        onChange={(e) => setAway(Number(e.target.value))}
+        onChange={(e) => setAway(Math.max(0, Number(e.target.value) || 0))}
         className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
       />
-      <span className="min-w-[90px]">{awayTeam}</span>
+      <TeamLabel name={awayTeam} />
       <button
         onClick={() => onSave({ home, away })}
         disabled={saving}

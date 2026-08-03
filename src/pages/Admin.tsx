@@ -555,7 +555,10 @@ function GradingPanel({
                 min={0}
                 value={(resultDraft as { home: number; away: number })?.home ?? 0}
                 onChange={(e) =>
-                  setResultDraft((d) => ({ ...(d as { home: number; away: number }), home: Number(e.target.value) }))
+                  setResultDraft((d) => ({
+                    ...(d as { home: number; away: number }),
+                    home: Math.max(0, Number(e.target.value) || 0),
+                  }))
                 }
                 className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
               />
@@ -565,7 +568,10 @@ function GradingPanel({
                 min={0}
                 value={(resultDraft as { home: number; away: number })?.away ?? 0}
                 onChange={(e) =>
-                  setResultDraft((d) => ({ ...(d as { home: number; away: number }), away: Number(e.target.value) }))
+                  setResultDraft((d) => ({
+                    ...(d as { home: number; away: number }),
+                    away: Math.max(0, Number(e.target.value) || 0),
+                  }))
                 }
                 className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
               />

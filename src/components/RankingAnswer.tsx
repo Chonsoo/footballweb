@@ -59,7 +59,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
-        <div className="md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 lg:w-60">
+        <div className="sticky top-0 z-10 border-b border-gray-100 bg-white pb-2 pt-1 md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 md:border-b-0 md:pt-0 lg:w-60">
           <p className="mb-1.5 text-xs font-medium text-gray-500">Equipos sin colocar ({unplaced.length})</p>
           <div
             onClick={handlePoolClick}
@@ -138,7 +138,7 @@ function TeamChip({
         onClick()
       }}
       title={item.name}
-      className={`flex max-w-full items-center gap-1 rounded-full border px-2 py-1 text-xs ${compact ? 'w-full' : ''} ${
+      className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${compact ? 'w-36 sm:w-40' : 'max-w-full'} ${
         selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'
       }`}
     >
