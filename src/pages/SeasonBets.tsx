@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
+import FantasyLineupBlock from '../components/FantasyLineupBlock'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
@@ -161,6 +162,8 @@ export default function SeasonBets() {
           </div>
         )
       })}
+
+      <FantasyLineupBlock />
 
       {noBlock.length > 0 && (
         <div className="rounded border border-gray-200 bg-white p-3">
