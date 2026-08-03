@@ -93,11 +93,7 @@ export function QuestionDraftInput({
     if (question.config.team_ids) {
       const teams = teamOptionsFor(question.config)
       const currentId = teams.find((t) => t.name === value)?.id ?? ''
-      return (
-        <div className="max-w-xs">
-          <TeamSelect teams={teams} value={currentId} onChange={(id) => onChange(teams.find((t) => t.id === id)?.name ?? '')} />
-        </div>
-      )
+      return <TeamSelect teams={teams} value={currentId} onChange={(id) => onChange(teams.find((t) => t.id === id)?.name ?? '')} />
     }
     const options = question.config.options ?? []
     return (
@@ -185,7 +181,7 @@ export function QuestionInput({
       const teams = teamOptionsFor(question.config)
       const currentId = teams.find((t) => t.name === value)?.id ?? ''
       return (
-        <div className={`max-w-xs ${saving ? 'pointer-events-none opacity-50' : ''}`}>
+        <div className={saving ? 'pointer-events-none opacity-50' : ''}>
           <TeamSelect teams={teams} value={currentId} onChange={(id) => onSave(teams.find((t) => t.id === id)?.name ?? '')} />
         </div>
       )

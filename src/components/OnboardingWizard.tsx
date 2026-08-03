@@ -1,30 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { QuestionDraftInput } from './QuestionInput'
+import QuestionCard from './QuestionCard'
+import { isAnswerComplete } from '../lib/isAnswerComplete'
+import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
-function defaultDraft(q: SeasonQuestion): AnswerValue {
-  if (q.answer_type === 'tier_list') return {}
-  if (q.answer_type === 'score_prediction') return { home: 0, away: 0 }
-  return ''
-}
-
-function isAnswered(q: SeasonQuestion, draft: AnswerValue): boolean {
-  if (q.answer_type === 'text') return (draft as string).trim().length > 0
-  if (q.answer_type === 'choice') return !!draft
-  // tier_list y score_prediction siempre tienen un valor válido por defecto
-  return true
+interface Step {
+  key: string
+  label: string
+  questions: SeasonQuestion[]
 }
 
 export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const { user, refreshProfile } = useAuth()
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
-  const [myAnswers, setMyAnswers] = useState<Record<string, AnswerValue>>({})
+  const [answers, setAnswers] = useState<Record<string, SeasonAnswer>>({})
   const [step, setStep] = useState(0)
-  const [draft, setDraft] = useState<AnswerValue>('')
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -41,24 +35,39 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         ? await supabase.from('season_answers').select('*').eq('user_id', user.id)
         : { data: [] }
 
-      const answersMap: Record<string, AnswerValue> = {}
+      const answersMap: Record<string, SeasonAnswer> = {}
       for (const a of (as_ as SeasonAnswer[]) ?? []) {
-        answersMap[a.question_id] = a.answer
+        answersMap[a.question_id] = a
       }
 
       setQuestions((qs as SeasonQuestion[]) ?? [])
-      setMyAnswers(answersMap)
+      setAnswers(answersMap)
       setLoading(false)
     }
     load()
   }, [user])
 
-  useEffect(() => {
-    const q = questions[step]
-    if (!q) return
-    setDraft(myAnswers[q.id] ?? defaultDraft(q))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, questions])
+  // Agrupa las preguntas iniciales en, como mucho, 4 pasos (uno por bloque),
+  // igual que en "Apuestas iniciales", en vez de una pregunta por pantalla.
+  const steps: Step[] = useMemo(() => {
+    const byBlock = new Map<number, SeasonQuestion[]>()
+    const noBlock: SeasonQuestion[] = []
+    for (const q of questions) {
+      if (q.block != null && BLOCKS.includes(q.block)) {
+        if (!byBlock.has(q.block)) byBlock.set(q.block, [])
+        byBlock.get(q.block)!.push(q)
+      } else {
+        noBlock.push(q)
+      }
+    }
+    const result: Step[] = []
+    for (const b of BLOCKS) {
+      const qs = byBlock.get(b) ?? []
+      if (qs.length > 0) result.push({ key: `block-${b}`, label: BLOCK_LABELS[b] ?? `Bloque ${b}`, questions: qs })
+    }
+    if (noBlock.length > 0) result.push({ key: 'no-block', label: 'Otras preguntas', questions: noBlock })
+    return result
+  }, [questions])
 
   async function finish() {
     await supabase.rpc('complete_onboarding')
@@ -67,23 +76,27 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   }
 
   function goNext() {
-    if (step + 1 >= questions.length) {
+    if (step + 1 >= steps.length) {
       finish()
     } else {
       setStep((s) => s + 1)
     }
   }
 
-  async function saveAndNext() {
+  // Autoguardado: cada pregunta se guarda en cuanto se responde, sin esperar
+  // a un botón "Siguiente" general (los tipos que ya tienen su propio botón
+  // "Guardar", como texto o marcador, lo conservan).
+  async function saveAnswer(questionId: string, value: AnswerValue) {
     if (!user) return
-    const q = questions[step]
-    setSaving(true)
-    await supabase
+    setSavingId(questionId)
+    const { data, error } = await supabase
       .from('season_answers')
-      .upsert({ question_id: q.id, user_id: user.id, answer: draft }, { onConflict: 'question_id,user_id' })
-    setMyAnswers((m) => ({ ...m, [q.id]: draft }))
-    setSaving(false)
-    goNext()
+      .upsert({ question_id: questionId, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
+      .select('*')
+      .single()
+    setSavingId(null)
+    if (error) return
+    setAnswers((a) => ({ ...a, [questionId]: data as SeasonAnswer }))
   }
 
   if (loading) {
@@ -94,7 +107,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     )
   }
 
-  if (questions.length === 0) {
+  if (steps.length === 0) {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
         <h1 className="text-xl font-semibold">¡Bienvenido!</h1>
@@ -106,36 +119,51 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     )
   }
 
-  const q = questions[step]
+  const current = steps[step]
+  const answeredCount = current.questions.filter((q) => isAnswerComplete(q, answers[q.id]?.answer)).length
+  const allAnswered = answeredCount === current.questions.length
+  const someAnswered = answeredCount > 0
+
+  const skipLabel = someAnswered ? 'Omitir respuestas no contestadas de este bloque' : 'Omitir este bloque de preguntas'
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4">
+    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">
       <div>
         <p className="mb-1 text-sm text-gray-400">
-          Pregunta {step + 1} de {questions.length}
+          Bloque {step + 1} de {steps.length}
         </p>
         <div className="h-1.5 w-full rounded-full bg-gray-100">
           <div
             className="h-1.5 rounded-full bg-blue-600 transition-all"
-            style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
           />
         </div>
       </div>
 
-      <div className="rounded border border-gray-200 bg-white p-5">
-        <p className="mb-1 text-xs uppercase text-gray-400">{q.competition}</p>
-        <p className="mb-4 text-lg font-medium">{q.question}</p>
-        <QuestionDraftInput question={q} value={draft} onChange={setDraft} />
+      <div>
+        <h2 className="mb-3 text-lg font-semibold">{current.label}</h2>
+        <div className="flex flex-col gap-3">
+          {current.questions.map((q) => (
+            <QuestionCard
+              key={q.id}
+              question={q}
+              myAnswer={answers[q.id]}
+              closed={false}
+              saving={savingId === q.id}
+              onSave={(value) => saveAnswer(q.id, value)}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <button onClick={goNext} className="text-gray-400 hover:underline">
-          Omitir esta
+      <div className="flex items-center justify-between gap-4 text-sm">
+        <button onClick={goNext} className="text-left text-gray-400 hover:underline">
+          {skipLabel}
         </button>
         <button
-          onClick={saveAndNext}
-          disabled={saving || !isAnswered(q, draft)}
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+          onClick={goNext}
+          disabled={!allAnswered}
+          className="shrink-0 rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
         >
           Siguiente →
         </button>

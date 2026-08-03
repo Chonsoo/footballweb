@@ -3,21 +3,13 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
+import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface QuestionWithAnswers extends SeasonQuestion {
   answers: (SeasonAnswer & { profile?: Profile })[]
   result?: SeasonResult
 }
-
-const BLOCK_LABELS: Record<number, string> = {
-  1: 'Bloque 1 · Clasificación de Liga',
-  2: 'Bloque 2 · Premios individuales',
-  3: 'Bloque 3 · Duelos Big Three',
-  4: 'Bloque 4 · Over/Under',
-}
-
-const BLOCKS = [1, 2, 3, 4]
 
 export default function SeasonBets() {
   const { user, profile } = useAuth()
