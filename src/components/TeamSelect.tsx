@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { TierItem } from '../lib/database.types'
 
+// Alto máximo del desplegable (con scroll interno para listas largas, como
+// los 12 equipos "sin competición europea").
+const PANEL_MAX_HEIGHT = 224 // px, coincide con max-h-56
+
 export default function TeamSelect({
   teams,
   value,
@@ -11,7 +15,9 @@ export default function TeamSelect({
   onChange: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
+  const [openUp, setOpenUp] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const selected = teams.find((t) => t.id === value)
 
   useEffect(() => {
@@ -22,11 +28,22 @@ export default function TeamSelect({
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
 
+  // Si no cabe entero por debajo (p.ej. cerca del final de la página), se
+  // abre hacia arriba en vez de solaparse con lo que venga después.
+  function toggleOpen() {
+    if (!open && btnRef.current) {
+      const spaceBelow = window.innerHeight - btnRef.current.getBoundingClientRect().bottom
+      setOpenUp(spaceBelow < PANEL_MAX_HEIGHT + 16)
+    }
+    setOpen((v) => !v)
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm"
       >
         <span className="flex items-center gap-2 truncate">
@@ -41,7 +58,11 @@ export default function TeamSelect({
       </button>
 
       {open && (
-        <div className="absolute inset-x-0 top-full z-20 mt-1 max-h-56 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg">
+        <div
+          className={`absolute inset-x-0 z-20 max-h-56 overflow-y-auto rounded border border-gray-200 bg-white shadow-lg ${
+            openUp ? 'bottom-full mb-1' : 'top-full mt-1'
+          }`}
+        >
           {teams.map((t) => (
             <button
               key={t.id}
