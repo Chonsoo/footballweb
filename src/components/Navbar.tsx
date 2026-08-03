@@ -41,7 +41,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b border-gray-200">
+    <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="hidden items-center gap-1 md:flex">
           <NavLink to="/" end className={linkClass}>

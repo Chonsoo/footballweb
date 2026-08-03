@@ -58,23 +58,8 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
-        <div className="sticky top-0 z-10 border-b border-gray-100 bg-white pb-2 pt-1 md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 md:border-b-0 md:pt-0 lg:w-60">
-          <p className="mb-1.5 text-xs font-medium text-gray-500">Equipos sin colocar ({unplaced.length})</p>
-          <div
-            onClick={handlePoolClick}
-            className={`flex min-h-[48px] flex-wrap gap-1.5 rounded border border-dashed p-2 transition-colors ${
-              selected && value[selected] != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
-            }`}
-          >
-            {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
-            {unplaced.map((it) => (
-              <TeamChip key={it.id} item={it} selected={selected === it.id} onClick={() => handleTeamClick(it.id)} />
-            ))}
-          </div>
-        </div>
-
-        <div className="min-w-0 overflow-hidden rounded border border-gray-200 md:order-1 md:flex-1">
+      <div className="flex items-stretch gap-2 sm:gap-4">
+        <div className="min-w-0 flex-1 overflow-hidden rounded border border-gray-200">
           {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
             const occupant = teamAtPosition(position)
             const zone = zoneForPosition(position, tiers, total)
@@ -105,6 +90,23 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
             )
           })}
         </div>
+
+        <div className="w-16 shrink-0 sm:w-52 lg:w-60">
+          <div className="sticky top-16">
+            <p className="mb-1.5 text-xs font-medium text-gray-500">Sin colocar ({unplaced.length})</p>
+            <div
+              onClick={handlePoolClick}
+              className={`flex max-h-[70vh] flex-wrap gap-1.5 overflow-y-auto rounded border border-dashed p-2 transition-colors ${
+                selected && value[selected] != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+              }`}
+            >
+              {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
+              {unplaced.map((it) => (
+                <TeamChip key={it.id} item={it} selected={selected === it.id} onClick={() => handleTeamClick(it.id)} pool />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {!readOnly && (
@@ -123,13 +125,16 @@ function TeamChip({
   selected,
   onClick,
   compact,
+  pool,
 }: {
   item: TierItem
   selected: boolean
   onClick: () => void
   compact?: boolean
+  pool?: boolean
 }) {
   const [imgError, setImgError] = useState(false)
+
   return (
     <button
       type="button"
@@ -138,14 +143,20 @@ function TeamChip({
         onClick()
       }}
       title={item.name}
-      className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${compact ? 'w-36 sm:w-40' : 'max-w-full'} ${
-        selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'
-      }`}
+      className={`flex items-center gap-1 rounded-full border text-xs ${
+        pool ? 'p-1.5 sm:px-2 sm:py-1' : `px-2 py-1 ${compact ? 'w-36 sm:w-40' : 'max-w-full'}`
+      } ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'}`}
     >
       {item.badge && !imgError ? (
         <img src={item.badge} alt="" className="h-4 w-4 shrink-0 object-contain" onError={() => setImgError(true)} />
       ) : null}
-      <span className={compact ? 'min-w-0 truncate' : 'whitespace-nowrap'}>{item.name}</span>
+      <span
+        className={
+          pool ? 'hidden whitespace-nowrap sm:inline' : compact ? 'min-w-0 truncate' : 'whitespace-nowrap'
+        }
+      >
+        {item.name}
+      </span>
     </button>
   )
 }
