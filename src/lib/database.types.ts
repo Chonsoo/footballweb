@@ -30,6 +30,7 @@ export interface TierDef {
 // solo se rellenan los que aplican al tipo de la pregunta.
 export interface QuestionConfig {
   options?: string[] // 'choice'
+  team_ids?: string[] // 'choice' — si están presentes, se muestra un desplegable de equipos (escudo + nombre) en vez de botones, limitado a estos ids
   items?: TierItem[] // 'tier_list' | 'ranking'
   tiers?: TierDef[] // 'tier_list' | 'ranking' (tiers "especiales"; el resto cae en una tier implícita "media")
   home_team?: string // 'score_prediction'

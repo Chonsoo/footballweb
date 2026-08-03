@@ -1,15 +1,30 @@
 import { useState } from 'react'
 import TierListAnswer from './TierListAnswer'
 import RankingAnswer from './RankingAnswer'
+import TeamSelect from './TeamSelect'
 import { findTeamBadge } from '../lib/teamBadge'
-import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/database.types'
 
-function TeamLabel({ name }: { name: string }) {
+// Para preguntas 'choice' que piden un equipo (config.team_ids presente): lista de
+// equipos filtrada a esos ids, respetando el orden dado.
+function teamOptionsFor(config: QuestionConfig) {
+  const ids = config.team_ids ?? []
+  return ids
+    .map((id) => LALIGA_TEAMS_2026_27.find((t) => t.id === id))
+    .filter((t): t is (typeof LALIGA_TEAMS_2026_27)[number] => !!t)
+}
+
+function TeamLabel({ name, align = 'left' }: { name: string; align?: 'left' | 'right' }) {
   const badge = findTeamBadge(name)
   return (
-    <span className="flex items-center gap-1.5 sm:min-w-[110px]">
+    <span
+      className={`flex items-center gap-1.5 sm:w-40 sm:shrink-0 ${
+        align === 'right' ? 'sm:flex-row-reverse sm:justify-start sm:text-right' : ''
+      }`}
+    >
       {badge && <img src={badge} alt={name} title={name} className="h-6 w-6 shrink-0 object-contain sm:h-5 sm:w-5" />}
-      <span className={badge ? 'hidden sm:inline' : ''}>{name}</span>
+      <span className={`truncate ${badge ? 'hidden sm:inline' : ''}`}>{name}</span>
     </span>
   )
 }
@@ -53,21 +68,21 @@ export function QuestionDraftInput({
     const current = (value as { home: number; away: number } | undefined) ?? { home: 0, away: 0 }
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <TeamLabel name={question.config.home_team ?? 'Local'} />
+        <TeamLabel name={question.config.home_team ?? 'Local'} align="right" />
         <input
           type="number"
           min={0}
           value={current.home}
           onChange={(e) => onChange({ home: Math.max(0, Number(e.target.value) || 0), away: current.away })}
-          className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+          className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
         />
-        <span>-</span>
+        <span className="shrink-0">-</span>
         <input
           type="number"
           min={0}
           value={current.away}
           onChange={(e) => onChange({ home: current.home, away: Math.max(0, Number(e.target.value) || 0) })}
-          className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+          className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
         />
         <TeamLabel name={question.config.away_team ?? 'Visitante'} />
       </div>
@@ -75,6 +90,15 @@ export function QuestionDraftInput({
   }
 
   if (question.answer_type === 'choice') {
+    if (question.config.team_ids) {
+      const teams = teamOptionsFor(question.config)
+      const currentId = teams.find((t) => t.name === value)?.id ?? ''
+      return (
+        <div className="max-w-xs">
+          <TeamSelect teams={teams} value={currentId} onChange={(id) => onChange(teams.find((t) => t.id === id)?.name ?? '')} />
+        </div>
+      )
+    }
     const options = question.config.options ?? []
     return (
       <div className="flex flex-wrap gap-2">
@@ -157,6 +181,15 @@ export function QuestionInput({
   }
 
   if (question.answer_type === 'choice') {
+    if (question.config.team_ids) {
+      const teams = teamOptionsFor(question.config)
+      const currentId = teams.find((t) => t.name === value)?.id ?? ''
+      return (
+        <div className={`max-w-xs ${saving ? 'pointer-events-none opacity-50' : ''}`}>
+          <TeamSelect teams={teams} value={currentId} onChange={(id) => onSave(teams.find((t) => t.id === id)?.name ?? '')} />
+        </div>
+      )
+    }
     const options = question.config.options ?? []
     return (
       <div className="flex flex-wrap gap-2">
@@ -229,28 +262,28 @@ function ScorePredictionInput({
   const [home, setHome] = useState(value.home)
   const [away, setAway] = useState(value.away)
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
-      <TeamLabel name={homeTeam} />
+    <div className="flex flex-wrap items-center gap-2 text-sm sm:flex-nowrap">
+      <TeamLabel name={homeTeam} align="right" />
       <input
         type="number"
         min={0}
         defaultValue={value.home}
         onChange={(e) => setHome(Math.max(0, Number(e.target.value) || 0))}
-        className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+        className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
       />
-      <span>-</span>
+      <span className="shrink-0">-</span>
       <input
         type="number"
         min={0}
         defaultValue={value.away}
         onChange={(e) => setAway(Math.max(0, Number(e.target.value) || 0))}
-        className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+        className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
       />
       <TeamLabel name={awayTeam} />
       <button
         onClick={() => onSave({ home, away })}
         disabled={saving}
-        className="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+        className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
       >
         Guardar
       </button>
