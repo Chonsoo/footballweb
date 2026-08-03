@@ -143,12 +143,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
               bloques.
             </p>
           </div>
-          <div className="rounded border border-gray-200 bg-white p-5 text-left text-sm text-gray-600">
+          <div className="text-left text-sm text-gray-600">
             <p className="mb-2">
               No hace falta rellenarlo todo del tirón: cada respuesta se guarda sola en cuanto la marcas, y puedes
               saltarte cualquier bloque y completarlo más adelante desde «Apuestas iniciales» en el menú.
             </p>
-            <p>Tómate el tiempo que necesites — ¡y que gane el mejor pronosticador!</p>
+            <p>Tómate el tiempo que necesites. ¡Que gane el mejor pronosticador!</p>
           </div>
           <button
             onClick={() => setShowIntro(false)}
