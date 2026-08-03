@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { formatAnswer } from '../lib/answerFormat'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import { normalizeText } from '../lib/textNormalize'
+import { scoreRankingAnswer } from '../lib/rankingScoring'
+import RankingAnswer from '../components/RankingAnswer'
 import type {
   AnswerType,
   AnswerValue,
@@ -485,9 +488,11 @@ function GradingPanel({
   onChanged: () => void
 }) {
   const [resultDraft, setResultDraft] = useState<AnswerValue>(
-    result?.result ?? (question.answer_type === 'score_prediction' ? { home: 0, away: 0 } : '')
+    result?.result ??
+      (question.answer_type === 'score_prediction' ? { home: 0, away: 0 } : question.answer_type === 'ranking' ? {} : '')
   )
   const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
 
   async function saveResult() {
     await supabase.rpc('set_season_result', { p_question_id: question.id, p_result: resultDraft })
@@ -506,10 +511,62 @@ function GradingPanel({
     await onChanged()
   }
 
+  function calculateRankingSuggestions() {
+    const real = resultDraft as Record<string, number>
+    const drafts: Record<string, string> = {}
+    for (const a of answers) {
+      drafts[a.id] = String(scoreRankingAnswer(real, (a.answer as Record<string, number>) ?? {}))
+    }
+    setPointsDrafts(drafts)
+  }
+
+  async function saveAllDrafts() {
+    setSaving(true)
+    const entries = Object.entries(pointsDrafts).filter(([, v]) => v !== '')
+    for (const [answerId, raw] of entries) {
+      await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+    }
+    setSaving(false)
+    await onChanged()
+  }
+
+  // Ordena las respuestas de texto/opción por su forma normalizada (sin mayúsculas
+  // ni tildes) para que las variantes de una misma respuesta queden juntas y sea
+  // más fácil calificarlas todas a la vez.
+  const sortedAnswers = [...answers].sort((a, b) =>
+    normalizeText(formatAnswer(question, a.answer)).localeCompare(normalizeText(formatAnswer(question, b.answer)))
+  )
+
   const supportsAutoApply = question.answer_type === 'text' || question.answer_type === 'choice' || question.answer_type === 'score_prediction'
 
   return (
     <div className="flex flex-col gap-4">
+      {question.answer_type === 'ranking' && (
+        <div className="rounded bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-medium text-gray-500">
+            Clasificación real (para calcular los puntos sugeridos del Bloque 1)
+          </p>
+          <RankingAnswer
+            items={question.config.items ?? []}
+            tiers={question.config.tiers ?? []}
+            value={(resultDraft as Record<string, number>) ?? {}}
+            onChange={(next) => setResultDraft(next)}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button onClick={saveResult} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
+              Fijar resultado
+            </button>
+            <button onClick={calculateRankingSuggestions} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white">
+              Calcular puntos sugeridos
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-400">
+            Solo calcula el Bloque 1 base (posición exacta / margen de error). Los bonus por pleno de zona (Champions,
+            Europa League, Descenso…) hay que sumarlos a mano si aplican, revisando cada respuesta abajo antes de guardar.
+          </p>
+        </div>
+      )}
+
       {supportsAutoApply && (
         <div className="rounded bg-gray-50 p-3">
           <p className="mb-2 text-xs font-medium text-gray-500">Resultado real (para aplicar puntos automáticamente)</p>
@@ -568,10 +625,17 @@ function GradingPanel({
       )}
 
       <div>
-        <p className="mb-2 text-xs font-medium text-gray-500">Respuestas y puntos (puedes ajustarlos a mano)</p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-gray-500">Respuestas y puntos (puedes ajustarlos a mano)</p>
+          {Object.keys(pointsDrafts).length > 0 && (
+            <button onClick={saveAllDrafts} disabled={saving} className="text-xs text-blue-600 hover:underline disabled:opacity-50">
+              {saving ? 'Guardando…' : 'Guardar todas'}
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-1.5">
           {answers.length === 0 && <p className="text-sm text-gray-400">Nadie ha respondido todavía.</p>}
-          {answers.map((a) => (
+          {sortedAnswers.map((a) => (
             <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
               <span>
                 <strong>{a.profile?.username ?? '—'}</strong>: {formatAnswer(question, a.answer)}
@@ -580,6 +644,7 @@ function GradingPanel({
                 <input
                   type="number"
                   placeholder={a.points != null ? String(a.points) : 'pts'}
+                  value={pointsDrafts[a.id] ?? ''}
                   onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
                   className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
                 />
