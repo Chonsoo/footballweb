@@ -110,7 +110,14 @@ function UsersSection() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="border-t border-gray-100">
-                <td className="px-4 py-2">{u.username}</td>
+                <td className="px-4 py-2">
+                  {u.username}
+                  {!u.email_confirmed && (
+                    <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700">
+                      sin confirmar
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-2">{u.is_admin ? 'Sí' : 'No'}</td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex items-center justify-end gap-3">

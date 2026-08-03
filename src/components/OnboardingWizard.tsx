@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { QuestionInput } from './QuestionInput'
+import { QuestionDraftInput } from './QuestionInput'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
+
+function defaultDraft(q: SeasonQuestion): AnswerValue {
+  if (q.answer_type === 'tier_list') return {}
+  if (q.answer_type === 'score_prediction') return { home: 0, away: 0 }
+  return ''
+}
+
+function isAnswered(q: SeasonQuestion, draft: AnswerValue): boolean {
+  if (q.answer_type === 'text') return (draft as string).trim().length > 0
+  if (q.answer_type === 'choice') return !!draft
+  // tier_list y score_prediction siempre tienen un valor válido por defecto
+  return true
+}
 
 export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const { user, refreshProfile } = useAuth()
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [myAnswers, setMyAnswers] = useState<Record<string, AnswerValue>>({})
   const [step, setStep] = useState(0)
+  const [draft, setDraft] = useState<AnswerValue>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -38,22 +52,17 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     load()
   }, [user])
 
+  useEffect(() => {
+    const q = questions[step]
+    if (!q) return
+    setDraft(myAnswers[q.id] ?? defaultDraft(q))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, questions])
+
   async function finish() {
     await supabase.rpc('complete_onboarding')
     await refreshProfile()
     onDone()
-  }
-
-  async function saveAndNext(value: AnswerValue) {
-    if (!user) return
-    const q = questions[step]
-    setSaving(true)
-    await supabase
-      .from('season_answers')
-      .upsert({ question_id: q.id, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
-    setMyAnswers((m) => ({ ...m, [q.id]: value }))
-    setSaving(false)
-    goNext()
   }
 
   function goNext() {
@@ -62,6 +71,18 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     } else {
       setStep((s) => s + 1)
     }
+  }
+
+  async function saveAndNext() {
+    if (!user) return
+    const q = questions[step]
+    setSaving(true)
+    await supabase
+      .from('season_answers')
+      .upsert({ question_id: q.id, user_id: user.id, answer: draft }, { onConflict: 'question_id,user_id' })
+    setMyAnswers((m) => ({ ...m, [q.id]: draft }))
+    setSaving(false)
+    goNext()
   }
 
   if (loading) {
@@ -103,15 +124,19 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
       <div className="rounded border border-gray-200 bg-white p-5">
         <p className="mb-1 text-xs uppercase text-gray-400">{q.competition}</p>
         <p className="mb-4 text-lg font-medium">{q.question}</p>
-        <QuestionInput question={q} value={myAnswers[q.id]} saving={saving} onSave={saveAndNext} />
+        <QuestionDraftInput question={q} value={draft} onChange={setDraft} />
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <button onClick={finish} className="text-gray-400 hover:underline">
-          Terminar más tarde
+        <button onClick={goNext} className="text-gray-400 hover:underline">
+          Omitir esta
         </button>
-        <button onClick={goNext} className="text-blue-600 hover:underline">
-          Omitir esta →
+        <button
+          onClick={saveAndNext}
+          disabled={saving || !isAnswered(q, draft)}
+          className="rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+        >
+          Siguiente →
         </button>
       </div>
     </div>

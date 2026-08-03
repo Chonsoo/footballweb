@@ -7,6 +7,7 @@ export interface Profile {
   avatar_url: string | null
   is_admin: boolean
   onboarding_completed: boolean
+  email_confirmed: boolean
   created_at: string
 }
 

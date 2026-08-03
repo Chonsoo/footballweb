@@ -15,6 +15,9 @@ create table if not exists public.profiles (
 alter table public.profiles
   add column if not exists onboarding_completed boolean not null default false;
 
+alter table public.profiles
+  add column if not exists email_confirmed boolean not null default false;
+
 alter table public.profiles enable row level security;
 
 create policy "profiles: select all authenticated"
@@ -29,10 +32,11 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, username)
+  insert into public.profiles (id, username, email_confirmed)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'username', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data ->> 'username', split_part(new.email, '@', 1)),
+    new.email_confirmed_at is not null
   );
   return new;
 end;
@@ -42,6 +46,26 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Cuando el usuario confirma el correo (clic en el enlace), auth.users se actualiza:
+-- sincronizamos ese cambio a profiles para que deje de estar oculto en el ranking.
+create or replace function public.handle_user_confirmed()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if new.email_confirmed_at is not null and (old.email_confirmed_at is null) then
+    update public.profiles set email_confirmed = true where id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_confirmed on auth.users;
+create trigger on_auth_user_confirmed
+  after update on auth.users
+  for each row execute procedure public.handle_user_confirmed();
 
 -- Helper: ¿es admin este usuario?
 create or replace function public.is_admin(uid uuid)
@@ -278,6 +302,7 @@ left join (
   where points is not null
   group by user_id
 ) sa on sa.user_id = p.id
+where p.email_confirmed = true
 order by total_points desc;
 
 -- ---------- FUNCIONES RPC (acciones de administración) ----------
