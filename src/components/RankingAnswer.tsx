@@ -57,56 +57,58 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
   }
 
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
-      <div className="md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 lg:w-60">
-        <p className="mb-1.5 text-xs font-medium text-gray-500">Equipos sin colocar ({unplaced.length})</p>
-        <div
-          onClick={handlePoolClick}
-          className={`flex min-h-[48px] flex-wrap gap-1.5 rounded border border-dashed p-2 transition-colors ${
-            selected && value[selected] != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
-          }`}
-        >
-          {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
-          {unplaced.map((it) => (
-            <TeamChip key={it.id} item={it} selected={selected === it.id} onClick={() => handleTeamClick(it.id)} />
-          ))}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+        <div className="md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 lg:w-60">
+          <p className="mb-1.5 text-xs font-medium text-gray-500">Equipos sin colocar ({unplaced.length})</p>
+          <div
+            onClick={handlePoolClick}
+            className={`flex min-h-[48px] flex-wrap gap-1.5 rounded border border-dashed p-2 transition-colors ${
+              selected && value[selected] != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+            }`}
+          >
+            {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
+            {unplaced.map((it) => (
+              <TeamChip key={it.id} item={it} selected={selected === it.id} onClick={() => handleTeamClick(it.id)} />
+            ))}
+          </div>
+        </div>
+
+        <div className="min-w-0 overflow-hidden rounded border border-gray-200 md:order-1 md:flex-1">
+          {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
+            const occupant = teamAtPosition(position)
+            const zone = zoneForPosition(position, tiers, total)
+            return (
+              <div
+                key={position}
+                onClick={() => handlePositionClick(position)}
+                className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
+                  selected && !readOnly ? 'cursor-pointer hover:bg-blue-50' : ''
+                }`}
+              >
+                <span
+                  className={`flex h-6 w-7 shrink-0 items-center justify-center rounded text-xs font-semibold text-gray-800 ${zone.color}`}
+                >
+                  {position}
+                </span>
+                <div className="min-w-0 flex-1">
+                  {occupant ? (
+                    <TeamChip item={occupant} selected={selected === occupant.id} onClick={() => handleTeamClick(occupant.id)} compact />
+                  ) : (
+                    <span className="text-xs text-gray-300">Toca aquí</span>
+                  )}
+                </div>
+                {zone.id !== MEDIA_TIER_ID && (
+                  <span className="hidden shrink-0 text-[10px] text-gray-400 sm:inline">{zone.label}</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-gray-200 md:order-1 md:flex-1 md:min-w-0">
-        {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
-          const occupant = teamAtPosition(position)
-          const zone = zoneForPosition(position, tiers, total)
-          return (
-            <div
-              key={position}
-              onClick={() => handlePositionClick(position)}
-              className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
-                selected && !readOnly ? 'cursor-pointer hover:bg-blue-50' : ''
-              }`}
-            >
-              <span
-                className={`flex h-6 w-7 shrink-0 items-center justify-center rounded text-xs font-semibold text-gray-800 ${zone.color}`}
-              >
-                {position}
-              </span>
-              <div className="min-w-0 flex-1">
-                {occupant ? (
-                  <TeamChip item={occupant} selected={selected === occupant.id} onClick={() => handleTeamClick(occupant.id)} compact />
-                ) : (
-                  <span className="text-xs text-gray-300">Toca aquí</span>
-                )}
-              </div>
-              {zone.id !== MEDIA_TIER_ID && (
-                <span className="hidden shrink-0 text-[10px] text-gray-400 sm:inline">{zone.label}</span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
       {!readOnly && (
-        <p className="text-xs text-gray-400 md:order-3 md:basis-full">
+        <p className="text-xs text-gray-400">
           {selected
             ? 'Ahora toca el puesto donde quieres colocarlo (o el recuadro de equipos para quitarlo).'
             : 'Toca un equipo y luego su puesto.'}
