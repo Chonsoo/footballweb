@@ -117,6 +117,16 @@ export default function FantasyLineupPicker({
     setSelected(null)
   }
 
+  // Quita a un jugador colocado directamente (la "x" del avatar en el campo),
+  // sin tener que seleccionarlo primero y luego tocar el banquillo.
+  function handleRemovePlacement(id: number) {
+    if (readOnly) return
+    const next = { ...value }
+    delete next[String(id)]
+    onChange(next)
+    if (selected === id) setSelected(null)
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -172,6 +182,7 @@ export default function FantasyLineupPicker({
             readOnly={readOnly}
             onSlotClick={handleSlotClick}
             onPlayerClick={handlePlayerClick}
+            onRemovePlayer={handleRemovePlacement}
           />
         ) : (
           <div className="min-w-0 overflow-hidden rounded border border-gray-200 sm:flex-1">
@@ -285,6 +296,7 @@ function PitchView({
   readOnly,
   onSlotClick,
   onPlayerClick,
+  onRemovePlayer,
 }: {
   slots: FantasySlot[]
   playerAtSlot: (key: string) => FantasyPlayer | null
@@ -293,15 +305,22 @@ function PitchView({
   readOnly?: boolean
   onSlotClick: (slot: FantasySlot) => void
   onPlayerClick: (id: number) => void
+  onRemovePlayer: (id: number) => void
 }) {
   return (
     <div
-      className="flex min-w-0 flex-1 flex-col justify-between gap-3 rounded-lg border border-green-800 bg-gradient-to-b from-green-600 to-green-700 p-3 py-6"
+      className="relative flex min-w-0 flex-1 flex-col justify-between gap-3 overflow-hidden rounded-lg border-2 border-green-900 p-3 py-6"
       style={{
+        backgroundColor: '#2f8f4e',
         backgroundImage:
-          'repeating-linear-gradient(to bottom, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 12%, transparent 12%, transparent 24%)',
+          'repeating-linear-gradient(180deg, rgba(255,255,255,0.08) 0px, rgba(255,255,255,0.08) 36px, rgba(0,0,0,0.04) 36px, rgba(0,0,0,0.04) 72px)',
       }}
     >
+      {/* Líneas del campo, solo decorativas */}
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-white/25" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/25" />
+      <div className="pointer-events-none absolute bottom-0 left-1/2 h-16 w-40 -translate-x-1/2 border border-b-0 border-white/25" />
+
       {PITCH_ROWS.map((pos) => {
         const rowSlots = slots.filter((s) => s.position === pos)
         if (rowSlots.length === 0) return null
@@ -327,18 +346,29 @@ function PitchView({
                     <PitchAvatar
                       player={occupant}
                       selected={selected === occupant.api_player_id}
-                      onClick={() => onPlayerClick(occupant.api_player_id)}
+                      readOnly={readOnly}
+                      onClick={() => {
+                        // Si ya hay otro jugador del banquillo seleccionado y encaja
+                        // en esta posición, tocar a este ocupante los intercambia
+                        // (misma lógica que tocar un hueco vacío).
+                        if (selectedPlayer && selectedPlayer.api_player_id !== occupant.api_player_id && eligible) {
+                          onSlotClick(slot)
+                        } else {
+                          onPlayerClick(occupant.api_player_id)
+                        }
+                      }}
+                      onRemove={() => onRemovePlayer(occupant.api_player_id)}
                     />
                   ) : (
                     <>
                       <span
-                        className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-semibold text-white/80 ${
-                          selectedPlayer && !readOnly && eligible ? 'border-white bg-white/10' : 'border-white/40'
+                        className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-xl font-light leading-none text-white/70 ${
+                          selectedPlayer && !readOnly && eligible ? 'border-white bg-white/15 text-white' : 'border-white/40'
                         }`}
                       >
-                        {slot.position}
+                        +
                       </span>
-                      <span className="text-[9px] text-white/50">Toca</span>
+                      <span className="text-[9px] text-white/50">{slot.position}</span>
                     </>
                   )}
                 </div>
@@ -354,11 +384,15 @@ function PitchView({
 function PitchAvatar({
   player,
   selected,
+  readOnly,
   onClick,
+  onRemove,
 }: {
   player: FantasyPlayer
   selected: boolean
+  readOnly?: boolean
   onClick: () => void
+  onRemove: () => void
 }) {
   const [imgError, setImgError] = useState(false)
   const [badgeError, setBadgeError] = useState(false)
@@ -366,27 +400,60 @@ function PitchAvatar({
   const shortName = player.name.length > 12 ? player.name.split(' ').slice(-1)[0] : player.name
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
       }}
       title={`${player.name} · ${FANTASY_POSITION_LABELS[player.player_position]}${team ? ` · ${team.name}` : ''}`}
-      className="flex w-14 flex-col items-center gap-0.5"
+      className="flex w-14 cursor-pointer flex-col items-center gap-0.5"
     >
       <span
         className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 ${
           selected ? 'border-white ring-2 ring-blue-400' : 'border-white/70'
         }`}
       >
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove()
+            }}
+            title="Quitar del 11"
+            className="absolute -left-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold leading-none text-white ring-2 ring-white hover:bg-red-700"
+          >
+            ×
+          </button>
+        )}
         {player.photo_url && !imgError ? (
-          <img
-            src={player.photo_url}
-            alt=""
-            className="h-full w-full rounded-full object-cover"
-            onError={() => setImgError(true)}
-          />
+          <>
+            <img
+              src={player.photo_url}
+              alt=""
+              className="h-full w-full rounded-full object-cover"
+              onError={() => setImgError(true)}
+            />
+            {team?.badge && !badgeError && (
+              <img
+                src={team.badge}
+                alt=""
+                className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white object-contain ring-2 ring-white"
+                onError={() => setBadgeError(true)}
+              />
+            )}
+          </>
+        ) : team?.badge && !badgeError ? (
+          <span className="flex h-full w-full items-center justify-center rounded-full bg-white p-1.5">
+            <img
+              src={team.badge}
+              alt=""
+              className="h-full w-full object-contain"
+              onError={() => setBadgeError(true)}
+            />
+          </span>
         ) : (
           <span
             className={`flex h-full w-full items-center justify-center rounded-full text-xs font-semibold ${POSITION_COLORS[player.player_position]}`}
@@ -394,17 +461,9 @@ function PitchAvatar({
             {player.player_position[0]}
           </span>
         )}
-        {team?.badge && !badgeError && (
-          <img
-            src={team.badge}
-            alt=""
-            className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white object-contain ring-2 ring-white"
-            onError={() => setBadgeError(true)}
-          />
-        )}
       </span>
       <span className="max-w-full truncate text-[10px] font-medium text-white drop-shadow">{shortName}</span>
-    </button>
+    </div>
   )
 }
 
