@@ -12,7 +12,7 @@ export interface Profile {
   created_at: string
 }
 
-export type AnswerType = 'text' | 'choice' | 'tier_list' | 'score_prediction'
+export type AnswerType = 'text' | 'choice' | 'tier_list' | 'score_prediction' | 'ranking'
 
 export interface TierItem {
   id: string
@@ -30,8 +30,8 @@ export interface TierDef {
 // solo se rellenan los que aplican al tipo de la pregunta.
 export interface QuestionConfig {
   options?: string[] // 'choice'
-  items?: TierItem[] // 'tier_list'
-  tiers?: TierDef[] // 'tier_list' (tiers "especiales"; el resto cae en una tier implícita "media")
+  items?: TierItem[] // 'tier_list' | 'ranking'
+  tiers?: TierDef[] // 'tier_list' | 'ranking' (tiers "especiales"; el resto cae en una tier implícita "media")
   home_team?: string // 'score_prediction'
   away_team?: string // 'score_prediction'
 }
@@ -55,7 +55,8 @@ export interface SeasonQuestion {
 // - choice: string (una de config.options)
 // - tier_list: Record<item_id, tier_id>  (los que faltan se consideran en la tier "media" implícita)
 // - score_prediction: { home: number; away: number }
-export type AnswerValue = string | Record<string, string> | { home: number; away: number }
+// - ranking: Record<item_id, position>  (posición 1..N; las zonas se derivan de la posición)
+export type AnswerValue = string | Record<string, string> | Record<string, number> | { home: number; away: number }
 
 export interface SeasonAnswer {
   id: string

@@ -184,12 +184,12 @@ function CreateQuestionSection() {
     await loadRecent()
   }
 
-  async function seedLaligaTierList() {
+  async function seedLaligaRanking() {
     setSeeding(true)
     await supabase.from('season_questions').insert({
       competition: 'liga',
-      question: '¿Cómo va a quedar la Liga? Coloca cada equipo en su categoría',
-      answer_type: 'tier_list',
+      question: '¿Cómo va a quedar la Liga? Ordena los 20 equipos del 1º al 20º',
+      answer_type: 'ranking',
       phase: 'initial',
       config: { items: LALIGA_TEAMS_2026_27, tiers: DEFAULT_TIERS },
       points: 5,
@@ -199,19 +199,25 @@ function CreateQuestionSection() {
     await loadRecent()
   }
 
+  async function deleteQuestion(q: SeasonQuestion) {
+    if (!confirm(`¿Borrar "${q.question}"? Se eliminan también todas las respuestas dadas. Esto no se puede deshacer.`)) return
+    await supabase.from('season_questions').delete().eq('id', q.id)
+    await loadRecent()
+  }
+
   return (
     <section>
       <div className="mb-4 flex items-center justify-between rounded border border-blue-200 bg-blue-50 p-4">
         <div className="text-sm">
-          <p className="font-medium">Tier list de Liga (apuesta inicial fija)</p>
+          <p className="font-medium">Clasificación de Liga 1º-20º (apuesta inicial fija)</p>
           <p className="text-gray-500">Crea la pregunta con los 20 equipos de La Liga 2026/27 ya cargados.</p>
         </div>
         <button
-          onClick={seedLaligaTierList}
+          onClick={seedLaligaRanking}
           disabled={seeding}
           className="shrink-0 rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          Crear tier list de Liga
+          Crear clasificación de Liga
         </button>
       </div>
 
@@ -285,11 +291,19 @@ function CreateQuestionSection() {
         <p className="mb-2 text-xs font-medium text-gray-500">Últimas creadas</p>
         <div className="flex flex-col gap-1.5">
           {recent.map((q) => (
-            <div key={q.id} className="rounded border border-gray-200 bg-white p-2.5 text-sm">
-              <span className={`mr-1 rounded px-1.5 py-0.5 text-xs ${q.phase === 'initial' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>
-                {q.phase === 'initial' ? 'Inicial' : 'Semana'}
+            <div key={q.id} className="flex items-center justify-between gap-2 rounded border border-gray-200 bg-white p-2.5 text-sm">
+              <span>
+                <span className={`mr-1 rounded px-1.5 py-0.5 text-xs ${q.phase === 'initial' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {q.phase === 'initial' ? 'Inicial' : 'Semana'}
+                </span>
+                [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
               </span>
-              [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
+              <button
+                onClick={() => deleteQuestion(q)}
+                className="shrink-0 text-xs text-red-600 hover:underline"
+              >
+                Borrar
+              </button>
             </div>
           ))}
         </div>

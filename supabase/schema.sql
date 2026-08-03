@@ -86,7 +86,7 @@ create table if not exists public.season_questions (
   competition text not null,          -- 'liga' | 'champions' | otros
   question text not null,
   answer_type text not null default 'text'
-    check (answer_type in ('text', 'choice', 'tier_list', 'score_prediction')),
+    check (answer_type in ('text', 'choice', 'tier_list', 'score_prediction', 'ranking')),
   config jsonb not null default '{}'::jsonb, -- config específica del tipo (items/tiers, equipos...)
   phase text not null default 'initial' check (phase in ('initial', 'weekly')), -- 'initial' = fija, pestaña Apuestas iniciales | 'weekly' = mitad de temporada, pestaña Apuestas de la semana
   points int not null default 1,      -- puntos máximos orientativos (la puntuación real es manual)
@@ -486,6 +486,22 @@ as $$
   where q.id = p_question_id
   group by 1, 2
   order by 1, count(*) desc;
+$$;
+
+-- El oráculo: recuentos agregados por equipo/posición para tipo "ranking"
+-- (posición 1º-20º); las zonas se calculan en el cliente a partir de la posición.
+create or replace function public.oracle_ranking_counts(p_question_id uuid)
+returns table(team_id text, position int, cnt bigint)
+language sql
+stable
+security definer set search_path = public
+as $$
+  select kv.key as team_id, (kv.value #>> '{}')::int as position, count(*)::bigint as cnt
+  from public.season_answers sa,
+       jsonb_each(sa.answer) as kv(key, value)
+  where sa.question_id = p_question_id
+  group by kv.key, kv.value
+  order by kv.key, count(*) desc;
 $$;
 
 -- Borrar un usuario (cascada limpia perfil, respuestas y apuestas)

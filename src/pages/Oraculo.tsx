@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type SeasonQuestion } from '../lib/database.types'
+import { zoneForPosition } from '../lib/rankingZones'
 
 interface AnswerCountRow {
   answer_value: unknown
@@ -10,6 +11,12 @@ interface AnswerCountRow {
 interface TierCountRow {
   team_id: string
   tier_id: string
+  cnt: number
+}
+
+interface RankingCountRow {
+  team_id: string
+  position: number
   cnt: number
 }
 
@@ -74,6 +81,29 @@ export default function Oraculo() {
               result.push({ team_id: teamId, tier_id: top.tier_id, pct: total > 0 ? (Number(top.cnt) / total) * 100 : 0 })
             }
             tiers[q.id] = result
+          } else if (q.answer_type === 'ranking') {
+            const { data } = await supabase.rpc('oracle_ranking_counts', { p_question_id: q.id })
+            const rows = (data as RankingCountRow[]) ?? []
+            const questionTiers = q.config.tiers ?? []
+            const total = q.config.items?.length ?? 20
+
+            // Reagrupa cada (equipo, posición, cnt) a (equipo, zona, cnt) usando la
+            // misma regla que la UI de respuesta, y luego coge la zona más votada.
+            const byTeam = new Map<string, Map<string, number>>()
+            for (const r of rows) {
+              const zone = zoneForPosition(Number(r.position), questionTiers, total)
+              if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, new Map())
+              const zoneCounts = byTeam.get(r.team_id)!
+              zoneCounts.set(zone.id, (zoneCounts.get(zone.id) ?? 0) + Number(r.cnt))
+            }
+            const result: TierStat[] = []
+            for (const [teamId, zoneCounts] of byTeam) {
+              const entries = [...zoneCounts.entries()]
+              const totalVotes = entries.reduce((s, [, c]) => s + c, 0)
+              const [topZoneId, topCnt] = entries.reduce((a, b) => (b[1] > a[1] ? b : a))
+              result.push({ team_id: teamId, tier_id: topZoneId, pct: totalVotes > 0 ? (topCnt / totalVotes) * 100 : 0 })
+            }
+            tiers[q.id] = result
           } else {
             const { data } = await supabase.rpc('oracle_answer_counts', { p_question_id: q.id })
             const rows = (data as AnswerCountRow[]) ?? []
@@ -111,7 +141,7 @@ export default function Oraculo() {
           <p className="mb-1 text-xs uppercase text-gray-400">{q.competition}</p>
           <p className="mb-3 font-medium">{q.question}</p>
 
-          {q.answer_type === 'tier_list' ? (
+          {q.answer_type === 'tier_list' || q.answer_type === 'ranking' ? (
             (tierStats[q.id]?.length ?? 0) === 0 ? (
               <p className="text-sm text-gray-400">Todavía no hay respuestas.</p>
             ) : (

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import TierListAnswer from './TierListAnswer'
+import RankingAnswer from './RankingAnswer'
 import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
 
 // Variante totalmente controlada, sin guardado automático ni botones propios de "Guardar":
@@ -17,6 +18,18 @@ export function QuestionDraftInput({
     const current = (value as Record<string, string>) ?? {}
     return (
       <TierListAnswer
+        items={question.config.items ?? []}
+        tiers={question.config.tiers ?? []}
+        value={current}
+        onChange={onChange}
+      />
+    )
+  }
+
+  if (question.answer_type === 'ranking') {
+    const current = (value as Record<string, number>) ?? {}
+    return (
+      <RankingAnswer
         items={question.config.items ?? []}
         tiers={question.config.tiers ?? []}
         value={current}
@@ -99,6 +112,18 @@ export function QuestionInput({
     const current = (value as Record<string, string>) ?? {}
     return (
       <TierListAnswer
+        items={question.config.items ?? []}
+        tiers={question.config.tiers ?? []}
+        value={current}
+        onChange={(next) => onSave(next)}
+      />
+    )
+  }
+
+  if (question.answer_type === 'ranking') {
+    const current = (value as Record<string, number>) ?? {}
+    return (
+      <RankingAnswer
         items={question.config.items ?? []}
         tiers={question.config.tiers ?? []}
         value={current}
