@@ -16,6 +16,9 @@ export default function Navbar() {
         <NavLink to="/apuestas-iniciales" className={linkClass}>
           Apuestas iniciales
         </NavLink>
+        <NavLink to="/apuestas-semana" className={linkClass}>
+          Apuestas de la semana
+        </NavLink>
         <NavLink to="/jornadas" className={linkClass}>
           Jornadas
         </NavLink>

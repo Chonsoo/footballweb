@@ -34,6 +34,8 @@ export interface QuestionConfig {
   away_team?: string // 'score_prediction'
 }
 
+export type QuestionPhase = 'initial' | 'weekly'
+
 export interface SeasonQuestion {
   id: string
   competition: string
@@ -41,6 +43,7 @@ export interface SeasonQuestion {
   answer_type: AnswerType
   config: QuestionConfig
   points: number
+  phase: QuestionPhase
   closes_at: string | null
   created_at: string
 }

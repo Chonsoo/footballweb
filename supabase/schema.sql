@@ -61,6 +61,7 @@ create table if not exists public.season_questions (
   answer_type text not null default 'text'
     check (answer_type in ('text', 'choice', 'tier_list', 'score_prediction')),
   config jsonb not null default '{}'::jsonb, -- config específica del tipo (items/tiers, equipos...)
+  phase text not null default 'initial' check (phase in ('initial', 'weekly')), -- 'initial' = fija, pestaña Apuestas iniciales | 'weekly' = mitad de temporada, pestaña Apuestas de la semana
   points int not null default 1,      -- puntos máximos orientativos (la puntuación real es manual)
   closes_at timestamptz,              -- deadline, null = abierto indefinidamente
   created_at timestamptz not null default now()
@@ -407,6 +408,23 @@ begin
     else 0
   end
   where match_id = p_match_id;
+end;
+$$;
+
+-- Borrar un usuario (cascada limpia perfil, respuestas y apuestas)
+create or replace function public.delete_user(p_user_id uuid)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+  if p_user_id = auth.uid() then
+    raise exception 'no puedes borrarte a ti mismo';
+  end if;
+  delete from auth.users where id = p_user_id;
 end;
 $$;
 

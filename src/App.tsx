@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Ranking from './pages/Ranking'
 import SeasonBets from './pages/SeasonBets'
+import WeeklyBets from './pages/WeeklyBets'
 import Matchdays from './pages/Matchdays'
 import MatchdayDetail from './pages/MatchdayDetail'
 import Admin from './pages/Admin'
@@ -32,6 +33,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <SeasonBets />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/apuestas-semana"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <WeeklyBets />
               </Layout>
             </ProtectedRoute>
           }

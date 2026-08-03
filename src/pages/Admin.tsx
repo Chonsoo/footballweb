@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import { formatAnswer } from '../lib/answerFormat'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type {
   AnswerType,
   AnswerValue,
@@ -8,19 +10,12 @@ import type {
   Matchday,
   Profile,
   QuestionConfig,
+  QuestionPhase,
   SeasonAnswer,
   SeasonQuestion,
   SeasonResult,
   TierDef,
-  TierItem,
 } from '../lib/database.types'
-
-const DEFAULT_LIGA_TEAMS = [
-  'Real Madrid', 'Barcelona', 'Atlético de Madrid', 'Athletic Club', 'Real Sociedad',
-  'Real Betis', 'Villarreal', 'Valencia', 'Sevilla', 'Girona',
-  'Osasuna', 'Celta de Vigo', 'Rayo Vallecano', 'Getafe', 'Mallorca',
-  'Alavés', 'Las Palmas', 'Espanyol', 'Leganés', 'Valladolid',
-]
 
 const DEFAULT_TIERS: TierDef[] = [
   { id: 'campeon', label: 'Campeón', max: 1 },
@@ -29,19 +24,47 @@ const DEFAULT_TIERS: TierDef[] = [
   { id: 'descenso', label: 'Descenso', max: 3 },
 ]
 
+type Tab = 'users' | 'create' | 'resolve' | 'matchdays'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'users', label: 'Usuarios' },
+  { id: 'create', label: 'Crear apuesta' },
+  { id: 'resolve', label: 'Resolver apuestas' },
+  { id: 'matchdays', label: 'Jornadas y partidos' },
+]
+
 export default function Admin() {
+  const [tab, setTab] = useState<Tab>('users')
+
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Panel de administración</h1>
-      <UsersSection />
-      <SeasonQuestionsSection />
-      <MatchdaysSection />
+
+      <div className="flex flex-wrap gap-1 border-b border-gray-200">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-t px-3 py-2 text-sm font-medium ${
+              tab === t.id ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'users' && <UsersSection />}
+      {tab === 'create' && <CreateQuestionSection />}
+      {tab === 'resolve' && <ResolveQuestionsSection />}
+      {tab === 'matchdays' && <MatchdaysSection />}
     </div>
   )
 }
 
 // ---------------- Usuarios / admins ----------------
 function UsersSection() {
+  const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -57,6 +80,16 @@ function UsersSection() {
 
   async function toggleAdmin(u: Profile) {
     await supabase.rpc('set_user_admin', { p_user_id: u.id, p_is_admin: !u.is_admin })
+    await load()
+  }
+
+  async function removeUser(u: Profile) {
+    if (!confirm(`¿Borrar a ${u.username}? Se eliminan también todas sus apuestas. Esto no se puede deshacer.`)) return
+    const { error } = await supabase.rpc('delete_user', { p_user_id: u.id })
+    if (error) {
+      alert(error.message)
+      return
+    }
     await load()
   }
 
@@ -80,9 +113,16 @@ function UsersSection() {
                 <td className="px-4 py-2">{u.username}</td>
                 <td className="px-4 py-2">{u.is_admin ? 'Sí' : 'No'}</td>
                 <td className="px-4 py-2 text-right">
-                  <button onClick={() => toggleAdmin(u)} className="text-blue-600 hover:underline">
-                    {u.is_admin ? 'Quitar admin' : 'Hacer admin'}
-                  </button>
+                  <div className="flex items-center justify-end gap-3">
+                    <button onClick={() => toggleAdmin(u)} className="text-blue-600 hover:underline">
+                      {u.is_admin ? 'Quitar admin' : 'Hacer admin'}
+                    </button>
+                    {u.id !== currentUser?.id && (
+                      <button onClick={() => removeUser(u)} className="text-red-600 hover:underline">
+                        Borrar
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -93,33 +133,29 @@ function UsersSection() {
   )
 }
 
-// ---------------- Preguntas de apuestas (iniciales y de mitad de temporada) ----------------
-function SeasonQuestionsSection() {
-  const [questions, setQuestions] = useState<SeasonQuestion[]>([])
-  const [answers, setAnswers] = useState<(SeasonAnswer & { profile?: Profile })[]>([])
-  const [results, setResults] = useState<SeasonResult[]>([])
-  const [expanded, setExpanded] = useState<string | null>(null)
-
+// ---------------- Crear apuesta ----------------
+function CreateQuestionSection() {
   const [competition, setCompetition] = useState('liga')
   const [question, setQuestion] = useState('')
   const [answerType, setAnswerType] = useState<AnswerType>('text')
+  const [phase, setPhase] = useState<QuestionPhase>('weekly')
   const [points, setPoints] = useState(1)
   const [closesAt, setClosesAt] = useState('')
   const [config, setConfig] = useState<QuestionConfig>({})
+  const [seeding, setSeeding] = useState(false)
+  const [recent, setRecent] = useState<SeasonQuestion[]>([])
 
-  async function load() {
-    const [{ data: qs }, { data: as_ }, { data: rs }] = await Promise.all([
-      supabase.from('season_questions').select('*').order('created_at', { ascending: true }),
-      supabase.from('season_answers').select('*, profile:profiles(*)'),
-      supabase.from('season_results').select('*'),
-    ])
-    setQuestions((qs as SeasonQuestion[]) ?? [])
-    setAnswers((as_ as (SeasonAnswer & { profile?: Profile })[]) ?? [])
-    setResults((rs as SeasonResult[]) ?? [])
+  async function loadRecent() {
+    const { data } = await supabase
+      .from('season_questions')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(8)
+    setRecent((data as SeasonQuestion[]) ?? [])
   }
 
   useEffect(() => {
-    load()
+    loadRecent()
   }, [])
 
   async function addQuestion() {
@@ -128,6 +164,7 @@ function SeasonQuestionsSection() {
       competition,
       question,
       answer_type: answerType,
+      phase,
       config,
       points,
       closes_at: closesAt ? new Date(closesAt).toISOString() : null,
@@ -137,12 +174,45 @@ function SeasonQuestionsSection() {
     setClosesAt('')
     setConfig({})
     setAnswerType('text')
-    await load()
+    await loadRecent()
+  }
+
+  async function seedLaligaTierList() {
+    setSeeding(true)
+    await supabase.from('season_questions').insert({
+      competition: 'liga',
+      question: '¿Cómo va a quedar la Liga? Coloca cada equipo en su categoría',
+      answer_type: 'tier_list',
+      phase: 'initial',
+      config: { items: LALIGA_TEAMS_2026_27, tiers: DEFAULT_TIERS },
+      points: 5,
+      closes_at: null,
+    })
+    setSeeding(false)
+    await loadRecent()
   }
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-medium">Apuestas (iniciales y de mitad de temporada)</h2>
+      <div className="mb-4 flex items-center justify-between rounded border border-blue-200 bg-blue-50 p-4">
+        <div className="text-sm">
+          <p className="font-medium">Tier list de Liga (apuesta inicial fija)</p>
+          <p className="text-gray-500">Crea la pregunta con los 20 equipos de La Liga 2026/27 ya cargados.</p>
+        </div>
+        <button
+          onClick={seedLaligaTierList}
+          disabled={seeding}
+          className="shrink-0 rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+        >
+          Crear tier list de Liga
+        </button>
+      </div>
+
+      <p className="mb-2 text-sm text-gray-500">
+        El resto de preguntas (texto, opción o predicción de resultado) se crean aquí. Márcalas como
+        <strong> Inicial</strong> si son fijas desde el principio, o <strong>Semana</strong> si las vas añadiendo
+        durante la temporada ligadas a un partido/jornada.
+      </p>
 
       <div className="mb-4 flex flex-col gap-3 rounded border border-gray-200 bg-white p-4">
         <div className="flex flex-wrap items-end gap-2">
@@ -150,6 +220,14 @@ function SeasonQuestionsSection() {
             <option value="liga">Liga</option>
             <option value="champions">Champions</option>
             <option value="otros">Otros</option>
+          </select>
+          <select
+            value={phase}
+            onChange={(e) => setPhase(e.target.value as QuestionPhase)}
+            className="rounded border border-gray-300 px-2 py-2 text-sm"
+          >
+            <option value="weekly">Semana</option>
+            <option value="initial">Inicial</option>
           </select>
           <select
             value={answerType}
@@ -161,7 +239,6 @@ function SeasonQuestionsSection() {
           >
             <option value="text">Texto libre</option>
             <option value="choice">Elegir una opción</option>
-            <option value="tier_list">Tier list (colocar equipos)</option>
             <option value="score_prediction">Predicción de resultado</option>
           </select>
           <input
@@ -197,32 +274,18 @@ function SeasonQuestionsSection() {
         </button>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {questions.map((q) => {
-          const qAnswers = answers.filter((a) => a.question_id === q.id)
-          const qResult = results.find((r) => r.question_id === q.id)
-          const isOpen = expanded === q.id
-          return (
-            <div key={q.id} className="rounded border border-gray-200 bg-white text-sm">
-              <button
-                onClick={() => setExpanded(isOpen ? null : q.id)}
-                className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left"
-              >
-                <span>
-                  [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
-                  {' · '}
-                  {qAnswers.length} respuesta{qAnswers.length === 1 ? '' : 's'}
-                </span>
-                <span className="text-gray-400">{isOpen ? '▲' : '▼'}</span>
-              </button>
-              {isOpen && (
-                <div className="border-t border-gray-100 p-3">
-                  <GradingPanel question={q} answers={qAnswers} result={qResult} onChanged={load} />
-                </div>
-              )}
+      <div>
+        <p className="mb-2 text-xs font-medium text-gray-500">Últimas creadas</p>
+        <div className="flex flex-col gap-1.5">
+          {recent.map((q) => (
+            <div key={q.id} className="rounded border border-gray-200 bg-white p-2.5 text-sm">
+              <span className={`mr-1 rounded px-1.5 py-0.5 text-xs ${q.phase === 'initial' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>
+                {q.phase === 'initial' ? 'Inicial' : 'Semana'}
+              </span>
+              [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
             </div>
-          )
-        })}
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -269,10 +332,6 @@ function ConfigBuilder({
     )
   }
 
-  if (answerType === 'tier_list') {
-    return <TierListBuilder config={config} onChange={onChange} />
-  }
-
   return null
 }
 
@@ -314,127 +373,81 @@ function OptionsBuilder({ options, onChange }: { options: string[]; onChange: (o
   )
 }
 
-function TierListBuilder({ config, onChange }: { config: QuestionConfig; onChange: (c: QuestionConfig) => void }) {
-  const items = config.items ?? []
-  const tiers = config.tiers ?? []
-  const [itemName, setItemName] = useState('')
-  const [itemBadge, setItemBadge] = useState('')
-  const [tierLabel, setTierLabel] = useState('')
-  const [tierMax, setTierMax] = useState('')
+// ---------------- Resolver apuestas ----------------
+function ResolveQuestionsSection() {
+  const [questions, setQuestions] = useState<SeasonQuestion[]>([])
+  const [answers, setAnswers] = useState<(SeasonAnswer & { profile?: Profile })[]>([])
+  const [results, setResults] = useState<SeasonResult[]>([])
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'all' | QuestionPhase>('all')
 
-  function addItem() {
-    if (!itemName.trim()) return
-    const id = itemName.trim().toLowerCase().replace(/\s+/g, '-')
-    const newItem: TierItem = { id, name: itemName.trim(), badge: itemBadge.trim() || undefined }
-    onChange({ ...config, items: [...items, newItem] })
-    setItemName('')
-    setItemBadge('')
+  async function load() {
+    const [{ data: qs }, { data: as_ }, { data: rs }] = await Promise.all([
+      supabase.from('season_questions').select('*').order('created_at', { ascending: false }),
+      supabase.from('season_answers').select('*, profile:profiles(*)'),
+      supabase.from('season_results').select('*'),
+    ])
+    setQuestions((qs as SeasonQuestion[]) ?? [])
+    setAnswers((as_ as (SeasonAnswer & { profile?: Profile })[]) ?? [])
+    setResults((rs as SeasonResult[]) ?? [])
   }
 
-  function useDefaultTeams() {
-    const newItems: TierItem[] = DEFAULT_LIGA_TEAMS.map((name) => ({
-      id: name.toLowerCase().replace(/\s+/g, '-'),
-      name,
-    }))
-    onChange({ ...config, items: newItems })
-  }
+  useEffect(() => {
+    load()
+  }, [])
 
-  function addTier() {
-    if (!tierLabel.trim()) return
-    const id = tierLabel.trim().toLowerCase().replace(/\s+/g, '-')
-    const newTier: TierDef = { id, label: tierLabel.trim(), max: tierMax ? Number(tierMax) : null }
-    onChange({ ...config, tiers: [...tiers, newTier] })
-    setTierLabel('')
-    setTierMax('')
-  }
-
-  function useDefaultTiers() {
-    onChange({ ...config, tiers: DEFAULT_TIERS })
-  }
+  const visible = questions.filter((q) => filter === 'all' || q.phase === filter)
 
   return (
-    <div className="flex flex-col gap-3 rounded border border-gray-100 bg-gray-50 p-3">
-      <div>
-        <p className="mb-1 text-xs font-medium text-gray-500">Equipos a colocar</p>
-        <div className="mb-1 flex flex-wrap gap-2">
-          <input
-            type="text"
-            placeholder="Nombre del equipo"
-            value={itemName}
-            onChange={(e) => setItemName(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="URL escudo (opcional)"
-            value={itemBadge}
-            onChange={(e) => setItemBadge(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-          />
-          <button type="button" onClick={addItem} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
-            Añadir equipo
+    <section>
+      <div className="mb-3 flex items-center gap-2 text-sm">
+        <span className="text-gray-500">Filtrar:</span>
+        {(['all', 'initial', 'weekly'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full border px-3 py-1 ${filter === f ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 text-gray-600'}`}
+          >
+            {f === 'all' ? 'Todas' : f === 'initial' ? 'Iniciales' : 'Semana'}
           </button>
-          <button type="button" onClick={useDefaultTeams} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
-            Usar los 20 de Liga
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((it) => (
-            <span key={it.id} className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs">
-              {it.name}
-              <button
-                type="button"
-                onClick={() => onChange({ ...config, items: items.filter((x) => x.id !== it.id) })}
-                className="text-gray-400"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
+        ))}
       </div>
 
-      <div>
-        <p className="mb-1 text-xs font-medium text-gray-500">Categorías (aparte de "Media tabla", que se rellena sola)</p>
-        <div className="mb-1 flex flex-wrap gap-2">
-          <input
-            type="text"
-            placeholder="Nombre categoría"
-            value={tierLabel}
-            onChange={(e) => setTierLabel(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-          />
-          <input
-            type="number"
-            min={1}
-            placeholder="Máx."
-            value={tierMax}
-            onChange={(e) => setTierMax(e.target.value)}
-            className="w-20 rounded border border-gray-300 px-2 py-1.5 text-sm"
-          />
-          <button type="button" onClick={addTier} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
-            Añadir categoría
-          </button>
-          <button type="button" onClick={useDefaultTiers} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
-            Usar categorías típicas
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {tiers.map((t) => (
-            <span key={t.id} className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs">
-              {t.label} {t.max != null ? `(máx ${t.max})` : ''}
+      <div className="flex flex-col gap-2">
+        {visible.length === 0 && <p className="text-sm text-gray-400">No hay preguntas.</p>}
+        {visible.map((q) => {
+          const qAnswers = answers.filter((a) => a.question_id === q.id)
+          const qResult = results.find((r) => r.question_id === q.id)
+          const isOpen = expanded === q.id
+          return (
+            <div key={q.id} className="rounded border border-gray-200 bg-white text-sm">
               <button
-                type="button"
-                onClick={() => onChange({ ...config, tiers: tiers.filter((x) => x.id !== t.id) })}
-                className="text-gray-400"
+                onClick={() => setExpanded(isOpen ? null : q.id)}
+                className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left"
               >
-                ×
+                <span>
+                  <span className={`mr-1 rounded px-1.5 py-0.5 text-xs ${q.phase === 'initial' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {q.phase === 'initial' ? 'Inicial' : 'Semana'}
+                  </span>
+                  <span className={`mr-1 rounded px-1.5 py-0.5 text-xs ${qResult ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {qResult ? 'Resuelta' : 'Pendiente'}
+                  </span>
+                  [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
+                  {' · '}
+                  {qAnswers.length} respuesta{qAnswers.length === 1 ? '' : 's'}
+                </span>
+                <span className="text-gray-400">{isOpen ? '▲' : '▼'}</span>
               </button>
-            </span>
-          ))}
-        </div>
+              {isOpen && (
+                <div className="border-t border-gray-100 p-3">
+                  <GradingPanel question={q} answers={qAnswers} result={qResult} onChanged={load} />
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -625,8 +638,6 @@ function MatchdaysSection() {
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-medium">Jornadas y partidos</h2>
-
       <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-white p-4">
         <select value={competition} onChange={(e) => setCompetition(e.target.value)} className="rounded border border-gray-300 px-2 py-2 text-sm">
           <option value="liga">Liga</option>

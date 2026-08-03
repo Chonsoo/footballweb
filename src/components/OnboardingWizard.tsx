@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { QuestionInput } from '../pages/SeasonBets'
+import { QuestionInput } from './QuestionInput'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
@@ -18,6 +18,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
       const { data: qs } = await supabase
         .from('season_questions')
         .select('*')
+        .eq('phase', 'initial')
         .or(`closes_at.is.null,closes_at.gt.${now}`)
         .order('created_at', { ascending: true })
 
