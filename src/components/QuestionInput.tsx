@@ -4,7 +4,16 @@ import RankingAnswer from './RankingAnswer'
 import TeamSelect from './TeamSelect'
 import { findTeamBadge } from '../lib/teamBadge'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/database.types'
+
+// Color del botón "Guardar": verde si ya hay una respuesta guardada para
+// esta pregunta (para que se note de un vistazo lo que ya está hecho),
+// azul si todavía no se ha contestado.
+const SAVE_BTN_CLASS = {
+  answered: 'bg-green-600 hover:bg-green-700',
+  unanswered: 'bg-blue-600 hover:bg-blue-700',
+}
 
 // Para preguntas 'choice' que piden un equipo (config.team_ids presente): lista de
 // equipos filtrada a esos ids, respetando el orden dado.
@@ -171,6 +180,7 @@ export function QuestionInput({
         awayTeam={question.config.away_team ?? 'Visitante'}
         value={current}
         saving={saving}
+        answered={isAnswerComplete(question, value)}
         onSave={onSave}
       />
     )
@@ -209,35 +219,43 @@ export function QuestionInput({
   }
 
   // text
-  return <TextInput value={(value as string) ?? ''} saving={saving} onSave={onSave} />
+  return <TextInput value={(value as string) ?? ''} saving={saving} answered={isAnswerComplete(question, value)} onSave={onSave} />
 }
 
 function TextInput({
   value,
   saving,
+  answered,
   onSave,
 }: {
   value: string
   saving: boolean
+  answered: boolean
   onSave: (value: AnswerValue) => void
 }) {
   const [draft, setDraft] = useState(value)
+  const hasUnsaved = draft.trim() !== value.trim()
   return (
-    <div className="flex gap-2">
-      <input
-        type="text"
-        defaultValue={value}
-        placeholder="Tu respuesta"
-        onChange={(e) => setDraft(e.target.value)}
-        className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
-      />
-      <button
-        onClick={() => draft.trim() && onSave(draft.trim())}
-        disabled={saving}
-        className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
-        Guardar
-      </button>
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          defaultValue={value}
+          placeholder="Tu respuesta"
+          onChange={(e) => setDraft(e.target.value)}
+          className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+        />
+        <button
+          onClick={() => draft.trim() && onSave(draft.trim())}
+          disabled={saving}
+          className={`rounded px-3 py-2 text-sm font-medium text-white disabled:opacity-50 ${
+            answered ? SAVE_BTN_CLASS.answered : SAVE_BTN_CLASS.unanswered
+          }`}
+        >
+          Guardar
+        </button>
+      </div>
+      {hasUnsaved && <p className="text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
     </div>
   )
 }
@@ -247,12 +265,14 @@ function ScorePredictionInput({
   awayTeam,
   value,
   saving,
+  answered,
   onSave,
 }: {
   homeTeam: string
   awayTeam: string
   value: { home: number; away: number }
   saving: boolean
+  answered: boolean
   onSave: (value: AnswerValue) => void
 }) {
   const [home, setHome] = useState(value.home)
@@ -279,7 +299,9 @@ function ScorePredictionInput({
       <button
         onClick={() => onSave({ home, away })}
         disabled={saving}
-        className="shrink-0 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+        className={`shrink-0 rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
+          answered ? SAVE_BTN_CLASS.answered : SAVE_BTN_CLASS.unanswered
+        }`}
       >
         Guardar
       </button>
