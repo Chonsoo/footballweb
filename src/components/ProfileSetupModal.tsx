@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import TeamSelect from './TeamSelect'
 
 export default function ProfileSetupModal() {
   const { profile, refreshProfile } = useAuth()
@@ -49,21 +50,7 @@ export default function ProfileSetupModal() {
 
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">Equipo favorito de La Liga</label>
-          <select
-            required
-            value={favoriteTeam}
-            onChange={(e) => setFavoriteTeam(e.target.value)}
-            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-          >
-            <option value="" disabled>
-              Elige un equipo…
-            </option>
-            {LALIGA_TEAMS_2026_27.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <TeamSelect teams={LALIGA_TEAMS_2026_27} value={favoriteTeam} onChange={setFavoriteTeam} />
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
