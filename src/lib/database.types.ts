@@ -8,6 +8,7 @@ export interface Profile {
   is_admin: boolean
   onboarding_completed: boolean
   email_confirmed: boolean
+  favorite_team: string | null
   created_at: string
 }
 

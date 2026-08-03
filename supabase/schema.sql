@@ -18,6 +18,9 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists email_confirmed boolean not null default false;
 
+alter table public.profiles
+  add column if not exists favorite_team text;
+
 alter table public.profiles enable row level security;
 
 create policy "profiles: select all authenticated"
@@ -318,6 +321,20 @@ begin
     raise exception 'not authorized';
   end if;
   update public.profiles set is_admin = p_is_admin where id = p_user_id;
+end;
+$$;
+
+-- Guarda username + equipo favorito de una vez (popup de bienvenida tras el primer login)
+create or replace function public.complete_profile(p_username text, p_favorite_team text)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  update public.profiles
+  set username = p_username,
+      favorite_team = p_favorite_team
+  where id = auth.uid();
 end;
 $$;
 
