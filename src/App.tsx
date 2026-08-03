@@ -10,6 +10,11 @@ import WeeklyBets from './pages/WeeklyBets'
 import Matchdays from './pages/Matchdays'
 import MatchdayDetail from './pages/MatchdayDetail'
 import Admin from './pages/Admin'
+import Oraculo from './pages/Oraculo'
+import MisApuestas from './pages/MisApuestas'
+import ApuestasDetalladas from './pages/ApuestasDetalladas'
+import Informacion from './pages/Informacion'
+import Reglamento from './pages/Reglamento'
 
 export default function App() {
   return (
@@ -43,6 +48,56 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <WeeklyBets />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/oraculo"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Oraculo />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mis-apuestas"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <MisApuestas />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/apuestas-detalladas"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ApuestasDetalladas />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/informacion"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Informacion />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reglamento"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Reglamento />
               </Layout>
             </ProtectedRoute>
           }

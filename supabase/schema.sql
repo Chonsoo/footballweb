@@ -453,6 +453,41 @@ begin
 end;
 $$;
 
+-- El oráculo: recuentos agregados (sin exponer votos individuales) para
+-- texto/opción/marcador.
+create or replace function public.oracle_answer_counts(p_question_id uuid)
+returns table(answer_value jsonb, cnt bigint)
+language sql
+stable
+security definer set search_path = public
+as $$
+  select answer, count(*)::bigint as cnt
+  from public.season_answers
+  where question_id = p_question_id
+  group by answer
+  order by count(*) desc;
+$$;
+
+-- El oráculo: recuentos agregados por equipo/categoría para tier list
+-- (equipo no colocado explícitamente = "media", igual que hace la UI).
+create or replace function public.oracle_tier_counts(p_question_id uuid)
+returns table(team_id text, tier_id text, cnt bigint)
+language sql
+stable
+security definer set search_path = public
+as $$
+  select
+    it ->> 'id' as team_id,
+    coalesce(sa.answer ->> (it ->> 'id'), 'media') as tier_id,
+    count(*)::bigint as cnt
+  from public.season_questions q
+  cross join lateral jsonb_array_elements(coalesce(q.config -> 'items', '[]'::jsonb)) as it
+  join public.season_answers sa on sa.question_id = q.id
+  where q.id = p_question_id
+  group by 1, 2
+  order by 1, count(*) desc;
+$$;
+
 -- Borrar un usuario (cascada limpia perfil, respuestas y apuestas)
 create or replace function public.delete_user(p_user_id uuid)
 returns void
