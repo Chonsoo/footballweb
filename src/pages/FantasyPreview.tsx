@@ -45,7 +45,8 @@ const MOCK_PLAYERS = MOCK_PLAYERS_ALL.filter((p) => p.eligible_abuelonchos)
 
 export default function FantasyPreview() {
   const [value, setValue] = useState<Record<string, string>>({})
-  const slots = buildFantasySlots(DEFAULT_FANTASY_FORMATION)
+  const [formation, setFormation] = useState(DEFAULT_FANTASY_FORMATION)
+  const slots = buildFantasySlots(formation)
   const complete = Object.keys(value).length === slots.length
 
   return (
@@ -57,16 +58,19 @@ export default function FantasyPreview() {
 
       <h1 className="text-xl font-semibold">Prueba: selector del 11 ideal</h1>
       <p className="text-sm text-gray-500">
-        Formación por defecto: 1 portero, {DEFAULT_FANTASY_FORMATION.DEF} defensas, {DEFAULT_FANTASY_FORMATION.MED}{' '}
-        centrocampistas, {DEFAULT_FANTASY_FORMATION.DEL} delanteros. Huecos rellenados: {Object.keys(value).length}/
-        {slots.length} {complete && '✅'}
+        Huecos rellenados: {Object.keys(value).length}/{slots.length} {complete && '✅'}
       </p>
 
       <FantasyLineupPicker
         players={MOCK_PLAYERS}
-        formation={DEFAULT_FANTASY_FORMATION}
+        formation={formation}
         value={value}
         onChange={setValue}
+        onFormationChange={(next) => {
+          const validKeys = new Set(buildFantasySlots(next).map((s) => `${s.position}-${s.index}`))
+          setValue((v) => Object.fromEntries(Object.entries(v).filter(([, key]) => validKeys.has(key))))
+          setFormation(next)
+        }}
       />
     </div>
   )

@@ -42,6 +42,28 @@ export interface FantasyFormation {
 
 export const DEFAULT_FANTASY_FORMATION: FantasyFormation = { DEF: 4, MED: 4, DEL: 2 }
 
+// Formaciones permitidas (todas con portero implícito + 10 jugadores de campo).
+export interface FantasyFormationOption {
+  label: string
+  formation: FantasyFormation
+}
+
+export const FANTASY_FORMATIONS: FantasyFormationOption[] = [
+  { label: '4-4-2', formation: { DEF: 4, MED: 4, DEL: 2 } },
+  { label: '4-3-3', formation: { DEF: 4, MED: 3, DEL: 3 } },
+  { label: '3-5-2', formation: { DEF: 3, MED: 5, DEL: 2 } },
+  { label: '3-4-3', formation: { DEF: 3, MED: 4, DEL: 3 } },
+  { label: '4-5-1', formation: { DEF: 4, MED: 5, DEL: 1 } },
+  { label: '5-3-2', formation: { DEF: 5, MED: 3, DEL: 2 } },
+]
+
+export function formationLabel(formation: FantasyFormation): string {
+  const match = FANTASY_FORMATIONS.find(
+    (f) => f.formation.DEF === formation.DEF && f.formation.MED === formation.MED && f.formation.DEL === formation.DEL
+  )
+  return match?.label ?? `${formation.DEF}-${formation.MED}-${formation.DEL}`
+}
+
 export interface FantasyLineup {
   id: string
   user_id: string

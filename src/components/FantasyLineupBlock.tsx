@@ -5,6 +5,7 @@ import FantasyLineupPicker from './FantasyLineupPicker'
 import {
   DEFAULT_FANTASY_FORMATION,
   buildFantasySlots,
+  slotKey,
   type FantasyFormation,
   type FantasyLineup,
   type FantasyPlayer,
@@ -99,6 +100,36 @@ export default function FantasyLineupBlock() {
     }
   }
 
+  async function handleFormationChange(nextFormation: FantasyFormation) {
+    if (!lineup) return
+    // Al cambiar de formación algunos huecos pueden desaparecer (p.ej. de
+    // 4-4-2 a 3-4-3 se pierde un DEF): a quien estuviera ahí lo devolvemos
+    // al banquillo sin colocar en vez de dejar datos huérfanos.
+    const validKeys = new Set(buildFantasySlots(nextFormation).map(slotKey))
+    const nextValue: Record<string, string> = {}
+    for (const [playerId, key] of Object.entries(value)) {
+      if (validKeys.has(key)) nextValue[playerId] = key
+    }
+
+    setLineup({ ...lineup, formation: nextFormation })
+    setValue(nextValue)
+
+    await supabase.from('fantasy_lineups').update({ formation: nextFormation }).eq('id', lineup.id)
+    await supabase.from('fantasy_lineup_players').delete().eq('lineup_id', lineup.id)
+    const rows = Object.entries(nextValue).map(([playerId, key]) => {
+      const [slot_position, slot_index] = key.split('-')
+      return {
+        lineup_id: lineup.id,
+        slot_position,
+        slot_index: Number(slot_index),
+        player_id: Number(playerId),
+      }
+    })
+    if (rows.length > 0) {
+      await supabase.from('fantasy_lineup_players').insert(rows)
+    }
+  }
+
   const formation: FantasyFormation = lineup?.formation ?? DEFAULT_FANTASY_FORMATION
   const slots = buildFantasySlots(formation)
   const filled = Object.keys(value).length
@@ -148,7 +179,13 @@ export default function FantasyLineupBlock() {
               fantasy").
             </p>
           ) : (
-            <FantasyLineupPicker players={players} formation={formation} value={value} onChange={handleChange} />
+            <FantasyLineupPicker
+              players={players}
+              formation={formation}
+              value={value}
+              onChange={handleChange}
+              onFormationChange={handleFormationChange}
+            />
           )}
         </div>
       )}

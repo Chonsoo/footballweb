@@ -823,6 +823,7 @@ function FantasyPlayersSection() {
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [showTeamIds, setShowTeamIds] = useState(false)
+  const [lastImportSummary, setLastImportSummary] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -874,25 +875,92 @@ function FantasyPlayersSection() {
     if (errors.length > 0 || rows.length === 0) return
 
     setSaving(true)
+
+    // Re-sincronizado inteligente: no es solo alta. Si un jugador pegado ya
+    // existe (mismo nombre normalizado + mismo equipo), se actualiza en vez
+    // de duplicarlo. Y para cada equipo que aparezca en el texto pegado, los
+    // jugadores que YA estaban en ese equipo pero no vienen en esta nueva
+    // lista se marcan inactivos (no se borran, para no perder puntos ya
+    // acumulados en fantasy_player_stats) — así sirve para resincronizar
+    // plantillas en ventana de fichajes pegando la lista actualizada.
+    const { data: existingData } = await supabase.from('fantasy_players').select('*')
+    const existing = (existingData as FantasyPlayer[] | null) ?? []
+    const keyOf = (name: string, teamId: string | null) => `${normalizeText(name)}|${teamId ?? ''}`
+    const existingByKey = new Map(existing.map((p) => [keyOf(p.name, p.team_id), p]))
+
+    const teamsInPaste = new Set(rows.map((r) => r.team_id))
+    const matchedIds = new Set<number>()
+    const toInsert: (Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'> & { api_player_id: number })[] = []
+    const toUpdate: { api_player_id: number; player_position: FantasyPosition; birth_date: string | null; active: boolean }[] = []
+
     // IDs sintéticos (sin API real todavía): seguimos a partir del mayor id
     // ya usado en el rango reservado 9.000.000+ para altas manuales, para no
     // chocar el día que se conecte una API real (esa usaría ids más bajos).
-    const { data: existing } = await supabase
+    const { data: maxIdData } = await supabase
       .from('fantasy_players')
       .select('api_player_id')
       .gte('api_player_id', 9000000)
       .order('api_player_id', { ascending: false })
       .limit(1)
-    let nextId = ((existing as { api_player_id: number }[] | null)?.[0]?.api_player_id ?? 9000000) + 1
+    let nextId = ((maxIdData as { api_player_id: number }[] | null)?.[0]?.api_player_id ?? 9000000) + 1
 
-    const toInsert = rows.map((r) => ({ ...r, api_player_id: nextId++ }))
-    const { error } = await supabase.from('fantasy_players').insert(toInsert)
-    setSaving(false)
-    if (error) {
-      setParseErrors([error.message])
-      return
+    for (const r of rows) {
+      const match = existingByKey.get(keyOf(r.name, r.team_id))
+      if (match) {
+        matchedIds.add(match.api_player_id)
+        toUpdate.push({
+          api_player_id: match.api_player_id,
+          player_position: r.player_position,
+          birth_date: r.birth_date,
+          active: true,
+        })
+      } else {
+        toInsert.push({ ...r, api_player_id: nextId++ })
+      }
     }
+
+    // De los equipos que aparecen en el texto pegado, quien ya no está en la
+    // lista se marca inactivo (ya no es elegible, pero conserva histórico).
+    const toDeactivate = existing.filter(
+      (p) => p.team_id != null && teamsInPaste.has(p.team_id) && p.active && !matchedIds.has(p.api_player_id)
+    )
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from('fantasy_players').insert(toInsert)
+      if (error) {
+        setSaving(false)
+        setParseErrors([error.message])
+        return
+      }
+    }
+    for (const u of toUpdate) {
+      const { error } = await supabase
+        .from('fantasy_players')
+        .update({ player_position: u.player_position, birth_date: u.birth_date, active: u.active })
+        .eq('api_player_id', u.api_player_id)
+      if (error) {
+        setSaving(false)
+        setParseErrors([error.message])
+        return
+      }
+    }
+    if (toDeactivate.length > 0) {
+      const { error } = await supabase
+        .from('fantasy_players')
+        .update({ active: false })
+        .in('api_player_id', toDeactivate.map((p) => p.api_player_id))
+      if (error) {
+        setSaving(false)
+        setParseErrors([error.message])
+        return
+      }
+    }
+
+    setSaving(false)
     setBulkText('')
+    setLastImportSummary(
+      `${toInsert.length} nuevos · ${toUpdate.length} actualizados · ${toDeactivate.length} marcados inactivos`
+    )
     await load()
   }
 
@@ -913,6 +981,9 @@ function FantasyPlayersSection() {
         línea por jugador con el formato <code className="rounded bg-gray-100 px-1">Nombre;POSICION;AAAA-MM-DD;id_equipo</code>,
         por ejemplo <code className="rounded bg-gray-100 px-1">Sergio Ramos;DEF;1986-03-30;sevilla</code>. Posiciones
         válidas: POR, DEF, MED, DEL. Solo hace falta cargar a los que la gente vaya a elegir, no toda la plantilla.
+        Si pegas una lista de un equipo que ya tenía jugadores cargados, es un re-sincronizado: los que coincidan
+        por nombre se actualizan, los nuevos se dan de alta, y los que ya no aparezcan se marcan inactivos (no se
+        borran, para no perder puntos). Útil en ventana de fichajes.
       </p>
 
       <div className="rounded border border-gray-200 bg-white p-4">
@@ -948,6 +1019,10 @@ function FantasyPlayersSection() {
               <p key={i}>{e}</p>
             ))}
           </div>
+        )}
+
+        {lastImportSummary && parseErrors.length === 0 && (
+          <p className="mt-2 rounded bg-green-50 p-2 text-xs text-green-700">{lastImportSummary}</p>
         )}
       </div>
 
