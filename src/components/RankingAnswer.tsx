@@ -57,8 +57,8 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
+    <div className="flex flex-col gap-3 md:flex-row md:items-start md:gap-4">
+      <div className="md:sticky md:top-4 md:order-2 md:w-52 md:shrink-0 lg:w-60">
         <p className="mb-1.5 text-xs font-medium text-gray-500">Equipos sin colocar ({unplaced.length})</p>
         <div
           onClick={handlePoolClick}
@@ -73,7 +73,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
         </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-gray-200">
+      <div className="overflow-hidden rounded border border-gray-200 md:order-1 md:flex-1 md:min-w-0">
         {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
           const occupant = teamAtPosition(position)
           const zone = zoneForPosition(position, tiers, total)
@@ -81,28 +81,34 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
             <div
               key={position}
               onClick={() => handlePositionClick(position)}
-              className={`flex items-center gap-2 border-b border-gray-100 px-2 py-1.5 last:border-b-0 transition-colors ${
+              className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
                 selected && !readOnly ? 'cursor-pointer hover:bg-blue-50' : ''
               }`}
             >
-              <span className={`flex h-6 w-7 shrink-0 items-center justify-center rounded text-xs font-semibold text-gray-800 ${zone.color}`}>
+              <span
+                className={`flex h-6 w-7 shrink-0 items-center justify-center rounded text-xs font-semibold text-gray-800 ${zone.color}`}
+              >
                 {position}
               </span>
-              {occupant ? (
-                <TeamChip item={occupant} selected={selected === occupant.id} onClick={() => handleTeamClick(occupant.id)} />
-              ) : (
-                <span className="text-xs text-gray-300">Toca aquí para colocar</span>
+              <div className="min-w-0 flex-1">
+                {occupant ? (
+                  <TeamChip item={occupant} selected={selected === occupant.id} onClick={() => handleTeamClick(occupant.id)} compact />
+                ) : (
+                  <span className="text-xs text-gray-300">Toca aquí</span>
+                )}
+              </div>
+              {zone.id !== MEDIA_TIER_ID && (
+                <span className="hidden shrink-0 text-[10px] text-gray-400 sm:inline">{zone.label}</span>
               )}
-              {zone.id !== MEDIA_TIER_ID && <span className="ml-auto shrink-0 text-[10px] text-gray-400">{zone.label}</span>}
             </div>
           )
         })}
       </div>
 
       {!readOnly && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-400 md:order-3 md:basis-full">
           {selected
-            ? 'Ahora toca el puesto donde quieres colocarlo (o el recuadro de arriba para quitarlo).'
+            ? 'Ahora toca el puesto donde quieres colocarlo (o el recuadro de equipos para quitarlo).'
             : 'Toca un equipo y luego su puesto.'}
         </p>
       )}
@@ -110,7 +116,17 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
   )
 }
 
-function TeamChip({ item, selected, onClick }: { item: TierItem; selected: boolean; onClick: () => void }) {
+function TeamChip({
+  item,
+  selected,
+  onClick,
+  compact,
+}: {
+  item: TierItem
+  selected: boolean
+  onClick: () => void
+  compact?: boolean
+}) {
   const [imgError, setImgError] = useState(false)
   return (
     <button
@@ -120,14 +136,14 @@ function TeamChip({ item, selected, onClick }: { item: TierItem; selected: boole
         onClick()
       }}
       title={item.name}
-      className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
+      className={`flex max-w-full items-center gap-1 rounded-full border px-2 py-1 text-xs ${compact ? 'w-full' : ''} ${
         selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'
       }`}
     >
       {item.badge && !imgError ? (
-        <img src={item.badge} alt="" className="h-4 w-4 object-contain" onError={() => setImgError(true)} />
+        <img src={item.badge} alt="" className="h-4 w-4 shrink-0 object-contain" onError={() => setImgError(true)} />
       ) : null}
-      {item.name}
+      <span className={compact ? 'min-w-0 truncate' : 'whitespace-nowrap'}>{item.name}</span>
     </button>
   )
 }

@@ -10,7 +10,7 @@ interface QuestionWithAnswers extends SeasonQuestion {
 }
 
 export default function PhaseBetsList({ phase, title, emptyText }: { phase: QuestionPhase; title: string; emptyText: string }) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -53,14 +53,25 @@ export default function PhaseBetsList({ phase, title, emptyText }: { phase: Ques
   async function saveAnswer(questionId: string, value: AnswerValue) {
     if (!user) return
     setSavingId(questionId)
-    await supabase
+    const { data, error } = await supabase
       .from('season_answers')
-      .upsert(
-        { question_id: questionId, user_id: user.id, answer: value },
-        { onConflict: 'question_id,user_id' }
-      )
+      .upsert({ question_id: questionId, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
+      .select('*')
+      .single()
     setSavingId(null)
-    await load()
+    if (error) return
+
+    // Actualiza solo la respuesta afectada en memoria, sin recargar toda la
+    // página (evita el salto visual al principio y la recarga innecesaria).
+    setQuestions((qs) =>
+      qs.map((q) => {
+        if (q.id !== questionId) return q
+        const saved = { ...(data as SeasonAnswer), profile: profile ?? undefined }
+        const idx = q.answers.findIndex((a) => a.user_id === user.id)
+        const nextAnswers = idx >= 0 ? q.answers.map((a, i) => (i === idx ? saved : a)) : [...q.answers, saved]
+        return { ...q, answers: nextAnswers }
+      })
+    )
   }
 
   if (loading) return <p className="text-gray-500">Cargando…</p>

@@ -1,5 +1,6 @@
 import { QuestionInput } from './QuestionInput'
 import { formatAnswer } from '../lib/answerFormat'
+import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface Props {
@@ -13,13 +14,14 @@ interface Props {
 }
 
 export default function QuestionCard({ question, myAnswer, closed, saving, onSave, otherAnswers = [], result }: Props) {
+  const complete = isAnswerComplete(question, myAnswer?.answer)
   return (
     <div className="rounded border border-gray-200 bg-white p-4">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-xs uppercase text-gray-400">{question.competition}</span>
         <span className="flex items-center gap-1.5 text-xs text-gray-400">
           {question.points} pts
-          {myAnswer && (
+          {complete && (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-4 w-4 text-green-600"

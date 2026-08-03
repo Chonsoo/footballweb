@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
+import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface QuestionWithAnswers extends SeasonQuestion {
@@ -19,7 +20,7 @@ const BLOCK_LABELS: Record<number, string> = {
 const BLOCKS = [1, 2, 3, 4]
 
 export default function SeasonBets() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -59,11 +60,25 @@ export default function SeasonBets() {
   async function saveAnswer(questionId: string, value: AnswerValue) {
     if (!user) return
     setSavingId(questionId)
-    await supabase
+    const { data, error } = await supabase
       .from('season_answers')
       .upsert({ question_id: questionId, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
+      .select('*')
+      .single()
     setSavingId(null)
-    await load()
+    if (error) return
+
+    // Actualiza solo la respuesta afectada en memoria, sin recargar toda la
+    // página (evita el salto visual al principio y la recarga innecesaria).
+    setQuestions((qs) =>
+      qs.map((q) => {
+        if (q.id !== questionId) return q
+        const saved = { ...(data as SeasonAnswer), profile: profile ?? undefined }
+        const idx = q.answers.findIndex((a) => a.user_id === user.id)
+        const nextAnswers = idx >= 0 ? q.answers.map((a, i) => (i === idx ? saved : a)) : [...q.answers, saved]
+        return { ...q, answers: nextAnswers }
+      })
+    )
   }
 
   if (loading) return <p className="text-gray-500">Cargando…</p>
@@ -106,7 +121,9 @@ export default function SeasonBets() {
       {BLOCKS.map((b) => {
         const blockQuestions = byBlock.get(b) ?? []
         if (blockQuestions.length === 0) return null
-        const answeredCount = blockQuestions.filter((q) => q.answers.some((a) => a.user_id === user?.id)).length
+        const answeredCount = blockQuestions.filter((q) =>
+          isAnswerComplete(q, q.answers.find((a) => a.user_id === user?.id)?.answer)
+        ).length
         const allAnswered = answeredCount === blockQuestions.length
         const isOpen = openBlock === b
 
