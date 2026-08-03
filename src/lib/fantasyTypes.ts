@@ -48,11 +48,12 @@ export interface FantasyFormationOption {
   formation: FantasyFormation
 }
 
+// Ordenadas de menos a más defensas (3 defensas primero, luego 4, luego 5).
 export const FANTASY_FORMATIONS: FantasyFormationOption[] = [
-  { label: '4-4-2', formation: { DEF: 4, MED: 4, DEL: 2 } },
-  { label: '4-3-3', formation: { DEF: 4, MED: 3, DEL: 3 } },
   { label: '3-5-2', formation: { DEF: 3, MED: 5, DEL: 2 } },
   { label: '3-4-3', formation: { DEF: 3, MED: 4, DEL: 3 } },
+  { label: '4-4-2', formation: { DEF: 4, MED: 4, DEL: 2 } },
+  { label: '4-3-3', formation: { DEF: 4, MED: 3, DEL: 3 } },
   { label: '4-5-1', formation: { DEF: 4, MED: 5, DEL: 1 } },
   { label: '5-3-2', formation: { DEF: 5, MED: 3, DEL: 2 } },
 ]

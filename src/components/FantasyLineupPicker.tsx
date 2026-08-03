@@ -43,6 +43,7 @@ export default function FantasyLineupPicker({
   const [selected, setSelected] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [positionFilter, setPositionFilter] = useState<Set<FantasyPosition>>(new Set())
+  const [view, setView] = useState<'pitch' | 'list'>('pitch')
 
   function togglePositionFilter(pos: FantasyPosition) {
     setPositionFilter((cur) => {
@@ -118,69 +119,100 @@ export default function FantasyLineupPicker({
 
   return (
     <div className="flex flex-col gap-3">
-      {onFormationChange && (
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-gray-500" htmlFor="fantasy-formation">
-            Formación
-          </label>
-          <select
-            id="fantasy-formation"
-            value={formationLabel(formation)}
-            disabled={readOnly}
-            onChange={(e) => {
-              const opt = FANTASY_FORMATIONS.find((f) => f.label === e.target.value)
-              if (opt) onFormationChange(opt.formation)
-            }}
-            className="rounded border border-gray-300 px-2 py-1 text-xs"
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {onFormationChange && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-500" htmlFor="fantasy-formation">
+              Formación
+            </label>
+            <select
+              id="fantasy-formation"
+              value={formationLabel(formation)}
+              disabled={readOnly}
+              onChange={(e) => {
+                const opt = FANTASY_FORMATIONS.find((f) => f.label === e.target.value)
+                if (opt) onFormationChange(opt.formation)
+              }}
+              className="rounded border border-gray-300 px-2 py-1 text-xs"
+            >
+              {FANTASY_FORMATIONS.map((f) => (
+                <option key={f.label} value={f.label}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="flex overflow-hidden rounded border border-gray-300 text-xs">
+          <button
+            type="button"
+            onClick={() => setView('pitch')}
+            className={`px-2 py-1 font-medium ${view === 'pitch' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
           >
-            {FANTASY_FORMATIONS.map((f) => (
-              <option key={f.label} value={f.label}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+            Campo
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            className={`px-2 py-1 font-medium ${view === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+          >
+            Lista
+          </button>
         </div>
-      )}
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
-        <div className="min-w-0 overflow-hidden rounded border border-gray-200 sm:flex-1">
-          {slots.map((slot) => {
-            const key = slotKey(slot)
-            const occupant = playerAtSlot(key)
-            const eligible = !!selectedPlayer && selectedPlayer.player_position === slot.position
-            return (
-              <div
-                key={key}
-                onClick={() => handleSlotClick(slot)}
-                className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
-                  selectedPlayer && !readOnly
-                    ? eligible
-                      ? 'cursor-pointer bg-blue-50/40 hover:bg-blue-50'
-                      : 'cursor-not-allowed opacity-40'
-                    : ''
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-9 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${POSITION_COLORS[slot.position]}`}
+        {view === 'pitch' ? (
+          <PitchView
+            slots={slots}
+            playerAtSlot={playerAtSlot}
+            selected={selected}
+            selectedPlayer={selectedPlayer}
+            readOnly={readOnly}
+            onSlotClick={handleSlotClick}
+            onPlayerClick={handlePlayerClick}
+          />
+        ) : (
+          <div className="min-w-0 overflow-hidden rounded border border-gray-200 sm:flex-1">
+            {slots.map((slot) => {
+              const key = slotKey(slot)
+              const occupant = playerAtSlot(key)
+              const eligible = !!selectedPlayer && selectedPlayer.player_position === slot.position
+              return (
+                <div
+                  key={key}
+                  onClick={() => handleSlotClick(slot)}
+                  className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
+                    selectedPlayer && !readOnly
+                      ? eligible
+                        ? 'cursor-pointer bg-blue-50/40 hover:bg-blue-50'
+                        : 'cursor-not-allowed opacity-40'
+                      : ''
+                  }`}
                 >
-                  {slot.position}
-                </span>
-                <div className="min-w-0 flex-1">
-                  {occupant ? (
-                    <PlayerChip
-                      player={occupant}
-                      selected={selected === occupant.api_player_id}
-                      onClick={() => handlePlayerClick(occupant.api_player_id)}
-                      compact
-                    />
-                  ) : (
-                    <span className="text-xs text-gray-300">Toca aquí</span>
-                  )}
+                  <span
+                    className={`flex h-6 w-9 shrink-0 items-center justify-center rounded text-[10px] font-semibold ${POSITION_COLORS[slot.position]}`}
+                  >
+                    {slot.position}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    {occupant ? (
+                      <PlayerChip
+                        player={occupant}
+                        selected={selected === occupant.api_player_id}
+                        onClick={() => handlePlayerClick(occupant.api_player_id)}
+                        compact
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-300">Toca aquí</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         <div className="sm:w-64 sm:shrink-0">
           <div className="flex flex-col gap-1.5 pt-1 sm:sticky sm:top-16 sm:pt-3">
@@ -243,6 +275,139 @@ export default function FantasyLineupPicker({
   )
 }
 
+const PITCH_ROWS: FantasyPosition[] = ['DEL', 'MED', 'DEF', 'POR']
+
+function PitchView({
+  slots,
+  playerAtSlot,
+  selected,
+  selectedPlayer,
+  readOnly,
+  onSlotClick,
+  onPlayerClick,
+}: {
+  slots: FantasySlot[]
+  playerAtSlot: (key: string) => FantasyPlayer | null
+  selected: number | null
+  selectedPlayer: FantasyPlayer | null
+  readOnly?: boolean
+  onSlotClick: (slot: FantasySlot) => void
+  onPlayerClick: (id: number) => void
+}) {
+  return (
+    <div
+      className="flex min-w-0 flex-1 flex-col justify-between gap-3 rounded-lg border border-green-800 bg-gradient-to-b from-green-600 to-green-700 p-3 py-6"
+      style={{
+        backgroundImage:
+          'repeating-linear-gradient(to bottom, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 12%, transparent 12%, transparent 24%)',
+      }}
+    >
+      {PITCH_ROWS.map((pos) => {
+        const rowSlots = slots.filter((s) => s.position === pos)
+        if (rowSlots.length === 0) return null
+        return (
+          <div key={pos} className="flex flex-wrap items-start justify-evenly gap-2">
+            {rowSlots.map((slot) => {
+              const key = slotKey(slot)
+              const occupant = playerAtSlot(key)
+              const eligible = !!selectedPlayer && selectedPlayer.player_position === slot.position
+              return (
+                <div
+                  key={key}
+                  onClick={() => onSlotClick(slot)}
+                  className={`flex flex-col items-center gap-0.5 rounded ${
+                    selectedPlayer && !readOnly
+                      ? eligible
+                        ? 'cursor-pointer'
+                        : 'cursor-not-allowed opacity-40'
+                      : ''
+                  }`}
+                >
+                  {occupant ? (
+                    <PitchAvatar
+                      player={occupant}
+                      selected={selected === occupant.api_player_id}
+                      onClick={() => onPlayerClick(occupant.api_player_id)}
+                    />
+                  ) : (
+                    <>
+                      <span
+                        className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed text-[10px] font-semibold text-white/80 ${
+                          selectedPlayer && !readOnly && eligible ? 'border-white bg-white/10' : 'border-white/40'
+                        }`}
+                      >
+                        {slot.position}
+                      </span>
+                      <span className="text-[9px] text-white/50">Toca</span>
+                    </>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function PitchAvatar({
+  player,
+  selected,
+  onClick,
+}: {
+  player: FantasyPlayer
+  selected: boolean
+  onClick: () => void
+}) {
+  const [imgError, setImgError] = useState(false)
+  const [badgeError, setBadgeError] = useState(false)
+  const team = LALIGA_TEAMS_2026_27.find((t) => t.id === player.team_id)
+  const shortName = player.name.length > 12 ? player.name.split(' ').slice(-1)[0] : player.name
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+      title={`${player.name} · ${FANTASY_POSITION_LABELS[player.player_position]}${team ? ` · ${team.name}` : ''}`}
+      className="flex w-14 flex-col items-center gap-0.5"
+    >
+      <span
+        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 ${
+          selected ? 'border-white ring-2 ring-blue-400' : 'border-white/70'
+        }`}
+      >
+        {player.photo_url && !imgError ? (
+          <img
+            src={player.photo_url}
+            alt=""
+            className="h-full w-full rounded-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span
+            className={`flex h-full w-full items-center justify-center rounded-full text-xs font-semibold ${POSITION_COLORS[player.player_position]}`}
+          >
+            {player.player_position[0]}
+          </span>
+        )}
+        {team?.badge && !badgeError && (
+          <img
+            src={team.badge}
+            alt=""
+            className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white object-contain ring-2 ring-white"
+            onError={() => setBadgeError(true)}
+          />
+        )}
+      </span>
+      <span className="max-w-full truncate text-[10px] font-medium text-white drop-shadow">{shortName}</span>
+    </button>
+  )
+}
+
 function PlayerChip({
   player,
   selected,
@@ -260,6 +425,16 @@ function PlayerChip({
   const [badgeError, setBadgeError] = useState(false)
   const team = LALIGA_TEAMS_2026_27.find((t) => t.id === player.team_id)
 
+  // Colocado en un hueco: el propio hueco ya indica la posición con su
+  // etiqueta, así que aquí no hace falta repetirla con un círculo.
+  // En el banquillo (pool): en vez del círculo, el fondo de toda la
+  // tarjeta lleva el color de la posición, para verlo de un vistazo.
+  const colorClasses = selected
+    ? 'border-blue-600 bg-blue-600 text-white'
+    : pool
+      ? `border-transparent ${POSITION_COLORS[player.player_position]}`
+      : 'border-gray-300 bg-white text-gray-700'
+
   return (
     <button
       type="button"
@@ -270,21 +445,15 @@ function PlayerChip({
       title={`${player.name} · ${FANTASY_POSITION_LABELS[player.player_position]}${team ? ` · ${team.name}` : ''}`}
       className={`flex max-w-full items-center gap-1.5 rounded-full border text-xs ${
         pool ? 'w-full justify-start px-2 py-1.5' : `max-w-full px-2 py-1 ${compact ? 'w-36 sm:w-40' : 'max-w-full'}`
-      } ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'}`}
+      } ${colorClasses}`}
     >
-      {player.photo_url && !imgError ? (
+      {player.photo_url && !imgError && (
         <img
           src={player.photo_url}
           alt=""
           className="h-5 w-5 shrink-0 rounded-full object-cover"
           onError={() => setImgError(true)}
         />
-      ) : (
-        <span
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold ${POSITION_COLORS[player.player_position]}`}
-        >
-          {player.player_position[0]}
-        </span>
       )}
       {team?.badge && !badgeError && (
         <img
@@ -298,7 +467,7 @@ function PlayerChip({
       <span className="flex min-w-0 flex-col items-start leading-tight">
         <span className="min-w-0 max-w-full truncate">{player.name}</span>
         {pool && (
-          <span className={`text-[10px] ${selected ? 'text-blue-100' : 'text-gray-400'}`}>
+          <span className={`text-[10px] ${selected ? 'text-blue-100' : 'opacity-70'}`}>
             {player.player_position}
             {team ? ` · ${team.name}` : ''}
           </span>
