@@ -7,9 +7,9 @@ import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
 function TeamLabel({ name }: { name: string }) {
   const badge = findTeamBadge(name)
   return (
-    <span className="flex min-w-[110px] items-center gap-1.5">
-      {badge && <img src={badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}
-      {name}
+    <span className="flex items-center gap-1.5 sm:min-w-[110px]">
+      {badge && <img src={badge} alt={name} title={name} className="h-6 w-6 shrink-0 object-contain sm:h-5 sm:w-5" />}
+      <span className={badge ? 'hidden sm:inline' : ''}>{name}</span>
     </span>
   )
 }

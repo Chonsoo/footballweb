@@ -92,7 +92,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
         </div>
 
         <div className="w-16 shrink-0 sm:w-52 lg:w-60">
-          <div className="sticky top-16">
+          <div className="sticky top-16 pt-3">
             <p className="mb-1.5 text-xs font-medium text-gray-500">Sin colocar ({unplaced.length})</p>
             <div
               onClick={handlePoolClick}
