@@ -128,13 +128,13 @@ export default function SeasonBets() {
         const isOpen = openBlock === b
 
         return (
-          <div key={b} className="overflow-hidden rounded border border-gray-200 bg-white">
+          <div key={b} className="rounded border border-gray-200 bg-white">
             <button
               type="button"
               onClick={() => setOpenBlock(isOpen ? null : b)}
               className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left font-medium ${
-                allAnswered ? 'bg-green-50' : 'bg-white'
-              }`}
+                isOpen ? 'rounded-t' : 'rounded'
+              } ${allAnswered ? 'bg-green-50' : 'bg-white'}`}
             >
               <span className="flex items-center gap-2">
                 {BLOCK_LABELS[b] ?? `Bloque ${b}`}
@@ -163,7 +163,9 @@ export default function SeasonBets() {
                 </svg>
               </span>
             </button>
-            {isOpen && <div className="flex flex-col gap-3 border-t border-gray-100 p-3">{blockQuestions.map(renderCard)}</div>}
+            {isOpen && (
+              <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">{blockQuestions.map(renderCard)}</div>
+            )}
           </div>
         )
       })}
