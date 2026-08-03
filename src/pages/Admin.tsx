@@ -5,6 +5,8 @@ import { formatAnswer } from '../lib/answerFormat'
 import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
 import RankingAnswer from '../components/RankingAnswer'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import { FANTASY_POSITION_LABELS, type FantasyPlayer, type FantasyPosition } from '../lib/fantasyTypes'
 import type {
   AnswerType,
   AnswerValue,
@@ -18,13 +20,14 @@ import type {
   SeasonResult,
 } from '../lib/database.types'
 
-type Tab = 'users' | 'create' | 'resolve' | 'matchdays'
+type Tab = 'users' | 'create' | 'resolve' | 'matchdays' | 'fantasy'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Usuarios' },
   { id: 'create', label: 'Crear apuesta' },
   { id: 'resolve', label: 'Resolver apuestas' },
   { id: 'matchdays', label: 'Jornadas y partidos' },
+  { id: 'fantasy', label: 'Jugadores fantasy' },
 ]
 
 export default function Admin() {
@@ -52,6 +55,7 @@ export default function Admin() {
       {tab === 'create' && <CreateQuestionSection />}
       {tab === 'resolve' && <ResolveQuestionsSection />}
       {tab === 'matchdays' && <MatchdaysSection />}
+      {tab === 'fantasy' && <FantasyPlayersSection />}
     </div>
   )
 }
@@ -803,6 +807,190 @@ function MatchdaysSection() {
             )}
           </div>
         ))}
+      </div>
+    </section>
+  )
+}
+
+// ---------------- Jugadores fantasy (alta manual, sin API) ----------------
+const BULK_LINE_RE = /^(.+);(POR|DEF|MED|DEL);(\d{4}-\d{2}-\d{2});([a-z0-9-]+)$/i
+
+function FantasyPlayersSection() {
+  const [players, setPlayers] = useState<FantasyPlayer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [bulkText, setBulkText] = useState('')
+  const [parseErrors, setParseErrors] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [showTeamIds, setShowTeamIds] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    const { data } = await supabase.from('fantasy_players').select('*').order('name')
+    setPlayers((data as FantasyPlayer[]) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  function parseBulk(): { rows: Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'>[]; errors: string[] } {
+    const lines = bulkText.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
+    const rows: Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'>[] = []
+    const errors: string[] = []
+
+    lines.forEach((line, i) => {
+      const match = line.match(BULK_LINE_RE)
+      if (!match) {
+        errors.push(`Línea ${i + 1}: formato incorrecto (usa Nombre;POSICION;AAAA-MM-DD;id_equipo) — "${line}"`)
+        return
+      }
+      const [, name, posRaw, birthDate, teamIdRaw] = match
+      const position = posRaw.toUpperCase() as FantasyPosition
+      const teamId = teamIdRaw.toLowerCase()
+      const team = LALIGA_TEAMS_2026_27.find((t) => t.id === teamId)
+      if (!team) {
+        errors.push(`Línea ${i + 1}: id de equipo "${teamIdRaw}" no reconocido — mira la lista de ids más abajo`)
+        return
+      }
+      rows.push({
+        name: name.trim(),
+        player_position: position,
+        birth_date: birthDate,
+        team_id: team.id,
+        api_team_id: null,
+        photo_url: null,
+        active: true,
+      })
+    })
+
+    return { rows, errors }
+  }
+
+  async function importBulk() {
+    const { rows, errors } = parseBulk()
+    setParseErrors(errors)
+    if (errors.length > 0 || rows.length === 0) return
+
+    setSaving(true)
+    // IDs sintéticos (sin API real todavía): seguimos a partir del mayor id
+    // ya usado en el rango reservado 9.000.000+ para altas manuales, para no
+    // chocar el día que se conecte una API real (esa usaría ids más bajos).
+    const { data: existing } = await supabase
+      .from('fantasy_players')
+      .select('api_player_id')
+      .gte('api_player_id', 9000000)
+      .order('api_player_id', { ascending: false })
+      .limit(1)
+    let nextId = ((existing as { api_player_id: number }[] | null)?.[0]?.api_player_id ?? 9000000) + 1
+
+    const toInsert = rows.map((r) => ({ ...r, api_player_id: nextId++ }))
+    const { error } = await supabase.from('fantasy_players').insert(toInsert)
+    setSaving(false)
+    if (error) {
+      setParseErrors([error.message])
+      return
+    }
+    setBulkText('')
+    await load()
+  }
+
+  async function removePlayer(p: FantasyPlayer) {
+    if (!confirm(`¿Borrar a ${p.name}? Esto no se puede deshacer.`)) return
+    await supabase.from('fantasy_players').delete().eq('api_player_id', p.api_player_id)
+    await load()
+  }
+
+  const filtered = search.trim()
+    ? players.filter((p) => normalizeText(p.name).includes(normalizeText(search)))
+    : players
+
+  return (
+    <section className="flex flex-col gap-4">
+      <p className="text-sm text-gray-500">
+        Sin conexión a ninguna API de fútbol, los jugadores del "11 de Abuelonchos" se dan de alta a mano. Pega una
+        línea por jugador con el formato <code className="rounded bg-gray-100 px-1">Nombre;POSICION;AAAA-MM-DD;id_equipo</code>,
+        por ejemplo <code className="rounded bg-gray-100 px-1">Sergio Ramos;DEF;1986-03-30;sevilla</code>. Posiciones
+        válidas: POR, DEF, MED, DEL. Solo hace falta cargar a los que la gente vaya a elegir, no toda la plantilla.
+      </p>
+
+      <div className="rounded border border-gray-200 bg-white p-4">
+        <textarea
+          value={bulkText}
+          onChange={(e) => setBulkText(e.target.value)}
+          rows={6}
+          placeholder={'Sergio Ramos;DEF;1986-03-30;sevilla\nDani Parejo;MED;1989-04-16;villarreal'}
+          className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm"
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            onClick={importBulk}
+            disabled={saving || !bulkText.trim()}
+            className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {saving ? 'Importando…' : 'Importar jugadores'}
+          </button>
+          <button type="button" onClick={() => setShowTeamIds((v) => !v)} className="text-xs text-blue-600 hover:underline">
+            {showTeamIds ? 'Ocultar ids de equipo' : 'Ver ids de equipo'}
+          </button>
+        </div>
+
+        {showTeamIds && (
+          <p className="mt-2 text-xs text-gray-500">
+            {LALIGA_TEAMS_2026_27.map((t) => `${t.name} → ${t.id}`).join(' · ')}
+          </p>
+        )}
+
+        {parseErrors.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 rounded bg-red-50 p-2 text-xs text-red-700">
+            {parseErrors.map((e, i) => (
+              <p key={i}>{e}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-gray-500">
+            Jugadores cargados ({players.length})
+          </p>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar…"
+            className="w-48 rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </div>
+        {loading ? (
+          <p className="text-sm text-gray-500">Cargando…</p>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {filtered.length === 0 && <p className="text-sm text-gray-400">Todavía no hay jugadores cargados.</p>}
+            {filtered.map((p) => {
+              const team = LALIGA_TEAMS_2026_27.find((t) => t.id === p.team_id)
+              return (
+                <div key={p.api_player_id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
+                  <span className="flex items-center gap-2">
+                    {team?.badge && <img src={team.badge} alt="" className="h-5 w-5 object-contain" />}
+                    <strong>{p.name}</strong>
+                    <span className="text-xs text-gray-400">
+                      {FANTASY_POSITION_LABELS[p.player_position]} · {team?.name ?? p.team_id} · {p.birth_date}
+                    </span>
+                    {p.eligible_abuelonchos && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Veterano 👴</span>
+                    )}
+                  </span>
+                  <button onClick={() => removePlayer(p)} className="text-xs text-red-600 hover:underline">
+                    Borrar
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </section>
   )

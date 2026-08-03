@@ -522,6 +522,180 @@ begin
 end;
 $$;
 
+-- ---------- FANTASY (el "11 ideal") ----------
+-- Ver supabase/migrations/015_fantasy_schema.sql para el detalle y los
+-- comentarios de cada pieza; aquí solo se mantiene sincronizada la
+-- estructura para instalaciones nuevas desde cero.
+
+create table if not exists public.fantasy_players (
+  api_player_id int primary key,
+  name text not null,
+  team_id text,
+  api_team_id int,
+  player_position text not null check (player_position in ('POR', 'DEF', 'MED', 'DEL')),
+  birth_date date,
+  photo_url text,
+  eligible_abuelonchos boolean generated always as (birth_date is not null and birth_date < '1994-01-01') stored,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.fantasy_players enable row level security;
+
+create policy "fantasy_players: select all authenticated"
+  on public.fantasy_players for select to authenticated using (true);
+
+create policy "fantasy_players: admin write"
+  on public.fantasy_players for all to authenticated
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
+
+create table if not exists public.fantasy_lineups (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  mode text not null check (mode in ('abuelonchos')), -- de momento solo este modo (ver migración 016)
+  formation jsonb not null default '{"DEF": 4, "MED": 4, "DEL": 2}'::jsonb,
+  locked boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (user_id, mode)
+);
+
+alter table public.fantasy_lineups enable row level security;
+
+create policy "fantasy_lineups: select own or admin or locked"
+  on public.fantasy_lineups for select to authenticated
+  using (user_id = auth.uid() or public.is_admin(auth.uid()) or locked = true);
+
+create policy "fantasy_lineups: insert own"
+  on public.fantasy_lineups for insert to authenticated
+  with check (user_id = auth.uid());
+
+create policy "fantasy_lineups: update own while unlocked"
+  on public.fantasy_lineups for update to authenticated
+  using (user_id = auth.uid() and locked = false)
+  with check (user_id = auth.uid());
+
+create table if not exists public.fantasy_lineup_players (
+  lineup_id uuid not null references public.fantasy_lineups (id) on delete cascade,
+  slot_position text not null check (slot_position in ('POR', 'DEF', 'MED', 'DEL')),
+  slot_index int not null,
+  player_id int not null references public.fantasy_players (api_player_id),
+  primary key (lineup_id, slot_position, slot_index),
+  unique (lineup_id, player_id)
+);
+
+alter table public.fantasy_lineup_players enable row level security;
+
+create policy "fantasy_lineup_players: select visible lineups"
+  on public.fantasy_lineup_players for select to authenticated
+  using (
+    exists (
+      select 1 from public.fantasy_lineups fl
+      where fl.id = lineup_id
+        and (fl.user_id = auth.uid() or public.is_admin(auth.uid()) or fl.locked = true)
+    )
+  );
+
+create policy "fantasy_lineup_players: write own while unlocked"
+  on public.fantasy_lineup_players for all to authenticated
+  using (
+    exists (
+      select 1 from public.fantasy_lineups fl
+      where fl.id = lineup_id and fl.user_id = auth.uid() and fl.locked = false
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.fantasy_lineups fl
+      where fl.id = lineup_id and fl.user_id = auth.uid() and fl.locked = false
+    )
+  );
+
+create table if not exists public.fantasy_player_stats (
+  matchday_num int not null,
+  player_id int not null references public.fantasy_players (api_player_id),
+  player_position text not null check (player_position in ('POR', 'DEF', 'MED', 'DEL')),
+  minutes int not null default 0,
+  goals int not null default 0,
+  assists int not null default 0,
+  yellow_cards int not null default 0,
+  red_cards int not null default 0,
+  own_goals int not null default 0,
+  clean_sheet boolean not null default false,
+  points int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (matchday_num, player_id)
+);
+
+alter table public.fantasy_player_stats enable row level security;
+
+create policy "fantasy_player_stats: select all authenticated"
+  on public.fantasy_player_stats for select to authenticated using (true);
+
+create policy "fantasy_player_stats: admin write"
+  on public.fantasy_player_stats for all to authenticated
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
+
+create or replace function public.fantasy_calculate_points(
+  p_position text,
+  p_minutes int,
+  p_goals int,
+  p_assists int,
+  p_yellow_cards int,
+  p_red_cards int,
+  p_own_goals int,
+  p_clean_sheet boolean
+)
+returns int
+language sql
+immutable
+as $$
+  select
+    (case when p_minutes >= 60 then 2 when p_minutes >= 1 then 1 else 0 end)
+    + p_goals * (case p_position when 'POR' then 8 when 'DEF' then 6 when 'MED' then 5 else 4 end)
+    + p_assists * (case p_position when 'POR' then 6 when 'DEF' then 5 when 'MED' then 4 else 3 end)
+    + (case when p_clean_sheet and p_minutes >= 60 then
+        (case p_position when 'POR' then 5 when 'DEF' then 4 when 'MED' then 1 else 0 end)
+      else 0 end)
+    - p_yellow_cards * 1
+    - p_red_cards * 3
+    - p_own_goals * 2
+$$;
+
+create or replace function public.fantasy_apply_points()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.points := public.fantasy_calculate_points(
+    new.player_position, new.minutes, new.goals, new.assists,
+    new.yellow_cards, new.red_cards, new.own_goals, new.clean_sheet
+  );
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists fantasy_apply_points_trg on public.fantasy_player_stats;
+create trigger fantasy_apply_points_trg
+  before insert or update on public.fantasy_player_stats
+  for each row execute procedure public.fantasy_apply_points();
+
+create or replace view public.fantasy_leaderboard as
+select
+  fl.mode,
+  fl.user_id,
+  p.username,
+  coalesce(sum(fps.points), 0) as total_points
+from public.fantasy_lineups fl
+join public.profiles p on p.id = fl.user_id
+left join public.fantasy_lineup_players flp on flp.lineup_id = fl.id
+left join public.fantasy_player_stats fps on fps.player_id = flp.player_id
+where p.email_confirmed = true
+group by fl.mode, fl.user_id, p.username
+order by fl.mode, total_points desc;
+
 -- =========================================================
 -- Para convertirte en el primer admin, ejecuta esto tras
 -- registrarte una vez en la app (sustituye el email):

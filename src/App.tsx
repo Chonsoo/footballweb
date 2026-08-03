@@ -15,6 +15,7 @@ import MisApuestas from './pages/MisApuestas'
 import ApuestasDetalladas from './pages/ApuestasDetalladas'
 import Informacion from './pages/Informacion'
 import Reglamento from './pages/Reglamento'
+import FantasyPreview from './pages/FantasyPreview'
 
 export default function App() {
   return (
@@ -118,6 +119,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <MatchdayDetail />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fantasy-preview"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <FantasyPreview />
               </Layout>
             </ProtectedRoute>
           }
