@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from './QuestionCard'
+import FantasyLineupPicker from './FantasyLineupPicker'
+import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
@@ -21,6 +23,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const [showIntro, setShowIntro] = useState(true)
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const fantasy = useFantasyLineup()
 
   useEffect(() => {
     async function load() {
@@ -71,6 +74,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     return result
   }, [questions])
 
+  // Paso 5, siempre el último: el 11 de Abuelonchos. No sale de
+  // season_questions (usa fantasy_lineups/fantasy_lineup_players), así que
+  // se añade aparte en vez de como un Step más.
+  const totalSteps = steps.length + 1
+  const isFantasyStep = step === steps.length
+
   async function finish() {
     await supabase.rpc('complete_onboarding')
     await refreshProfile()
@@ -78,7 +87,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   }
 
   function goNext() {
-    if (step + 1 >= steps.length) {
+    if (step + 1 >= totalSteps) {
       finish()
     } else {
       setStep((s) => s + 1)
@@ -109,18 +118,6 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     )
   }
 
-  if (steps.length === 0) {
-    return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
-        <h1 className="text-xl font-semibold">¡Bienvenido!</h1>
-        <p className="text-gray-500">Todavía no hay apuestas iniciales creadas. Ya te avisaremos cuando las haya.</p>
-        <button onClick={finish} className="rounded bg-blue-600 px-4 py-2 font-medium text-white">
-          Entrar a la web
-        </button>
-      </div>
-    )
-  }
-
   if (showIntro) {
     const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
     return (
@@ -139,8 +136,8 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
             <h1 className="mb-2 text-2xl font-bold">¡Bienvenido a la Porra de LaLiga 2026/27!</h1>
             <p className="text-gray-500">
               Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
-              individuales, los duelos entre grandes y algún que otro over/under. Todo repartido en {steps.length}{' '}
-              bloques.
+              individuales, los duelos entre grandes, algún que otro over/under y tu 11 de Abuelonchos. Todo
+              repartido en {totalSteps} bloques.
             </p>
           </div>
           <div className="text-left text-sm text-gray-600">
@@ -161,15 +158,21 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     )
   }
 
-  const current = steps[step]
-  const answeredCount = current.questions.filter((q) => isAnswerComplete(q, answers[q.id]?.answer)).length
-  const allAnswered = answeredCount === current.questions.length
+  const current = isFantasyStep ? null : steps[step]
+  const answeredCount = isFantasyStep
+    ? fantasy.filled
+    : current!.questions.filter((q) => isAnswerComplete(q, answers[q.id]?.answer)).length
+  const totalCount = isFantasyStep ? fantasy.slots.length : current!.questions.length
+  const allAnswered = isFantasyStep ? fantasy.complete : answeredCount === totalCount
   const someAnswered = answeredCount > 0
 
   // Con una sola pregunta por bloque (p.ej. el Bloque 1, la clasificación) no
   // tiene sentido distinguir "algunas respondidas" — solo hay una, completa o no.
-  const skipLabel =
-    current.questions.length > 1 && someAnswered
+  const skipLabel = isFantasyStep
+    ? someAnswered
+      ? 'Omitir huecos sin rellenar de este bloque'
+      : 'Omitir este bloque'
+    : current!.questions.length > 1 && someAnswered
       ? 'Omitir respuestas no contestadas de este bloque'
       : 'Omitir este bloque de preguntas'
 
@@ -177,30 +180,55 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">
       <div>
         <p className="mb-1 text-sm text-gray-400">
-          Bloque {step + 1} de {steps.length}
+          Bloque {step + 1} de {totalSteps}
         </p>
         <div className="h-1.5 w-full rounded-full bg-gray-100">
           <div
             className="h-1.5 rounded-full bg-blue-600 transition-all"
-            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
+            style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
           />
         </div>
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold">{current.label}</h2>
-        <div className="flex flex-col gap-3">
-          {current.questions.map((q) => (
-            <QuestionCard
-              key={q.id}
-              question={q}
-              myAnswer={answers[q.id]}
-              closed={false}
-              saving={savingId === q.id}
-              onSave={(value) => saveAnswer(q.id, value)}
-            />
-          ))}
-        </div>
+        <h2 className="mb-3 text-lg font-semibold">{isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}</h2>
+        {isFantasyStep ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-gray-500">
+              Elige tu 11 solo con jugadores veteranos (nacidos antes de 1994). Cada jugador suma puntos jornada a
+              jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
+            </p>
+            {fantasy.loading ? (
+              <p className="text-sm text-gray-400">Cargando…</p>
+            ) : fantasy.players.length === 0 ? (
+              <p className="text-sm text-gray-400">
+                Todavía no hay jugadores cargados. El admin puede añadirlos desde el panel (pestaña "Jugadores
+                fantasy"). Puedes omitir este bloque y volver más adelante desde «Apuestas iniciales».
+              </p>
+            ) : (
+              <FantasyLineupPicker
+                players={fantasy.players}
+                formation={fantasy.formation}
+                value={fantasy.value}
+                onChange={fantasy.handleChange}
+                onFormationChange={fantasy.handleFormationChange}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {current!.questions.map((q) => (
+              <QuestionCard
+                key={q.id}
+                question={q}
+                myAnswer={answers[q.id]}
+                closed={false}
+                saving={savingId === q.id}
+                onSave={(value) => saveAnswer(q.id, value)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-4 text-sm">
