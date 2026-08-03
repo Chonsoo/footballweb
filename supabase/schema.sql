@@ -12,6 +12,9 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+alter table public.profiles
+  add column if not exists onboarding_completed boolean not null default false;
+
 alter table public.profiles enable row level security;
 
 create policy "profiles: select all authenticated"
@@ -55,7 +58,10 @@ create table if not exists public.season_questions (
   id uuid primary key default gen_random_uuid(),
   competition text not null,          -- 'liga' | 'champions' | otros
   question text not null,
-  points int not null default 1,
+  answer_type text not null default 'text'
+    check (answer_type in ('text', 'choice', 'tier_list', 'score_prediction')),
+  config jsonb not null default '{}'::jsonb, -- config específica del tipo (items/tiers, equipos...)
+  points int not null default 1,      -- puntos máximos orientativos (la puntuación real es manual)
   closes_at timestamptz,              -- deadline, null = abierto indefinidamente
   created_at timestamptz not null default now()
 );
@@ -75,12 +81,39 @@ create table if not exists public.season_answers (
   id uuid primary key default gen_random_uuid(),
   question_id uuid not null references public.season_questions (id) on delete cascade,
   user_id uuid not null references public.profiles (id) on delete cascade,
-  answer text not null,
+  answer jsonb not null,       -- forma libre según answer_type de la pregunta
+  points int,                  -- puntos asignados a mano por el admin (null = sin calificar)
+  graded_at timestamptz,
   created_at timestamptz not null default now(),
   unique (question_id, user_id)
 );
 
 alter table public.season_answers enable row level security;
+
+-- Evita que un usuario se autoasigne puntos escribiendo directamente en la tabla
+create or replace function public.protect_season_answer_points()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    if tg_op = 'INSERT' then
+      new.points := null;
+      new.graded_at := null;
+    elsif tg_op = 'UPDATE' then
+      new.points := old.points;
+      new.graded_at := old.graded_at;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_season_answer_points_trg on public.season_answers;
+create trigger protect_season_answer_points_trg
+  before insert or update on public.season_answers
+  for each row execute procedure public.protect_season_answer_points();
 
 -- Solo ves las respuestas ajenas una vez cerrado el plazo (o si eres admin / es tuya)
 create policy "season_answers: select own or after deadline or admin"
@@ -119,10 +152,10 @@ create policy "season_answers: update own before deadline"
     )
   );
 
--- ---------- SEASON RESULTS (resultado real, lo mete el admin) ----------
+-- ---------- SEASON RESULTS (resultado real, informativo — no calcula puntos) ----------
 create table if not exists public.season_results (
   question_id uuid primary key references public.season_questions (id) on delete cascade,
-  result text not null,
+  result jsonb not null,
   resolved_at timestamptz not null default now()
 );
 
@@ -239,12 +272,10 @@ left join (
   group by user_id
 ) mb on mb.user_id = p.id
 left join (
-  select sa.user_id, sum(sq.points) as total
-  from public.season_answers sa
-  join public.season_questions sq on sq.id = sa.question_id
-  join public.season_results sr on sr.question_id = sa.question_id
-  where sa.answer = sr.result
-  group by sa.user_id
+  select user_id, sum(points) as total
+  from public.season_answers
+  where points is not null
+  group by user_id
 ) sa on sa.user_id = p.id
 order by total_points desc;
 
@@ -278,8 +309,8 @@ begin
 end;
 $$;
 
--- Fijar el resultado real de una apuesta inicial
-create or replace function public.set_season_result(p_question_id uuid, p_result text)
+-- Fijar el resultado real de una apuesta (informativo)
+create or replace function public.set_season_result(p_question_id uuid, p_result jsonb)
 returns void
 language plpgsql
 security definer set search_path = public
@@ -292,6 +323,51 @@ begin
   values (p_question_id, p_result)
   on conflict (question_id) do update
     set result = excluded.result, resolved_at = now();
+end;
+$$;
+
+-- Asignar puntos a mano a la respuesta de un usuario (apuestas complejas: tier list, marcadores...)
+create or replace function public.set_answer_points(p_answer_id uuid, p_points int)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+  update public.season_answers
+  set points = p_points, graded_at = now()
+  where id = p_answer_id;
+end;
+$$;
+
+-- Aplicar puntos automáticamente a quien acertó el resultado exacto
+-- (para preguntas de texto/opción con una única respuesta correcta, típico de las de mitad de temporada)
+create or replace function public.apply_season_result_points(p_question_id uuid)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_points int;
+  v_result jsonb;
+begin
+  if not public.is_admin(auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+
+  select points into v_points from public.season_questions where id = p_question_id;
+  select result into v_result from public.season_results where question_id = p_question_id;
+
+  if v_result is null then
+    raise exception 'Fija primero el resultado real con set_season_result';
+  end if;
+
+  update public.season_answers
+  set points = case when answer = v_result then v_points else 0 end,
+      graded_at = now()
+  where question_id = p_question_id;
 end;
 $$;
 

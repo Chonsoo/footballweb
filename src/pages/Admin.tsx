@@ -1,6 +1,33 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Match, Matchday, Profile, SeasonQuestion } from '../lib/database.types'
+import { formatAnswer } from '../lib/answerFormat'
+import type {
+  AnswerType,
+  AnswerValue,
+  Match,
+  Matchday,
+  Profile,
+  QuestionConfig,
+  SeasonAnswer,
+  SeasonQuestion,
+  SeasonResult,
+  TierDef,
+  TierItem,
+} from '../lib/database.types'
+
+const DEFAULT_LIGA_TEAMS = [
+  'Real Madrid', 'Barcelona', 'Atlético de Madrid', 'Athletic Club', 'Real Sociedad',
+  'Real Betis', 'Villarreal', 'Valencia', 'Sevilla', 'Girona',
+  'Osasuna', 'Celta de Vigo', 'Rayo Vallecano', 'Getafe', 'Mallorca',
+  'Alavés', 'Las Palmas', 'Espanyol', 'Leganés', 'Valladolid',
+]
+
+const DEFAULT_TIERS: TierDef[] = [
+  { id: 'campeon', label: 'Campeón', max: 1 },
+  { id: 'champions', label: 'Puestos Champions', max: 3 },
+  { id: 'europa', label: 'Europa League', max: 2 },
+  { id: 'descenso', label: 'Descenso', max: 3 },
+]
 
 export default function Admin() {
   return (
@@ -66,21 +93,29 @@ function UsersSection() {
   )
 }
 
-// ---------------- Preguntas de apuestas iniciales ----------------
+// ---------------- Preguntas de apuestas (iniciales y de mitad de temporada) ----------------
 function SeasonQuestionsSection() {
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
+  const [answers, setAnswers] = useState<(SeasonAnswer & { profile?: Profile })[]>([])
+  const [results, setResults] = useState<SeasonResult[]>([])
+  const [expanded, setExpanded] = useState<string | null>(null)
+
   const [competition, setCompetition] = useState('liga')
   const [question, setQuestion] = useState('')
+  const [answerType, setAnswerType] = useState<AnswerType>('text')
   const [points, setPoints] = useState(1)
   const [closesAt, setClosesAt] = useState('')
-  const [resultDrafts, setResultDrafts] = useState<Record<string, string>>({})
+  const [config, setConfig] = useState<QuestionConfig>({})
 
   async function load() {
-    const { data } = await supabase
-      .from('season_questions')
-      .select('*')
-      .order('created_at', { ascending: true })
-    setQuestions((data as SeasonQuestion[]) ?? [])
+    const [{ data: qs }, { data: as_ }, { data: rs }] = await Promise.all([
+      supabase.from('season_questions').select('*').order('created_at', { ascending: true }),
+      supabase.from('season_answers').select('*, profile:profiles(*)'),
+      supabase.from('season_results').select('*'),
+    ])
+    setQuestions((qs as SeasonQuestion[]) ?? [])
+    setAnswers((as_ as (SeasonAnswer & { profile?: Profile })[]) ?? [])
+    setResults((rs as SeasonResult[]) ?? [])
   }
 
   useEffect(() => {
@@ -92,78 +127,437 @@ function SeasonQuestionsSection() {
     await supabase.from('season_questions').insert({
       competition,
       question,
+      answer_type: answerType,
+      config,
       points,
       closes_at: closesAt ? new Date(closesAt).toISOString() : null,
     })
     setQuestion('')
     setPoints(1)
     setClosesAt('')
-    await load()
-  }
-
-  async function setResult(q: SeasonQuestion) {
-    const result = resultDrafts[q.id]?.trim()
-    if (!result) return
-    await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: result })
+    setConfig({})
+    setAnswerType('text')
     await load()
   }
 
   return (
     <section>
-      <h2 className="mb-3 text-lg font-medium">Apuestas iniciales</h2>
+      <h2 className="mb-3 text-lg font-medium">Apuestas (iniciales y de mitad de temporada)</h2>
 
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-white p-4">
-        <select value={competition} onChange={(e) => setCompetition(e.target.value)} className="rounded border border-gray-300 px-2 py-2 text-sm">
-          <option value="liga">Liga</option>
-          <option value="champions">Champions</option>
-          <option value="otros">Otros</option>
-        </select>
-        <input
-          type="text"
-          placeholder="Pregunta"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          className="min-w-[220px] flex-1 rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <input
-          type="number"
-          min={1}
-          value={points}
-          onChange={(e) => setPoints(Number(e.target.value))}
-          className="w-20 rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <input
-          type="datetime-local"
-          value={closesAt}
-          onChange={(e) => setClosesAt(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <button onClick={addQuestion} className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white">
-          Añadir
+      <div className="mb-4 flex flex-col gap-3 rounded border border-gray-200 bg-white p-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <select value={competition} onChange={(e) => setCompetition(e.target.value)} className="rounded border border-gray-300 px-2 py-2 text-sm">
+            <option value="liga">Liga</option>
+            <option value="champions">Champions</option>
+            <option value="otros">Otros</option>
+          </select>
+          <select
+            value={answerType}
+            onChange={(e) => {
+              setAnswerType(e.target.value as AnswerType)
+              setConfig({})
+            }}
+            className="rounded border border-gray-300 px-2 py-2 text-sm"
+          >
+            <option value="text">Texto libre</option>
+            <option value="choice">Elegir una opción</option>
+            <option value="tier_list">Tier list (colocar equipos)</option>
+            <option value="score_prediction">Predicción de resultado</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Pregunta"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="min-w-[220px] flex-1 rounded border border-gray-300 px-2 py-2 text-sm"
+          />
+          <input
+            type="number"
+            min={1}
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            title="Puntos (orientativo, o los que se aplican automáticamente si acierta)"
+            className="w-20 rounded border border-gray-300 px-2 py-2 text-sm"
+          />
+          <input
+            type="datetime-local"
+            value={closesAt}
+            onChange={(e) => setClosesAt(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-2 text-sm"
+          />
+        </div>
+
+        <ConfigBuilder answerType={answerType} config={config} onChange={setConfig} />
+
+        <button
+          onClick={addQuestion}
+          className="self-start rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+        >
+          Añadir pregunta
         </button>
       </div>
 
       <div className="flex flex-col gap-2">
-        {questions.map((q) => (
-          <div key={q.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 bg-white p-3 text-sm">
-            <span>
-              [{q.competition}] {q.question} ({q.points} pts)
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Resultado real"
-                onChange={(e) => setResultDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
-                className="rounded border border-gray-300 px-2 py-1"
-              />
-              <button onClick={() => setResult(q)} className="text-blue-600 hover:underline">
-                Fijar resultado
+        {questions.map((q) => {
+          const qAnswers = answers.filter((a) => a.question_id === q.id)
+          const qResult = results.find((r) => r.question_id === q.id)
+          const isOpen = expanded === q.id
+          return (
+            <div key={q.id} className="rounded border border-gray-200 bg-white text-sm">
+              <button
+                onClick={() => setExpanded(isOpen ? null : q.id)}
+                className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left"
+              >
+                <span>
+                  [{q.competition}] {q.question} · <span className="text-gray-400">{q.answer_type}</span> ({q.points} pts)
+                  {' · '}
+                  {qAnswers.length} respuesta{qAnswers.length === 1 ? '' : 's'}
+                </span>
+                <span className="text-gray-400">{isOpen ? '▲' : '▼'}</span>
               </button>
+              {isOpen && (
+                <div className="border-t border-gray-100 p-3">
+                  <GradingPanel question={q} answers={qAnswers} result={qResult} onChanged={load} />
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </section>
+  )
+}
+
+// ---------------- Constructor de config según el tipo de pregunta ----------------
+function ConfigBuilder({
+  answerType,
+  config,
+  onChange,
+}: {
+  answerType: AnswerType
+  config: QuestionConfig
+  onChange: (c: QuestionConfig) => void
+}) {
+  if (answerType === 'choice') {
+    return (
+      <OptionsBuilder
+        options={config.options ?? []}
+        onChange={(opts) => onChange({ ...config, options: opts })}
+      />
+    )
+  }
+
+  if (answerType === 'score_prediction') {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          placeholder="Equipo local"
+          value={config.home_team ?? ''}
+          onChange={(e) => onChange({ ...config, home_team: e.target.value })}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+        />
+        <span className="text-gray-400">vs</span>
+        <input
+          type="text"
+          placeholder="Equipo visitante"
+          value={config.away_team ?? ''}
+          onChange={(e) => onChange({ ...config, away_team: e.target.value })}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+        />
+      </div>
+    )
+  }
+
+  if (answerType === 'tier_list') {
+    return <TierListBuilder config={config} onChange={onChange} />
+  }
+
+  return null
+}
+
+function OptionsBuilder({ options, onChange }: { options: string[]; onChange: (opts: string[]) => void }) {
+  const [draft, setDraft] = useState('')
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Nueva opción"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            if (!draft.trim()) return
+            onChange([...options, draft.trim()])
+            setDraft('')
+          }}
+          className="rounded border border-gray-300 px-3 py-1.5 text-sm"
+        >
+          Añadir opción
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt, i) => (
+          <span key={i} className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs">
+            {opt}
+            <button type="button" onClick={() => onChange(options.filter((_, idx) => idx !== i))} className="text-gray-400">
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TierListBuilder({ config, onChange }: { config: QuestionConfig; onChange: (c: QuestionConfig) => void }) {
+  const items = config.items ?? []
+  const tiers = config.tiers ?? []
+  const [itemName, setItemName] = useState('')
+  const [itemBadge, setItemBadge] = useState('')
+  const [tierLabel, setTierLabel] = useState('')
+  const [tierMax, setTierMax] = useState('')
+
+  function addItem() {
+    if (!itemName.trim()) return
+    const id = itemName.trim().toLowerCase().replace(/\s+/g, '-')
+    const newItem: TierItem = { id, name: itemName.trim(), badge: itemBadge.trim() || undefined }
+    onChange({ ...config, items: [...items, newItem] })
+    setItemName('')
+    setItemBadge('')
+  }
+
+  function useDefaultTeams() {
+    const newItems: TierItem[] = DEFAULT_LIGA_TEAMS.map((name) => ({
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+    }))
+    onChange({ ...config, items: newItems })
+  }
+
+  function addTier() {
+    if (!tierLabel.trim()) return
+    const id = tierLabel.trim().toLowerCase().replace(/\s+/g, '-')
+    const newTier: TierDef = { id, label: tierLabel.trim(), max: tierMax ? Number(tierMax) : null }
+    onChange({ ...config, tiers: [...tiers, newTier] })
+    setTierLabel('')
+    setTierMax('')
+  }
+
+  function useDefaultTiers() {
+    onChange({ ...config, tiers: DEFAULT_TIERS })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded border border-gray-100 bg-gray-50 p-3">
+      <div>
+        <p className="mb-1 text-xs font-medium text-gray-500">Equipos a colocar</p>
+        <div className="mb-1 flex flex-wrap gap-2">
+          <input
+            type="text"
+            placeholder="Nombre del equipo"
+            value={itemName}
+            onChange={(e) => setItemName(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          />
+          <input
+            type="text"
+            placeholder="URL escudo (opcional)"
+            value={itemBadge}
+            onChange={(e) => setItemBadge(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          />
+          <button type="button" onClick={addItem} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
+            Añadir equipo
+          </button>
+          <button type="button" onClick={useDefaultTeams} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
+            Usar los 20 de Liga
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((it) => (
+            <span key={it.id} className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs">
+              {it.name}
+              <button
+                type="button"
+                onClick={() => onChange({ ...config, items: items.filter((x) => x.id !== it.id) })}
+                className="text-gray-400"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-medium text-gray-500">Categorías (aparte de "Media tabla", que se rellena sola)</p>
+        <div className="mb-1 flex flex-wrap gap-2">
+          <input
+            type="text"
+            placeholder="Nombre categoría"
+            value={tierLabel}
+            onChange={(e) => setTierLabel(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          />
+          <input
+            type="number"
+            min={1}
+            placeholder="Máx."
+            value={tierMax}
+            onChange={(e) => setTierMax(e.target.value)}
+            className="w-20 rounded border border-gray-300 px-2 py-1.5 text-sm"
+          />
+          <button type="button" onClick={addTier} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
+            Añadir categoría
+          </button>
+          <button type="button" onClick={useDefaultTiers} className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-500">
+            Usar categorías típicas
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {tiers.map((t) => (
+            <span key={t.id} className="flex items-center gap-1 rounded-full bg-white px-2 py-1 text-xs">
+              {t.label} {t.max != null ? `(máx ${t.max})` : ''}
+              <button
+                type="button"
+                onClick={() => onChange({ ...config, tiers: tiers.filter((x) => x.id !== t.id) })}
+                className="text-gray-400"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------- Calificación: resultado real + puntos por usuario ----------------
+function GradingPanel({
+  question,
+  answers,
+  result,
+  onChanged,
+}: {
+  question: SeasonQuestion
+  answers: (SeasonAnswer & { profile?: Profile })[]
+  result?: SeasonResult
+  onChanged: () => void
+}) {
+  const [resultDraft, setResultDraft] = useState<AnswerValue>(
+    result?.result ?? (question.answer_type === 'score_prediction' ? { home: 0, away: 0 } : '')
+  )
+  const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
+
+  async function saveResult() {
+    await supabase.rpc('set_season_result', { p_question_id: question.id, p_result: resultDraft })
+    await onChanged()
+  }
+
+  async function autoApply() {
+    await supabase.rpc('apply_season_result_points', { p_question_id: question.id })
+    await onChanged()
+  }
+
+  async function saveAnswerPoints(answerId: string) {
+    const raw = pointsDrafts[answerId]
+    if (raw === undefined || raw === '') return
+    await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+    await onChanged()
+  }
+
+  const supportsAutoApply = question.answer_type === 'text' || question.answer_type === 'choice' || question.answer_type === 'score_prediction'
+
+  return (
+    <div className="flex flex-col gap-4">
+      {supportsAutoApply && (
+        <div className="rounded bg-gray-50 p-3">
+          <p className="mb-2 text-xs font-medium text-gray-500">Resultado real (para aplicar puntos automáticamente)</p>
+          {question.answer_type === 'score_prediction' ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                value={(resultDraft as { home: number; away: number })?.home ?? 0}
+                onChange={(e) =>
+                  setResultDraft((d) => ({ ...(d as { home: number; away: number }), home: Number(e.target.value) }))
+                }
+                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+              />
+              <span>-</span>
+              <input
+                type="number"
+                min={0}
+                value={(resultDraft as { home: number; away: number })?.away ?? 0}
+                onChange={(e) =>
+                  setResultDraft((d) => ({ ...(d as { home: number; away: number }), away: Number(e.target.value) }))
+                }
+                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+              />
+            </div>
+          ) : question.answer_type === 'choice' ? (
+            <select
+              value={(resultDraft as string) ?? ''}
+              onChange={(e) => setResultDraft(e.target.value)}
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+            >
+              <option value="">Elige…</option>
+              {(question.config.options ?? []).map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={(resultDraft as string) ?? ''}
+              onChange={(e) => setResultDraft(e.target.value)}
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+          )}
+          <div className="mt-2 flex gap-2">
+            <button onClick={saveResult} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
+              Fijar resultado
+            </button>
+            <button onClick={autoApply} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white">
+              Auto-aplicar puntos a quien acertó
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="mb-2 text-xs font-medium text-gray-500">Respuestas y puntos (puedes ajustarlos a mano)</p>
+        <div className="flex flex-col gap-1.5">
+          {answers.length === 0 && <p className="text-sm text-gray-400">Nadie ha respondido todavía.</p>}
+          {answers.map((a) => (
+            <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
+              <span>
+                <strong>{a.profile?.username ?? '—'}</strong>: {formatAnswer(question, a.answer)}
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder={a.points != null ? String(a.points) : 'pts'}
+                  onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                  className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+                />
+                <button onClick={() => saveAnswerPoints(a.id)} className="text-blue-600 hover:underline">
+                  Guardar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
