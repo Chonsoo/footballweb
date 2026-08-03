@@ -19,12 +19,12 @@ alter table public.season_questions
 -- "ranking". El desglose por zona (Campeón/Champions/...) se calcula en el
 -- cliente a partir de la posición, igual que hace la propia UI de respuesta.
 create or replace function public.oracle_ranking_counts(p_question_id uuid)
-returns table(team_id text, position int, cnt bigint)
+returns table(team_id text, pos int, cnt bigint)
 language sql
 stable
 security definer set search_path = public
 as $$
-  select kv.key as team_id, (kv.value #>> '{}')::int as position, count(*)::bigint as cnt
+  select kv.key as team_id, (kv.value #>> '{}')::int as pos, count(*)::bigint as cnt
   from public.season_answers sa,
        jsonb_each(sa.answer) as kv(key, value)
   where sa.question_id = p_question_id

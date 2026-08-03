@@ -16,7 +16,7 @@ interface TierCountRow {
 
 interface RankingCountRow {
   team_id: string
-  position: number
+  pos: number
   cnt: number
 }
 
@@ -91,7 +91,7 @@ export default function Oraculo() {
             // misma regla que la UI de respuesta, y luego coge la zona más votada.
             const byTeam = new Map<string, Map<string, number>>()
             for (const r of rows) {
-              const zone = zoneForPosition(Number(r.position), questionTiers, total)
+              const zone = zoneForPosition(Number(r.pos), questionTiers, total)
               if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, new Map())
               const zoneCounts = byTeam.get(r.team_id)!
               zoneCounts.set(zone.id, (zoneCounts.get(zone.id) ?? 0) + Number(r.cnt))
