@@ -46,6 +46,7 @@ export interface SeasonQuestion {
   config: QuestionConfig
   points: number
   phase: QuestionPhase
+  block: number | null
   closes_at: string | null
   created_at: string
 }

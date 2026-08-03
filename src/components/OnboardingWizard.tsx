@@ -34,6 +34,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         .select('*')
         .eq('phase', 'initial')
         .or(`closes_at.is.null,closes_at.gt.${now}`)
+        .order('block', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true })
 
       const { data: as_ } = user

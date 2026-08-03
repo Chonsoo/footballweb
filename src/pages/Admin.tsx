@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { formatAnswer } from '../lib/answerFormat'
-import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
 import RankingAnswer from '../components/RankingAnswer'
@@ -17,15 +16,7 @@ import type {
   SeasonAnswer,
   SeasonQuestion,
   SeasonResult,
-  TierDef,
 } from '../lib/database.types'
-
-const DEFAULT_TIERS: TierDef[] = [
-  { id: 'campeon', label: 'Campeón', max: 1 },
-  { id: 'champions', label: 'Puestos Champions', max: 3 },
-  { id: 'europa', label: 'Europa League', max: 2 },
-  { id: 'descenso', label: 'Descenso', max: 3 },
-]
 
 type Tab = 'users' | 'create' | 'resolve' | 'matchdays'
 
@@ -152,7 +143,7 @@ function CreateQuestionSection() {
   const [points, setPoints] = useState(1)
   const [closesAt, setClosesAt] = useState('')
   const [config, setConfig] = useState<QuestionConfig>({})
-  const [seeding, setSeeding] = useState(false)
+  const [block, setBlock] = useState('')
   const [recent, setRecent] = useState<SeasonQuestion[]>([])
 
   async function loadRecent() {
@@ -175,6 +166,7 @@ function CreateQuestionSection() {
       question,
       answer_type: answerType,
       phase,
+      block: phase === 'initial' && block !== '' ? Number(block) : null,
       config,
       points,
       closes_at: closesAt ? new Date(closesAt).toISOString() : null,
@@ -184,21 +176,7 @@ function CreateQuestionSection() {
     setClosesAt('')
     setConfig({})
     setAnswerType('text')
-    await loadRecent()
-  }
-
-  async function seedLaligaRanking() {
-    setSeeding(true)
-    await supabase.from('season_questions').insert({
-      competition: 'liga',
-      question: '¿Cómo va a quedar la Liga? Ordena los 20 equipos del 1º al 20º',
-      answer_type: 'ranking',
-      phase: 'initial',
-      config: { items: LALIGA_TEAMS_2026_27, tiers: DEFAULT_TIERS },
-      points: 5,
-      closes_at: null,
-    })
-    setSeeding(false)
+    setBlock('')
     await loadRecent()
   }
 
@@ -210,20 +188,6 @@ function CreateQuestionSection() {
 
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between rounded border border-blue-200 bg-blue-50 p-4">
-        <div className="text-sm">
-          <p className="font-medium">Clasificación de Liga 1º-20º (apuesta inicial fija)</p>
-          <p className="text-gray-500">Crea la pregunta con los 20 equipos de La Liga 2026/27 ya cargados.</p>
-        </div>
-        <button
-          onClick={seedLaligaRanking}
-          disabled={seeding}
-          className="shrink-0 rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          Crear clasificación de Liga
-        </button>
-      </div>
-
       <p className="mb-2 text-sm text-gray-500">
         El resto de preguntas (texto, opción o predicción de resultado) se crean aquí. Márcalas como
         <strong> Inicial</strong> si son fijas desde el principio, o <strong>Semana</strong> si las vas añadiendo
@@ -245,6 +209,20 @@ function CreateQuestionSection() {
             <option value="weekly">Semana</option>
             <option value="initial">Inicial</option>
           </select>
+          {phase === 'initial' && (
+            <select
+              value={block}
+              onChange={(e) => setBlock(e.target.value)}
+              title="Bloque del formulario inicial"
+              className="rounded border border-gray-300 px-2 py-2 text-sm"
+            >
+              <option value="">Sin bloque</option>
+              <option value="1">Bloque 1</option>
+              <option value="2">Bloque 2</option>
+              <option value="3">Bloque 3</option>
+              <option value="4">Bloque 4</option>
+            </select>
+          )}
           <select
             value={answerType}
             onChange={(e) => {

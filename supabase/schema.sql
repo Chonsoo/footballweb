@@ -89,6 +89,7 @@ create table if not exists public.season_questions (
     check (answer_type in ('text', 'choice', 'tier_list', 'score_prediction', 'ranking')),
   config jsonb not null default '{}'::jsonb, -- config específica del tipo (items/tiers, equipos...)
   phase text not null default 'initial' check (phase in ('initial', 'weekly')), -- 'initial' = fija, pestaña Apuestas iniciales | 'weekly' = mitad de temporada, pestaña Apuestas de la semana
+  block int, -- 1-4: bloque del formulario inicial (solo aplica a phase='initial'); null en preguntas de weekly
   points int not null default 1,      -- puntos máximos orientativos (la puntuación real es manual)
   closes_at timestamptz,              -- deadline, null = abierto indefinidamente
   created_at timestamptz not null default now()

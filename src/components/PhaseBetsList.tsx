@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { formatAnswer } from '../lib/answerFormat'
-import { QuestionInput } from './QuestionInput'
+import QuestionCard from './QuestionCard'
 import type { AnswerValue, Profile, QuestionPhase, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface QuestionWithAnswers extends SeasonQuestion {
@@ -74,41 +73,16 @@ export default function PhaseBetsList({ phase, title, emptyText }: { phase: Ques
         const myAnswer = q.answers.find((a) => a.user_id === user?.id)
         const closed = isClosed(q)
         return (
-          <div key={q.id} className="rounded border border-gray-200 bg-white p-4">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-xs uppercase text-gray-400">{q.competition}</span>
-              <span className="text-xs text-gray-400">{q.points} pts</span>
-            </div>
-            <p className="mb-3 font-medium">{q.question}</p>
-
-            {!closed ? (
-              <QuestionInput
-                question={q}
-                value={myAnswer?.answer}
-                saving={savingId === q.id}
-                onSave={(value) => saveAnswer(q.id, value)}
-              />
-            ) : (
-              <div className="text-sm">
-                <p className="mb-2 text-gray-500">
-                  Cerrado {q.result ? `· resultado: ${formatAnswer(q, q.result.result)}` : '· sin resolver todavía'}
-                </p>
-                <ul className="flex flex-col gap-1">
-                  {q.answers.map((a) => (
-                    <li key={a.id} className="flex justify-between gap-2 text-gray-700">
-                      <span className="shrink-0">{a.profile?.username ?? '—'}</span>
-                      <span className="text-right">
-                        {formatAnswer(q, a.answer)}
-                        {a.points != null && (
-                          <span className="ml-2 font-semibold text-green-600">+{a.points}</span>
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <QuestionCard
+            key={q.id}
+            question={q}
+            myAnswer={myAnswer}
+            closed={closed}
+            saving={savingId === q.id}
+            onSave={(value) => saveAnswer(q.id, value)}
+            otherAnswers={q.answers}
+            result={q.result}
+          />
         )
       })}
     </div>
