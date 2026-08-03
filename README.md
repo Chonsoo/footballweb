@@ -1,5 +1,5 @@
 # Quiniela de amigos
-
+ 
 Web para apostar en Liga y Champions con el grupo: apuestas iniciales de temporada, apuestas por jornada, ranking de puntos y panel de admin.
 
 Stack: Vite + React + TypeScript + Tailwind v4 + Supabase (Auth + Postgres + RLS), desplegado en Vercel.
