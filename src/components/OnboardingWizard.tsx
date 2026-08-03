@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import QuestionCard from './QuestionCard'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 interface Step {
@@ -13,10 +14,11 @@ interface Step {
 }
 
 export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
-  const { user, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, SeasonAnswer>>({})
   const [step, setStep] = useState(0)
+  const [showIntro, setShowIntro] = useState(true)
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
 
@@ -119,12 +121,57 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     )
   }
 
+  if (showIntro) {
+    const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+    return (
+      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
+        {favoriteTeam?.badge && (
+          <div
+            className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat opacity-[0.06]"
+            style={{ backgroundImage: `url(${favoriteTeam.badge})`, backgroundSize: '60vh' }}
+          />
+        )}
+        <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col gap-6 text-center">
+          <div>
+            {favoriteTeam?.badge && (
+              <img src={favoriteTeam.badge} alt="" className="mx-auto mb-3 h-16 w-16 object-contain" />
+            )}
+            <h1 className="mb-2 text-2xl font-bold">¡Bienvenido a la Porra de LaLiga 2026/27!</h1>
+            <p className="text-gray-500">
+              Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
+              individuales, los duelos entre grandes y algún que otro over/under. Todo repartido en {steps.length}{' '}
+              bloques.
+            </p>
+          </div>
+          <div className="rounded border border-gray-200 bg-white p-5 text-left text-sm text-gray-600">
+            <p className="mb-2">
+              No hace falta rellenarlo todo del tirón: cada respuesta se guarda sola en cuanto la marcas, y puedes
+              saltarte cualquier bloque y completarlo más adelante desde «Apuestas iniciales» en el menú.
+            </p>
+            <p>Tómate el tiempo que necesites — ¡y que gane el mejor pronosticador!</p>
+          </div>
+          <button
+            onClick={() => setShowIntro(false)}
+            className="self-center rounded bg-blue-600 px-5 py-2.5 font-medium text-white"
+          >
+            Comenzar →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const current = steps[step]
   const answeredCount = current.questions.filter((q) => isAnswerComplete(q, answers[q.id]?.answer)).length
   const allAnswered = answeredCount === current.questions.length
   const someAnswered = answeredCount > 0
 
-  const skipLabel = someAnswered ? 'Omitir respuestas no contestadas de este bloque' : 'Omitir este bloque de preguntas'
+  // Con una sola pregunta por bloque (p.ej. el Bloque 1, la clasificación) no
+  // tiene sentido distinguir "algunas respondidas" — solo hay una, completa o no.
+  const skipLabel =
+    current.questions.length > 1 && someAnswered
+      ? 'Omitir respuestas no contestadas de este bloque'
+      : 'Omitir este bloque de preguntas'
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">

@@ -144,7 +144,7 @@ function TeamChip({
       }}
       title={item.name}
       className={`flex items-center gap-1 rounded-full border text-xs ${
-        pool ? 'p-1.5 sm:px-2 sm:py-1' : `px-2 py-1 ${compact ? 'w-36 sm:w-40' : 'max-w-full'}`
+        pool ? 'p-1.5 sm:px-2 sm:py-1' : `max-w-full px-2 py-1 ${compact ? 'w-36 sm:w-40' : 'max-w-full'}`
       } ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'}`}
     >
       {item.badge && !imgError ? (
