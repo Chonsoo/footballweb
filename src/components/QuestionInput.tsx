@@ -2,6 +2,7 @@ import { useState } from 'react'
 import TierListAnswer from './TierListAnswer'
 import RankingAnswer from './RankingAnswer'
 import TeamSelect from './TeamSelect'
+import PlayerSelect from './PlayerSelect'
 import { findTeamBadge } from '../lib/teamBadge'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
@@ -99,6 +100,15 @@ export function QuestionDraftInput({
   }
 
   if (question.answer_type === 'choice') {
+    if (question.config.player_choice) {
+      return (
+        <PlayerSelect
+          value={(value as string) ?? ''}
+          onChange={onChange}
+          excludeTeamIds={question.config.exclude_team_ids}
+        />
+      )
+    }
     if (question.config.team_ids) {
       const teams = teamOptionsFor(question.config)
       const currentId = teams.find((t) => t.name === value)?.id ?? ''
@@ -187,6 +197,17 @@ export function QuestionInput({
   }
 
   if (question.answer_type === 'choice') {
+    if (question.config.player_choice) {
+      return (
+        <div className={saving ? 'pointer-events-none opacity-50' : ''}>
+          <PlayerSelect
+            value={(value as string) ?? ''}
+            onChange={onSave}
+            excludeTeamIds={question.config.exclude_team_ids}
+          />
+        </div>
+      )
+    }
     if (question.config.team_ids) {
       const teams = teamOptionsFor(question.config)
       const currentId = teams.find((t) => t.name === value)?.id ?? ''

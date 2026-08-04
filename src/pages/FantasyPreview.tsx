@@ -15,7 +15,7 @@ const POSITIONS_PER_TEAM: FantasyPosition[] = [
 const MOCK_TEAMS = ['real-madrid', 'barcelona', 'atletico-madrid', 'athletic-club', 'villarreal']
 
 // El modo Abuelonchos solo permite elegir jugadores "veteranos" (nacidos antes
-// de 1994) — 1 de cada 3 jugadores ficticios es veterano, el resto son
+// de 1996) — 1 de cada 3 jugadores ficticios es veterano, el resto son
 // jóvenes y por tanto NO deberían poder elegirse (se filtran más abajo,
 // igual que hará la página real contra fantasy_players).
 const MOCK_PLAYERS_ALL: FantasyPlayer[] = (() => {

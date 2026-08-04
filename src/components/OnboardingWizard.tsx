@@ -195,7 +195,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         {isFantasyStep ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-500">
-              Elige tu 11 solo con jugadores veteranos (nacidos antes de 1994). Cada jugador suma puntos jornada a
+              Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
               jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
             </p>
             {fantasy.loading ? (

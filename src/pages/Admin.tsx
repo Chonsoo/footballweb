@@ -5,6 +5,7 @@ import { formatAnswer } from '../lib/answerFormat'
 import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
 import RankingAnswer from '../components/RankingAnswer'
+import PlayerSelect from '../components/PlayerSelect'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { FANTASY_POSITION_LABELS, type FantasyPlayer, type FantasyPosition } from '../lib/fantasyTypes'
 import type {
@@ -309,10 +310,38 @@ function ConfigBuilder({
 }) {
   if (answerType === 'choice') {
     return (
-      <OptionsBuilder
-        options={config.options ?? []}
-        onChange={(opts) => onChange({ ...config, options: opts })}
-      />
+      <div className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            checked={!!config.player_choice}
+            onChange={(e) => onChange({ ...config, player_choice: e.target.checked || undefined })}
+          />
+          Buscador de jugador (en vez de opciones de texto)
+        </label>
+        {config.player_choice ? (
+          <input
+            type="text"
+            placeholder="Ids de equipos a excluir, separados por coma (opcional, p.ej. real-madrid,barcelona,atletico-madrid)"
+            defaultValue={(config.exclude_team_ids ?? []).join(',')}
+            onBlur={(e) =>
+              onChange({
+                ...config,
+                exclude_team_ids: e.target.value
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          />
+        ) : (
+          <OptionsBuilder
+            options={config.options ?? []}
+            onChange={(opts) => onChange({ ...config, options: opts })}
+          />
+        )}
+      </div>
     )
   }
 
@@ -580,6 +609,12 @@ function GradingPanel({
                 className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
               />
             </div>
+          ) : question.answer_type === 'choice' && question.config.player_choice ? (
+            <PlayerSelect
+              value={(resultDraft as string) ?? ''}
+              onChange={(name) => setResultDraft(name)}
+              excludeTeamIds={question.config.exclude_team_ids}
+            />
           ) : question.answer_type === 'choice' ? (
             <select
               value={(resultDraft as string) ?? ''}

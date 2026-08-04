@@ -535,7 +535,7 @@ create table if not exists public.fantasy_players (
   player_position text not null check (player_position in ('POR', 'DEF', 'MED', 'DEL')),
   birth_date date,
   photo_url text,
-  eligible_abuelonchos boolean generated always as (birth_date is not null and birth_date < '1994-01-01') stored,
+  eligible_abuelonchos boolean generated always as (birth_date is not null and birth_date < '1996-01-01') stored,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );

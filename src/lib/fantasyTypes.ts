@@ -13,7 +13,7 @@ export const FANTASY_POSITION_LABELS: Record<FantasyPosition, string> = {
 }
 
 // De momento solo existe este modo: solo se pueden elegir jugadores "veteranos",
-// nacidos antes del 1994-01-01 (los abuelos de verdad).
+// nacidos antes del 1996-01-01 (los abuelos de verdad).
 // (el modo "open" con todos los jugadores se deja aparcado para más adelante)
 export type FantasyMode = 'abuelonchos'
 
