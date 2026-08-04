@@ -15,6 +15,7 @@ import ApuestasDetalladas from './pages/ApuestasDetalladas'
 import Informacion from './pages/Informacion'
 import Reglamento from './pages/Reglamento'
 import FantasyPreview from './pages/FantasyPreview'
+import Fantasy from './pages/Fantasy'
 
 export default function App() {
   return (
@@ -88,6 +89,16 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <ApuestasDetalladas />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fantasy"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Fantasy />
               </Layout>
             </ProtectedRoute>
           }

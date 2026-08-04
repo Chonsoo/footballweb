@@ -34,6 +34,13 @@ interface Props {
   // mostrar un once ya cerrado (p.ej. en "Mis apuestas"), donde no hace
   // falta nada de eso.
   hideSidebar?: boolean
+  // Puntos fantasy a mostrar como insignia sobre cada jugador colocado
+  // (clave: api_player_id) — para la pestaña Fantasy (Resumen/Jornadas/Liga).
+  pointsByPlayer?: Record<number, number>
+  // En modo readOnly, tocar un jugador del campo llama aquí en vez de
+  // intentar seleccionarlo para colocarlo (que no tiene sentido si es de
+  // solo lectura) — se usa para abrir el popup de desglose de puntos.
+  onPlayerSelect?: (player: FantasyPlayer) => void
 }
 
 export default function FantasyLineupPicker({
@@ -44,6 +51,8 @@ export default function FantasyLineupPicker({
   onFormationChange,
   readOnly,
   hideSidebar,
+  pointsByPlayer,
+  onPlayerSelect,
 }: Props) {
   const slots = useMemo(() => buildFantasySlots(formation), [formation])
   const [selected, setSelected] = useState<number | null>(null)
@@ -85,7 +94,13 @@ export default function FantasyLineupPicker({
   const selectedPlayer = selected != null ? playersById.get(selected) ?? null : null
 
   function handlePlayerClick(id: number) {
-    if (readOnly) return
+    if (readOnly) {
+      if (onPlayerSelect) {
+        const p = playersById.get(id)
+        if (p) onPlayerSelect(p)
+      }
+      return
+    }
     setSelected((cur) => (cur === id ? null : id))
   }
 
@@ -191,6 +206,7 @@ export default function FantasyLineupPicker({
             selected={selected}
             selectedPlayer={selectedPlayer}
             readOnly={readOnly}
+            pointsByPlayer={pointsByPlayer}
             onSlotClick={handleSlotClick}
             onPlayerClick={handlePlayerClick}
             onRemovePlayer={handleRemovePlacement}
@@ -335,6 +351,7 @@ function PitchView({
   selected,
   selectedPlayer,
   readOnly,
+  pointsByPlayer,
   onSlotClick,
   onPlayerClick,
   onRemovePlayer,
@@ -344,6 +361,7 @@ function PitchView({
   selected: number | null
   selectedPlayer: FantasyPlayer | null
   readOnly?: boolean
+  pointsByPlayer?: Record<number, number>
   onSlotClick: (slot: FantasySlot) => void
   onPlayerClick: (id: number) => void
   onRemovePlayer: (id: number) => void
@@ -388,6 +406,7 @@ function PitchView({
                       player={occupant}
                       selected={selected === occupant.api_player_id}
                       readOnly={readOnly}
+                      points={pointsByPlayer?.[occupant.api_player_id]}
                       onClick={() => {
                         // Si ya hay otro jugador del banquillo seleccionado y encaja
                         // en esta posición, tocar a este ocupante los intercambia
@@ -426,12 +445,14 @@ function PitchAvatar({
   player,
   selected,
   readOnly,
+  points,
   onClick,
   onRemove,
 }: {
   player: FantasyPlayer
   selected: boolean
   readOnly?: boolean
+  points?: number
   onClick: () => void
   onRemove: () => void
 }) {
@@ -470,6 +491,11 @@ function PitchAvatar({
               <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
+        )}
+        {points != null && (
+          <span className="absolute -right-1 -top-1 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-700 px-1 text-[9px] font-bold text-white ring-2 ring-white">
+            {points}
+          </span>
         )}
         {player.photo_url && !imgError ? (
           <>

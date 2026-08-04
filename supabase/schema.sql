@@ -552,6 +552,9 @@ create trigger fantasy_apply_points_trg
   before insert or update on public.fantasy_player_stats
   for each row execute procedure public.fantasy_apply_points();
 
+-- Solo cuenta puntos de jornadas marcadas como "jugadas" (fantasy_matchdays)
+-- para que el total cuadre con lo que se ve en la pestaña Fantasy del
+-- usuario (Resumen/Jornadas), que aplica el mismo filtro.
 create or replace view public.fantasy_leaderboard as
 select
   fl.mode,
@@ -561,7 +564,12 @@ select
 from public.fantasy_lineups fl
 join public.profiles p on p.id = fl.user_id
 left join public.fantasy_lineup_players flp on flp.lineup_id = fl.id
-left join public.fantasy_player_stats fps on fps.player_id = flp.player_id
+left join public.fantasy_player_stats fps
+  on fps.player_id = flp.player_id
+  and exists (
+    select 1 from public.fantasy_matchdays fm
+    where fm.number = fps.matchday_num and fm.played = true
+  )
 where p.email_confirmed = true
 group by fl.mode, fl.user_id, p.username
 order by fl.mode, total_points desc;

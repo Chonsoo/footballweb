@@ -18,6 +18,7 @@ const ALL_TABS: NavTab[] = [
   { path: '/oraculo', label: 'El oráculo', icon: '🔮' },
   { path: '/mis-apuestas', label: 'Mis apuestas', icon: '✅' },
   { path: '/apuestas-detalladas', label: 'Apuestas detalladas', icon: '🔍' },
+  { path: '/fantasy', label: 'Fantasy', icon: '⚽' },
   { path: '/informacion', label: 'Información', icon: 'ℹ️' },
   { path: '/reglamento', label: 'Reglamento oficial', icon: '📜' },
 ]
