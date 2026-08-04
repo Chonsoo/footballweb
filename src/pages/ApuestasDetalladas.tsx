@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { formatAnswer } from '../lib/answerFormat'
+import AnswerSummary from '../components/AnswerSummary'
+import { shortQuestionLabel } from '../lib/questionLabel'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
@@ -87,26 +88,24 @@ export default function ApuestasDetalladas() {
                 </span>
               </button>
               {isOpen && (
-                <div className="border-t border-gray-100 px-4 py-3">
+                <div className="border-t border-gray-100 p-3">
                   {loadingUser === r.user_id ? (
                     <p className="text-sm text-gray-400">Cargando…</p>
                   ) : (
-                    <ul className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {questions.map((q) => (
-                        <li key={q.id} className="flex flex-col gap-0.5 border-b border-gray-50 pb-2 text-sm last:border-b-0">
-                          <span className="text-xs uppercase tracking-wide text-gray-400">
-                            {q.competition} · {q.question}
-                          </span>
-                          <span className="text-gray-700">
-                            {answers?.[q.id] != null ? (
-                              formatAnswer(q, answers[q.id])
-                            ) : (
-                              <span className="text-gray-400">Sin responder / aún no visible</span>
-                            )}
-                          </span>
-                        </li>
+                        <div key={q.id} className="rounded-lg border border-gray-100 bg-gray-50/60 p-2.5">
+                          <p className="mb-1 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
+                            {shortQuestionLabel(q)}
+                          </p>
+                          {answers?.[q.id] != null ? (
+                            <AnswerSummary question={q} value={answers[q.id]} />
+                          ) : (
+                            <p className="text-sm text-gray-400">Sin responder / aún no visible</p>
+                          )}
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </div>
               )}

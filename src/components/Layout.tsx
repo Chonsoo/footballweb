@@ -61,11 +61,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           style={{ backgroundImage: `url(/badges/${profile.favorite_team}.png)`, backgroundSize: '60vh' }}
         />
       )}
-      <div className="relative z-10">
+      <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar />
         <main
           key={location.pathname}
-          className="page-enter mx-auto max-w-4xl px-4 py-6"
+          className="page-enter mx-auto w-full max-w-4xl flex-1 px-4 py-6"
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >

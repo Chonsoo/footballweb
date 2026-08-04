@@ -5,13 +5,12 @@ import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getTeamColor } from '../lib/teamColors'
 import type { LeaderboardRow } from '../lib/database.types'
 
-// Zonas al estilo tabla de liga real, aplicadas a la clasificación de la
-// porra: el 1º es "campeón" (dorado), 2º-4º "zona Champions" (verde), el
-// resto sin marcar. Es decoración para que se lea de un vistazo, como pedía
-// el usuario ("tipo ganador: y el escudo, champions y los escudos de ahí").
-function zoneFor(position: number): { bar: string; chip: string; label: string } | null {
+// Solo se marcan los extremos de la tabla: el 1º como "campeón" (dorado) y
+// el último como "farolillo rojo" (el que paga la primera ronda). Nada de
+// zona Champions en medio — con las medallas del podio ya se lee de sobra.
+function zoneFor(position: number, total: number): { bar: string; chip: string; label: string } | null {
   if (position === 1) return { bar: 'bg-gold-500', chip: 'bg-gold-100 text-gold-600', label: 'Campeón' }
-  if (position <= 4) return { bar: 'bg-brand-500', chip: 'bg-brand-100 text-brand-700', label: 'Champions' }
+  if (position === total && total > 1) return { bar: 'bg-red-500', chip: 'bg-red-100 text-red-600', label: 'Farolillo rojo' }
   return null
 }
 
@@ -49,7 +48,7 @@ export default function Ranking() {
         <div className="flex flex-col gap-2">
           {rows.map((row, i) => {
             const position = i + 1
-            const zone = zoneFor(position)
+            const zone = zoneFor(position, rows.length)
             const team = LALIGA_TEAMS_2026_27.find((t) => t.id === row.favorite_team)
             const teamColor = getTeamColor(row.favorite_team)
             const isMe = row.user_id === user?.id
@@ -64,7 +63,7 @@ export default function Ranking() {
                 {zone && <span className={`absolute inset-y-0 left-0 w-1.5 ${zone.bar}`} />}
 
                 <span className="flex w-7 shrink-0 items-center justify-center text-lg font-bold text-gray-400">
-                  {position <= 3 ? MEDALS[position - 1] : position}
+                  {position <= 3 ? MEDALS[position - 1] : position === rows.length && rows.length > 1 ? '🏮' : position}
                 </span>
 
                 <span

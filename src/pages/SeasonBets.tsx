@@ -17,7 +17,7 @@ export default function SeasonBets() {
   const [questions, setQuestions] = useState<QuestionWithAnswers[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [openBlock, setOpenBlock] = useState<number | null>(1)
+  const [openBlock, setOpenBlock] = useState<number | null>(null)
 
   async function load() {
     setLoading(true)
