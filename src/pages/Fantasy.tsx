@@ -242,8 +242,23 @@ function JornadasView({
   )
 }
 
-// --- Liga fantasy: clasificación de participantes; al abrir uno se ve su 11
-// con los puntos totales, igual que el propio en Resumen.
+// --- Liga fantasy: clasificación de participantes, con selector Total / Jn
+// arriba — al elegir una jornada concreta, tanto el orden como los puntos
+// que se ven al abrir un 11 son los de esa jornada, no el acumulado.
+
+interface RankingRow {
+  user_id: string
+  username: string
+  points: number
+}
+
+interface MatchdayLeaderboardRow {
+  mode: string
+  user_id: string
+  username: string
+  matchday_num: number
+  points: number
+}
 
 function LigaView({
   matchdays,
@@ -252,35 +267,93 @@ function LigaView({
   matchdays: FantasyMatchday[]
   onPlayerSelect: (player: FantasyPlayer) => void
 }) {
-  const [rows, setRows] = useState<FantasyLeaderboardRow[]>([])
+  const [scope, setScope] = useState<number | 'total'>('total')
+  const [totalRows, setTotalRows] = useState<RankingRow[]>([])
+  const [matchdayRows, setMatchdayRows] = useState<RankingRow[]>([])
+  const [loadingRows, setLoadingRows] = useState(true)
   const [players, setPlayers] = useState<FantasyPlayer[]>([])
-  const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [lineupByUser, setLineupByUser] = useState<Record<string, RivalLineup | null>>({})
-  const [pointsByUser, setPointsByUser] = useState<Record<string, Record<number, number>>>({})
   const [loadingUser, setLoadingUser] = useState<string | null>(null)
+  const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
 
   const playedNumbers = useMemo(() => new Set(matchdays.map((m) => m.number)), [matchdays])
 
+  // Carga inicial: jugadores fantasy (para pintar los 11) + clasificación total.
   useEffect(() => {
     async function load() {
-      const { data: lb } = await supabase
-        .from('fantasy_leaderboard')
-        .select('*')
-        .eq('mode', 'abuelonchos')
-        .order('total_points', { ascending: false })
       const { data: fp } = await supabase
         .from('fantasy_players')
         .select('*')
         .eq('eligible_abuelonchos', true)
         .eq('active', true)
         .order('name')
-      setRows((lb as FantasyLeaderboardRow[]) ?? [])
       setPlayers((fp as FantasyPlayer[]) ?? [])
-      setLoading(false)
+
+      const { data: lb } = await supabase
+        .from('fantasy_leaderboard')
+        .select('*')
+        .eq('mode', 'abuelonchos')
+        .order('total_points', { ascending: false })
+      setTotalRows(((lb as FantasyLeaderboardRow[]) ?? []).map((r) => ({ user_id: r.user_id, username: r.username, points: r.total_points })))
+      setLoadingRows(false)
     }
     load()
   }, [])
+
+  // Clasificación de una jornada concreta, bajo demanda al elegirla.
+  useEffect(() => {
+    if (scope === 'total') return
+    let active = true
+    async function load() {
+      setLoadingRows(true)
+      const { data } = await supabase
+        .from('fantasy_leaderboard_by_matchday')
+        .select('*')
+        .eq('mode', 'abuelonchos')
+        .eq('matchday_num', scope)
+        .order('points', { ascending: false })
+      if (active) {
+        setMatchdayRows(((data as MatchdayLeaderboardRow[]) ?? []).map((r) => ({ user_id: r.user_id, username: r.username, points: r.points })))
+        setLoadingRows(false)
+      }
+    }
+    load()
+    return () => {
+      active = false
+    }
+  }, [scope])
+
+  const rows = scope === 'total' ? totalRows : matchdayRows
+
+  // Puntos por jugador para los 11 ya abiertos: el punto de un jugador en una
+  // jornada (o en total) es el mismo dato sin importar en el 11 de quién se
+  // esté mostrando, así que basta un único mapa global que se recalcula al
+  // cambiar de jornada o al abrir un nuevo participante.
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(
+        Object.values(lineupByUser)
+          .filter((l): l is RivalLineup => l != null)
+          .flatMap((l) => Object.keys(l.value).map(Number))
+      )
+    )
+    if (ids.length === 0) {
+      setPointsByPlayer({})
+      return
+    }
+    let active = true
+    async function load() {
+      const stats = await fetchPlayerStats(ids, scope === 'total' ? undefined : scope)
+      const filtered = scope === 'total' ? stats.filter((s) => playedNumbers.has(s.matchday_num)) : stats
+      if (active) setPointsByPlayer(pointsByPlayerFromStats(filtered))
+    }
+    load()
+    return () => {
+      active = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, lineupByUser, playedNumbers])
 
   async function toggle(userId: string) {
     if (expanded === userId) {
@@ -303,18 +376,13 @@ function LigaView({
           .select('*')
           .eq('lineup_id', lineupRow.id)
         const value: Record<string, string> = {}
-        const ids: number[] = []
         for (const row of (slotsData as { slot_position: string; slot_index: number; player_id: number }[]) ?? []) {
           value[String(row.player_id)] = `${row.slot_position}-${row.slot_index}`
-          ids.push(row.player_id)
         }
         setLineupByUser((m) => ({
           ...m,
           [userId]: { formation: (lineupRow.formation as FantasyFormation) ?? DEFAULT_FANTASY_FORMATION, value },
         }))
-        const stats = await fetchPlayerStats(ids)
-        const filtered = stats.filter((s) => playedNumbers.has(s.matchday_num))
-        setPointsByUser((m) => ({ ...m, [userId]: pointsByPlayerFromStats(filtered) }))
       } else {
         setLineupByUser((m) => ({ ...m, [userId]: null }))
       }
@@ -322,58 +390,86 @@ function LigaView({
     }
   }
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
-
   return (
-    <div className="flex flex-col gap-2">
-      {rows.map((r, i) => {
-        const isOpen = expanded === r.user_id
-        return (
-          <div key={r.user_id} className="overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
-            <button onClick={() => toggle(r.user_id)} className="flex w-full items-center gap-3 bg-white px-4 py-3 text-left">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-50 text-xs font-semibold text-gray-500 ring-1 ring-gray-100">
-                {i + 1}
-              </span>
-              <span className="min-w-0 flex-1 truncate font-semibold text-gray-800">{r.username}</span>
-              <span className="flex shrink-0 items-center gap-3 text-sm text-gray-500">
-                <span className="font-semibold text-gray-700">{r.total_points}</span> pts
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </span>
-            </button>
-            {isOpen && (
-              <div className="border-t border-gray-100 bg-white p-3">
-                {loadingUser === r.user_id ? (
-                  <p className="text-sm text-gray-400">Cargando…</p>
-                ) : lineupByUser[r.user_id] ? (
-                  <div className="overflow-hidden rounded-lg border border-gray-100">
-                    <FantasyLineupPicker
-                      players={players}
-                      formation={lineupByUser[r.user_id]!.formation}
-                      value={lineupByUser[r.user_id]!.value}
-                      onChange={() => {}}
-                      readOnly
-                      hideSidebar
-                      pointsByPlayer={pointsByUser[r.user_id] ?? {}}
-                      onPlayerSelect={onPlayerSelect}
-                    />
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => setScope('total')}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+            scope === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          Total
+        </button>
+        {matchdays.map((md) => (
+          <button
+            key={md.number}
+            type="button"
+            onClick={() => setScope(md.number)}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+              scope === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            J{md.number}
+          </button>
+        ))}
+      </div>
+
+      {loadingRows ? (
+        <p className="text-gray-500">Cargando…</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((r, i) => {
+            const isOpen = expanded === r.user_id
+            return (
+              <div key={r.user_id} className="overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
+                <button onClick={() => toggle(r.user_id)} className="flex w-full items-center gap-3 bg-white px-4 py-3 text-left">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-50 text-xs font-semibold text-gray-500 ring-1 ring-gray-100">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-semibold text-gray-800">{r.username}</span>
+                  <span className="flex shrink-0 items-center gap-3 text-sm text-gray-500">
+                    <span className="font-semibold text-gray-700">{r.points}</span> pts
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="border-t border-gray-100 bg-white p-3">
+                    {loadingUser === r.user_id ? (
+                      <p className="text-sm text-gray-400">Cargando…</p>
+                    ) : lineupByUser[r.user_id] ? (
+                      <div className="overflow-hidden rounded-lg border border-gray-100">
+                        <FantasyLineupPicker
+                          players={players}
+                          formation={lineupByUser[r.user_id]!.formation}
+                          value={lineupByUser[r.user_id]!.value}
+                          onChange={() => {}}
+                          readOnly
+                          hideSidebar
+                          pointsByPlayer={pointsByPlayer}
+                          onPlayerSelect={onPlayerSelect}
+                        />
+                      </div>
+                    ) : (
+                      <p className="rounded-lg border border-gray-100 bg-gray-50/60 p-2.5 text-sm text-gray-400">Sin poner / aún no visible</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="rounded-lg border border-gray-100 bg-gray-50/60 p-2.5 text-sm text-gray-400">Sin poner / aún no visible</p>
                 )}
               </div>
-            )}
-          </div>
-        )
-      })}
-      {rows.length === 0 && <p className="text-gray-400">Todavía no hay clasificación fantasy.</p>}
+            )
+          })}
+          {rows.length === 0 && <p className="text-gray-400">Todavía no hay clasificación fantasy.</p>}
+        </div>
+      )}
     </div>
   )
 }
