@@ -453,9 +453,11 @@ function PitchAvatar({
               onRemove()
             }}
             title="Quitar del 11"
-            className="absolute -left-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold leading-none text-white ring-2 ring-white hover:bg-red-700"
+            className="absolute -left-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-white ring-2 ring-white hover:bg-red-700"
           >
-            ×
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={3}>
+              <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+            </svg>
           </button>
         )}
         {player.photo_url && !imgError ? (

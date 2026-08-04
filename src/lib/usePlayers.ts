@@ -15,7 +15,21 @@ async function loadPlayers(): Promise<FantasyPlayer[]> {
 }
 
 function fetchPlayers(): Promise<FantasyPlayer[]> {
-  if (!cache) cache = loadPlayers()
+  if (!cache) {
+    cache = loadPlayers()
+    // Solo se reutiliza para las llamadas simultáneas del mismo montaje de
+    // pantalla (varios PlayerSelect a la vez no disparan N consultas). Se
+    // limpia justo después de resolver para que la siguiente vez que se
+    // entre a una pantalla con buscador de jugador se traigan datos
+    // frescos — si no, tras importar jugadores nuevos desde el Admin (foto,
+    // nombre completo…) el resto de la app seguiría viendo la foto vieja
+    // hasta recargar la página entera.
+    cache.finally(() => {
+      setTimeout(() => {
+        cache = null
+      }, 0)
+    })
+  }
   return cache
 }
 

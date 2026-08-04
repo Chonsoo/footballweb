@@ -7,6 +7,22 @@ const SILHOUETTE = '/badges/player-silhouette.png'
 
 const PANEL_MAX_HEIGHT = 288 // px, coincide con max-h-72
 
+// Avatar pequeño (foto o silueta) para cada fila del desplegable. Aparte
+// (no inline en el map) para que el estado de "la foto no cargó" sea por
+// jugador y no se contamine entre filas.
+function RowAvatar({ photoUrl }: { photoUrl: string | null }) {
+  const [imgError, setImgError] = useState(false)
+  return (
+    <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-gray-200">
+      {photoUrl && !imgError ? (
+        <img src={photoUrl} alt="" className="h-full w-full object-cover" onError={() => setImgError(true)} />
+      ) : (
+        <img src={SILHOUETTE} alt="" className="h-full w-full scale-110 object-cover" />
+      )}
+    </div>
+  )
+}
+
 // Selector con buscador para preguntas de jugador (Pichichi, Trofeo Zamora,
 // Máximo Asistente…). Se guarda el nombre del jugador como texto, igual que
 // hace TeamSelect con los equipos, así el resto del flujo de calificación
@@ -138,6 +154,7 @@ export default function PlayerSelect({
                     p.name === value ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
                   }`}
                 >
+                  <RowAvatar photoUrl={p.photo_url} />
                   {team?.badge && <img src={team.badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}
                   <span className="min-w-0 flex-1 truncate">{p.name}</span>
                   <span className="shrink-0 text-xs text-gray-400">
