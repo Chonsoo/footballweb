@@ -8,12 +8,65 @@ import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/database.types'
 
-// Color del botón "Guardar": verde si ya hay una respuesta guardada para
-// esta pregunta (para que se note de un vistazo lo que ya está hecho),
-// azul si todavía no se ha contestado.
+// Color del botón "Guardar", con tres estados bien diferenciados (antes
+// "sin contestar" usaba el verde de marca, casi idéntico al verde de
+// "contestado", así que a simple vista todos los botones parecían iguales):
+//  - gris: todavía no se ha guardado ninguna respuesta (falta por rellenar).
+//  - ámbar: ya había una respuesta guardada, pero se ha modificado el valor
+//    sin volver a pulsar "Guardar" (cambio pendiente).
+//  - verde: guardado y coincide con lo que se ve en el formulario.
 const SAVE_BTN_CLASS = {
   answered: 'bg-green-600 hover:bg-green-700',
-  unanswered: 'bg-brand-700 hover:bg-brand-800',
+  unsaved: 'bg-amber-500 hover:bg-amber-600',
+  unanswered: 'bg-gray-400 hover:bg-gray-500',
+}
+
+function saveBtnClass(answered: boolean, hasUnsaved: boolean) {
+  // Un cambio sin guardar manda sobre el resto: tanto si nunca se había
+  // contestado como si ya había una respuesta guardada, lo importante ahora
+  // mismo es "pulsa Guardar".
+  if (hasUnsaved) return SAVE_BTN_CLASS.unsaved
+  return answered ? SAVE_BTN_CLASS.answered : SAVE_BTN_CLASS.unanswered
+}
+
+// Marcador de resultado: antes era un <input type="number"> normal, que en
+// varios móviles/navegadores deja escribir "-", "+", "." aunque min={0} (esa
+// validación del navegador solo se aplica al enviar el formulario, no al
+// teclear). Aquí se sanea la entrada a solo dígitos y se añaden botones +/-
+// para no depender del teclado numérico del navegador.
+function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(0, value - 1))}
+        disabled={value <= 0}
+        aria-label="Restar"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+      >
+        −
+      </button>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={value}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/[^0-9]/g, '')
+          onChange(digits === '' ? 0 : Math.max(0, Number(digits)))
+        }}
+        className="w-10 shrink-0 rounded border border-gray-300 px-1 py-1 text-center"
+      />
+      <button
+        type="button"
+        onClick={() => onChange(value + 1)}
+        aria-label="Sumar"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+      >
+        +
+      </button>
+    </div>
+  )
 }
 
 // Para preguntas 'choice' que piden un equipo (config.team_ids presente): lista de
@@ -79,21 +132,9 @@ export function QuestionDraftInput({
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <TeamLabel name={question.config.home_team ?? 'Local'} align="right" />
-        <input
-          type="number"
-          min={0}
-          value={current.home}
-          onChange={(e) => onChange({ home: Math.max(0, Number(e.target.value) || 0), away: current.away })}
-          className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
-        />
+        <ScoreStepper value={current.home} onChange={(home) => onChange({ home, away: current.away })} />
         <span className="shrink-0">-</span>
-        <input
-          type="number"
-          min={0}
-          value={current.away}
-          onChange={(e) => onChange({ home: current.home, away: Math.max(0, Number(e.target.value) || 0) })}
-          className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
-        />
+        <ScoreStepper value={current.away} onChange={(away) => onChange({ home: current.home, away })} />
         <TeamLabel name={question.config.away_team ?? 'Visitante'} />
       </div>
     )
@@ -273,9 +314,7 @@ function TextInput({
         <button
           onClick={() => draft.trim() && onSave(draft.trim())}
           disabled={saving}
-          className={`rounded px-3 py-2 text-sm font-medium text-white disabled:opacity-50 ${
-            answered ? SAVE_BTN_CLASS.answered : SAVE_BTN_CLASS.unanswered
-          }`}
+          className={`rounded px-3 py-2 text-sm font-medium text-white disabled:opacity-50 ${saveBtnClass(answered, hasUnsaved)}`}
         >
           Guardar
         </button>
@@ -302,34 +341,24 @@ function ScorePredictionInput({
 }) {
   const [home, setHome] = useState(value.home)
   const [away, setAway] = useState(value.away)
+  const hasUnsaved = home !== value.home || away !== value.away
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm sm:flex-nowrap">
-      <TeamLabel name={homeTeam} align="right" />
-      <input
-        type="number"
-        min={0}
-        defaultValue={value.home}
-        onChange={(e) => setHome(Math.max(0, Number(e.target.value) || 0))}
-        className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
-      />
-      <span className="shrink-0">-</span>
-      <input
-        type="number"
-        min={0}
-        defaultValue={value.away}
-        onChange={(e) => setAway(Math.max(0, Number(e.target.value) || 0))}
-        className="w-16 shrink-0 rounded border border-gray-300 px-2 py-1 text-center"
-      />
-      <TeamLabel name={awayTeam} />
-      <button
-        onClick={() => onSave({ home, away })}
-        disabled={saving}
-        className={`shrink-0 rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${
-          answered ? SAVE_BTN_CLASS.answered : SAVE_BTN_CLASS.unanswered
-        }`}
-      >
-        Guardar
-      </button>
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-2 text-sm sm:flex-nowrap">
+        <TeamLabel name={homeTeam} align="right" />
+        <ScoreStepper value={home} onChange={setHome} />
+        <span className="shrink-0">-</span>
+        <ScoreStepper value={away} onChange={setAway} />
+        <TeamLabel name={awayTeam} />
+        <button
+          onClick={() => onSave({ home, away })}
+          disabled={saving}
+          className={`shrink-0 rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${saveBtnClass(answered, hasUnsaved)}`}
+        >
+          Guardar
+        </button>
+      </div>
+      {hasUnsaved && <p className="text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
     </div>
   )
 }
