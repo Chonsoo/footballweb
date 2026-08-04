@@ -1,16 +1,30 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import BlockAnswers from '../components/BlockAnswers'
 import AnswerSummary from '../components/AnswerSummary'
 import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyPlayer } from '../lib/fantasyTypes'
+import { computeRanks } from '../lib/ranking'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 interface UserLineup {
   formation: FantasyFormation
   value: Record<string, string>
 }
+
+// Mismo lenguaje visual que la Clasificación (oro/plata/bronce arriba) para
+// que la fila de cada participante no sea un bloque blanco plano — un
+// vistazo rápido ya dice quién va primero antes de tocar nada.
+function rowAccent(rank: number): { background: string; borderColor: string } {
+  if (rank === 1) return { background: 'linear-gradient(to right, #fbe9b8, #ffffff)', borderColor: '#e0b64a' }
+  if (rank === 2) return { background: 'linear-gradient(to right, #e2e8f0, #ffffff)', borderColor: '#94a3b8' }
+  if (rank === 3) return { background: 'linear-gradient(to right, #e8c4a0, #ffffff)', borderColor: '#b97a4a' }
+  return { background: '#ffffff', borderColor: '#e5e7eb' }
+}
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 export default function ApuestasDetalladas() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
@@ -25,7 +39,7 @@ export default function ApuestasDetalladas() {
 
   useEffect(() => {
     async function load() {
-      const { data: lb } = await supabase.from('leaderboard').select('*')
+      const { data: lb } = await supabase.from('leaderboard').select('*').order('username', { ascending: true })
       const { data: qs } = await supabase.from('season_questions').select('*').order('created_at', { ascending: true })
       const { data: fp } = await supabase
         .from('fantasy_players')
@@ -33,7 +47,8 @@ export default function ApuestasDetalladas() {
         .eq('eligible_abuelonchos', true)
         .eq('active', true)
         .order('name')
-      setRows((lb as LeaderboardRow[]) ?? [])
+      const sortedLb = ((lb as LeaderboardRow[]) ?? []).sort((a, b) => b.total_points - a.total_points)
+      setRows(sortedLb)
       setQuestions((qs as SeasonQuestion[]) ?? [])
       setFantasyPlayers((fp as FantasyPlayer[]) ?? [])
       setLoading(false)
@@ -106,19 +121,36 @@ export default function ApuestasDetalladas() {
       />
 
       <div className="flex flex-col gap-2">
-        {filtered.map((r) => {
+        {(() => {
+          const ranks = computeRanks(rows)
+          return filtered.map((r) => {
+          const rowIndex = rows.findIndex((row) => row.user_id === r.user_id)
+          const rank = rowIndex >= 0 ? ranks[rowIndex] : filtered.indexOf(r) + 1
           const isOpen = expanded === r.user_id
           const answers = answersByUser[r.user_id]
           const team = LALIGA_TEAMS_2026_27.find((t) => t.id === r.favorite_team)
+          const accent = rowAccent(rank)
+          const initialQs = questions.filter((q) => q.phase === 'initial')
+          const weeklyQs = questions.filter((q) => q.phase === 'weekly')
+
           return (
-            <div key={r.user_id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-              <button onClick={() => toggle(r.user_id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left">
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
-                    {team?.badge ? <img src={team.badge} alt="" className="h-6 w-6 object-contain" /> : <span className="text-xs">🛡️</span>}
-                  </span>
-                  <span className="truncate font-semibold text-gray-800">{r.username}</span>
+            <div
+              key={r.user_id}
+              className="overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md"
+              style={{ borderColor: accent.borderColor }}
+            >
+              <button
+                onClick={() => toggle(r.user_id)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                style={{ background: accent.background }}
+              >
+                <span className="flex w-6 shrink-0 items-center justify-center text-base font-bold text-gray-500">
+                  {rank <= 3 ? MEDALS[rank - 1] : rank}
                 </span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100">
+                  {team?.badge ? <img src={team.badge} alt="" className="h-6 w-6 object-contain" /> : <span className="text-xs">🛡️</span>}
+                </span>
+                <span className="min-w-0 flex-1 truncate font-semibold text-gray-800">{r.username}</span>
                 <span className="flex shrink-0 items-center gap-3 text-sm text-gray-500">
                   <span className="font-semibold text-gray-700">{r.total_points}</span> pts
                   <svg
@@ -133,28 +165,15 @@ export default function ApuestasDetalladas() {
                 </span>
               </button>
               {isOpen && (
-                <div className="flex flex-col gap-3 border-t border-gray-100 p-3">
+                <div className="flex flex-col gap-4 border-t border-gray-100 bg-white p-3">
                   {loadingUser === r.user_id ? (
                     <p className="text-sm text-gray-400">Cargando…</p>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {questions.map((q) => (
-                          <div key={q.id} className="rounded-lg border border-gray-100 bg-gray-50/60 p-2.5">
-                            <p className="mb-1 truncate text-[11px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
-                              {shortQuestionLabel(q)}
-                            </p>
-                            {answers?.[q.id] != null ? (
-                              <AnswerSummary question={q} value={answers[q.id]} />
-                            ) : (
-                              <p className="text-sm text-gray-400">Sin responder / aún no visible</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                      <BlockAnswers questions={initialQs} answers={answers ?? {}} />
 
                       <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">El 11 de Abuelonchos</p>
+                        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">El 11 de Abuelonchos</h3>
                         {lineupByUser[r.user_id] ? (
                           <div className="overflow-hidden rounded-lg border border-gray-100">
                             <FantasyLineupPicker
@@ -172,13 +191,34 @@ export default function ApuestasDetalladas() {
                           </p>
                         )}
                       </div>
+
+                      {weeklyQs.length > 0 && (
+                        <div>
+                          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">Apuestas de la semana</h3>
+                          <div className="grid grid-cols-2 gap-2">
+                            {weeklyQs.map((q) => (
+                              <div key={q.id} className="rounded-lg border border-gray-100 bg-gray-50/60 p-2">
+                                <p className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
+                                  {shortQuestionLabel(q)}
+                                </p>
+                                {answers?.[q.id] != null ? (
+                                  <AnswerSummary question={q} value={answers[q.id]} />
+                                ) : (
+                                  <p className="text-sm text-gray-400">Sin responder / aún no visible</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
               )}
             </div>
           )
-        })}
+          })
+        })()}
         {filtered.length === 0 && <p className="text-gray-400">Sin resultados.</p>}
       </div>
     </div>

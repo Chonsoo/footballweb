@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
-import { getTeamColor } from '../lib/teamColors'
+import { computeRanks } from '../lib/ranking'
 import type { LeaderboardRow } from '../lib/database.types'
 
 interface HomeCard {
@@ -82,17 +81,21 @@ export default function Home() {
     supabase
       .from('leaderboard')
       .select('*')
+      // Desempate estable por nombre: con todos a 0 puntos al principio de
+      // temporada, sin un segundo criterio el orden (y por tanto "tu
+      // puesto") puede variar de una carga a otra sin motivo aparente.
+      .order('username', { ascending: true })
       .then(({ data }) => {
-        setRows((data as LeaderboardRow[]) ?? [])
+        const sorted = ((data as LeaderboardRow[]) ?? []).sort((a, b) => b.total_points - a.total_points)
+        setRows(sorted)
         setLoading(false)
       })
   }, [])
 
-  const myPosition = user ? rows.findIndex((r) => r.user_id === user.id) : -1
-  const myRow = myPosition >= 0 ? rows[myPosition] : null
-
-  const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
-  const favoriteTeamColor = getTeamColor(profile?.favorite_team)
+  const myIndex = user ? rows.findIndex((r) => r.user_id === user.id) : -1
+  const myRow = myIndex >= 0 ? rows[myIndex] : null
+  // Ranking 1224: si empatas con otro en puntos, mostráis el mismo puesto.
+  const myRank = myIndex >= 0 ? computeRanks(rows)[myIndex] : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -107,7 +110,6 @@ export default function Home() {
         <div className="relative flex flex-col items-center gap-2 text-center">
           <span className="text-4xl">🏆</span>
           <h1 className="text-2xl font-extrabold tracking-tight text-gold-400 sm:text-3xl">PORRA ABUELONCHA</h1>
-          <p className="text-sm text-brand-100 sm:text-base">LaLiga 2026/27 · Edición Abueloncho</p>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 backdrop-blur-sm">
@@ -118,20 +120,8 @@ export default function Home() {
               <div className="rounded-xl border border-gold-400/40 bg-white/10 px-4 py-2 backdrop-blur-sm">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Tu puesto</p>
                 <p className="text-xl font-bold text-gold-400">
-                  #{myPosition + 1} · {myRow.total_points} pts
+                  #{myRank} <span className="text-sm font-medium text-brand-100">· {myRow.total_points} pts</span>
                 </p>
-              </div>
-            )}
-            {favoriteTeam && (
-              <div
-                className="flex items-center gap-2 rounded-xl border bg-white/10 px-4 py-2 backdrop-blur-sm"
-                style={favoriteTeamColor ? { borderColor: `${favoriteTeamColor}99`, boxShadow: `0 0 16px -4px ${favoriteTeamColor}` } : undefined}
-              >
-                {favoriteTeam.badge && <img src={favoriteTeam.badge} alt="" className="h-8 w-8 shrink-0 object-contain" />}
-                <div className="text-left">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Tu equipo</p>
-                  <p className="text-sm font-bold leading-tight">{favoriteTeam.name}</p>
-                </div>
               </div>
             )}
           </div>
