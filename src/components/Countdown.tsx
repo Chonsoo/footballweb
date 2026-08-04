@@ -18,6 +18,12 @@ function formatTimeLeft(ms: number): string {
   return days > 0 ? `${days}d ${clock}` : clock
 }
 
+// Siempre en rojo — es una cuenta atrás contra un cierre, no un dato neutro,
+// así que el color va integrado aquí por defecto en vez de dejarlo a
+// merced de que cada sitio que lo usa se acuerde de pasar clases rojas.
+const BASE_CLASSES =
+  'inline-flex shrink-0 items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700'
+
 export default function Countdown({ deadline, className }: { deadline: Date; className?: string }) {
   const [now, setNow] = useState(() => Date.now())
 
@@ -30,8 +36,9 @@ export default function Countdown({ deadline, className }: { deadline: Date; cla
   if (msLeft <= 0) return null
 
   return (
-    <span className={className}>
-      Quedan <span className="tabular-nums">{formatTimeLeft(msLeft)}</span>
+    <span className={className ?? BASE_CLASSES}>
+      <span aria-hidden>⏳</span>
+      <span className="tabular-nums">{formatTimeLeft(msLeft)}</span>
     </span>
   )
 }

@@ -6,7 +6,7 @@ import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyPlayer } from '../lib/fantasyTypes'
-import { computeRanks } from '../lib/ranking'
+import { computeRanks, distFromLastTier } from '../lib/ranking'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 interface UserLineup {
@@ -14,10 +14,13 @@ interface UserLineup {
   value: Record<string, string>
 }
 
-// Mismo lenguaje visual que la Clasificación (oro/plata/bronce arriba) para
+// Mismo lenguaje visual que la Clasificación (oro/plata/bronce arriba, y
+// farolillo si el empate es justo el de los últimos — manda incluso si ese
+// mismo grupo también calcula como 1º, caso límite de empate total) para
 // que la fila de cada participante no sea un bloque blanco plano — un
 // vistazo rápido ya dice quién va primero antes de tocar nada.
-function rowAccent(rank: number): { background: string; borderColor: string } {
+function rowAccent(rank: number, isLastTier: boolean): { background: string; borderColor: string } {
+  if (isLastTier) return { background: '#fee2e2', borderColor: '#fca5a5' }
   if (rank === 1) return { background: 'linear-gradient(to right, #fbe9b8, #ffffff)', borderColor: '#e0b64a' }
   if (rank === 2) return { background: 'linear-gradient(to right, #e2e8f0, #ffffff)', borderColor: '#94a3b8' }
   if (rank === 3) return { background: 'linear-gradient(to right, #e8c4a0, #ffffff)', borderColor: '#b97a4a' }
@@ -126,10 +129,11 @@ export default function ApuestasDetalladas() {
           return filtered.map((r) => {
           const rowIndex = rows.findIndex((row) => row.user_id === r.user_id)
           const rank = rowIndex >= 0 ? ranks[rowIndex] : filtered.indexOf(r) + 1
+          const isLastTier = rows.length > 1 && distFromLastTier(r.total_points, rows) === 0
           const isOpen = expanded === r.user_id
           const answers = answersByUser[r.user_id]
           const team = LALIGA_TEAMS_2026_27.find((t) => t.id === r.favorite_team)
-          const accent = rowAccent(rank)
+          const accent = rowAccent(rank, isLastTier)
           const initialQs = questions.filter((q) => q.phase === 'initial')
           const weeklyQs = questions.filter((q) => q.phase === 'weekly')
 
@@ -145,7 +149,7 @@ export default function ApuestasDetalladas() {
                 style={{ background: accent.background }}
               >
                 <span className="flex w-6 shrink-0 items-center justify-center text-base font-bold text-gray-500">
-                  {rank <= 3 ? MEDALS[rank - 1] : rank}
+                  {isLastTier ? '🏮' : rank <= 3 ? MEDALS[rank - 1] : rank}
                 </span>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100">
                   {team?.badge ? <img src={team.badge} alt="" className="h-6 w-6 object-contain" /> : <span className="text-xs">🛡️</span>}

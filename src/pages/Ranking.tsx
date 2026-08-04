@@ -25,7 +25,20 @@ interface RowStyle {
 // el siguiente es 4º), y "tierFromLast" mide en escalones de puntos
 // distintos desde el final (no filas), para que un empate por el farolillo
 // no reparta colores distintos a quienes tienen los mismos puntos.
-function rowStyleFor(rank: number, tierFromLast: number, tierCount: number): RowStyle {
+//
+// Regla de precedencia: si hay empate, se muestra siempre el puesto más
+// alto compartido (p.ej. empate a 2º y 3º -> los dos segundos), EXCEPTO
+// cuando el empate es justo el de los últimos — a esos se les pone el
+// farolillo y el puesto final, y esto manda incluso si ese mismo grupo
+// también calcula como 1º (caso límite: todos empatados a la vez).
+function rowStyleFor(rank: number, tierFromLast: number, tierCount: number, isLastTier: boolean): RowStyle {
+  if (isLastTier) {
+    return {
+      background: '#fee2e2',
+      borderColor: '#fca5a5',
+      chip: { bg: 'bg-red-200 text-red-700', label: 'Farolillo rojo' },
+    }
+  }
   if (rank === 1) {
     return {
       background: 'linear-gradient(to right, #fbe9b8, #fffdf6)',
@@ -41,13 +54,6 @@ function rowStyleFor(rank: number, tierFromLast: number, tierCount: number): Row
   }
 
   if (tierCount > 3) {
-    if (tierFromLast === 0) {
-      return {
-        background: '#fee2e2',
-        borderColor: '#fca5a5',
-        chip: { bg: 'bg-red-200 text-red-700', label: 'Farolillo rojo' },
-      }
-    }
     if (tierFromLast === 1) return { background: '#fff1e6', borderColor: '#fdd9b5' }
     if (tierFromLast === 2) return { background: '#fffaeb', borderColor: '#fdecc8' }
   }
@@ -93,8 +99,8 @@ export default function Ranking() {
             return rows.map((row, i) => {
               const rank = ranks[i]
               const tierFromLast = distFromLastTier(row.total_points, rows)
-              const style = rowStyleFor(rank, tierFromLast, tierCount)
               const isLastTier = tierFromLast === 0 && rows.length > 1
+              const style = rowStyleFor(rank, tierFromLast, tierCount, isLastTier)
               const team = LALIGA_TEAMS_2026_27.find((t) => t.id === row.favorite_team)
               const teamColor = getTeamColor(row.favorite_team)
               const isMe = row.user_id === user?.id
@@ -109,7 +115,7 @@ export default function Ranking() {
                   {isMe && <span className="absolute inset-y-0 left-0 w-1.5 bg-brand-600" />}
 
                   <span className="flex w-7 shrink-0 items-center justify-center text-lg font-bold text-gray-500">
-                    {rank <= 3 ? MEDALS[rank - 1] : isLastTier ? '🏮' : rank}
+                    {isLastTier ? '🏮' : rank <= 3 ? MEDALS[rank - 1] : rank}
                   </span>
 
                 <span

@@ -118,11 +118,11 @@ export default function SeasonBets() {
           que pusiste, mejor entra en <strong>Mis apuestas</strong>.
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">
           <span>
-            Puedes rellenar o actualizar tus respuestas hasta el <strong>{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
+            Puedes rellenar o actualizar tus respuestas hasta el <strong className="text-gray-800">{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
           </span>
-          <Countdown deadline={INITIAL_PHASE_DEADLINE} className="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700" />
+          <Countdown deadline={INITIAL_PHASE_DEADLINE} />
         </div>
       )}
 

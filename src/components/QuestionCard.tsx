@@ -56,7 +56,7 @@ export default function QuestionCard({
       {showCountdown && !closed && question.closes_at && (
         <Countdown
           deadline={new Date(question.closes_at)}
-          className="mb-3 inline-block rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700"
+          className="mb-3 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700"
         />
       )}
 
