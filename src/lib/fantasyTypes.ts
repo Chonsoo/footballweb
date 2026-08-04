@@ -1,6 +1,8 @@
 // Tipos del módulo "11 ideal" (Fantasy Abuelonchos). Ver
 // supabase/migrations/015_fantasy_schema.sql para el esquema real.
 
+import { normalizeText } from './textNormalize'
+
 export type FantasyPosition = 'POR' | 'DEF' | 'MED' | 'DEL'
 
 export const FANTASY_POSITIONS: FantasyPosition[] = ['POR', 'DEF', 'MED', 'DEL']
@@ -29,8 +31,22 @@ export interface FantasyPlayer {
   player_position: FantasyPosition
   birth_date: string | null
   photo_url: string | null
+  nationality: string | null
+  full_name: string | null
   eligible_abuelonchos: boolean
   active: boolean
+}
+
+// El nombre mostrado puede ser corto (p.ej. "Giuliano"), así que la búsqueda
+// también comprueba full_name cuando existe, para encontrarlo por el
+// apellido por el que se le conoce (p.ej. "Simeone") sin cambiar lo que se
+// ve en la carta.
+export function playerMatchesSearch(player: FantasyPlayer, search: string): boolean {
+  const needle = normalizeText(search)
+  if (!needle) return true
+  if (normalizeText(player.name).includes(needle)) return true
+  if (player.full_name && normalizeText(player.full_name).includes(needle)) return true
+  return false
 }
 
 // Huecos por posición además del portero, que siempre es 1 e implícito.

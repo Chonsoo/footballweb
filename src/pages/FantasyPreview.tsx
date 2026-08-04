@@ -32,6 +32,8 @@ const MOCK_PLAYERS_ALL: FantasyPlayer[] = (() => {
         player_position: pos,
         birth_date: veteran ? '1990-06-15' : '1999-06-15',
         photo_url: null,
+        nationality: 'Spain',
+        full_name: null,
         eligible_abuelonchos: veteran,
         active: true,
       })

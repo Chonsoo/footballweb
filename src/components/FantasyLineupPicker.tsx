@@ -5,14 +5,15 @@ import {
   FANTASY_POSITION_LABELS,
   buildFantasySlots,
   formationLabel,
+  playerMatchesSearch,
   slotKey,
   type FantasyFormation,
   type FantasyPlayer,
   type FantasyPosition,
   type FantasySlot,
 } from '../lib/fantasyTypes'
-import { normalizeText } from '../lib/textNormalize'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import PlayerCard from './PlayerCard'
 
 const POSITION_COLORS: Record<FantasyPosition, string> = {
   POR: 'bg-orange-200 text-orange-900',
@@ -44,6 +45,7 @@ export default function FantasyLineupPicker({
   const [search, setSearch] = useState('')
   const [positionFilter, setPositionFilter] = useState<Set<FantasyPosition>>(new Set())
   const [view, setView] = useState<'pitch' | 'list'>('pitch')
+  const [poolView, setPoolView] = useState<'chips' | 'cards'>('chips')
 
   function togglePositionFilter(pos: FantasyPosition) {
     setPositionFilter((cur) => {
@@ -71,7 +73,7 @@ export default function FantasyLineupPicker({
     filtered = filtered.filter((p) => positionFilter.has(p.player_position))
   }
   if (search.trim()) {
-    filtered = filtered.filter((p) => normalizeText(p.name).includes(normalizeText(search)))
+    filtered = filtered.filter((p) => playerMatchesSearch(p, search))
   }
   const unplacedCount = players.filter((p) => !placedIds.has(p.api_player_id)).length
 
@@ -253,23 +255,51 @@ export default function FantasyLineupPicker({
                 )
               })}
             </div>
-            <p className="text-xs font-medium text-gray-500">Sin colocar ({unplacedCount})</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-gray-500">Sin colocar ({unplacedCount})</p>
+              <div className="flex overflow-hidden rounded border border-gray-300 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setPoolView('chips')}
+                  className={`px-1.5 py-0.5 font-medium ${poolView === 'chips' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+                >
+                  Lista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPoolView('cards')}
+                  className={`px-1.5 py-0.5 font-medium ${poolView === 'cards' ? 'bg-yellow-700 text-white' : 'bg-white text-gray-600'}`}
+                >
+                  Cartas
+                </button>
+              </div>
+            </div>
             <div
               onClick={handlePoolAreaClick}
-              className={`flex max-h-64 flex-col gap-1 overflow-y-auto rounded border border-dashed p-2 transition-colors sm:max-h-[60vh] ${
-                selected != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
-              }`}
+              className={`flex max-h-64 overflow-y-auto rounded border border-dashed p-2 transition-colors sm:max-h-[60vh] ${
+                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1'
+              } ${selected != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}
             >
               {filtered.length === 0 && <span className="text-xs text-gray-300">Sin resultados</span>}
-              {filtered.map((p) => (
-                <PlayerChip
-                  key={p.api_player_id}
-                  player={p}
-                  selected={selected === p.api_player_id}
-                  onClick={() => handlePlayerClick(p.api_player_id)}
-                  pool
-                />
-              ))}
+              {filtered.map((p) =>
+                poolView === 'cards' ? (
+                  <PlayerCard
+                    key={p.api_player_id}
+                    player={p}
+                    size="sm"
+                    selected={selected === p.api_player_id}
+                    onClick={() => handlePlayerClick(p.api_player_id)}
+                  />
+                ) : (
+                  <PlayerChip
+                    key={p.api_player_id}
+                    player={p}
+                    selected={selected === p.api_player_id}
+                    onClick={() => handlePlayerClick(p.api_player_id)}
+                    pool
+                  />
+                )
+              )}
             </div>
           </div>
         </div>

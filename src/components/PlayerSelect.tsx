@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePlayers } from '../lib/usePlayers'
-import { normalizeText } from '../lib/textNormalize'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
-import type { FantasyPlayer } from '../lib/fantasyTypes'
+import { playerMatchesSearch, type FantasyPlayer, type FantasyPosition } from '../lib/fantasyTypes'
+
+const SILHOUETTE = '/badges/player-silhouette.png'
 
 const PANEL_MAX_HEIGHT = 288 // px, coincide con max-h-72
 
@@ -14,26 +15,28 @@ export default function PlayerSelect({
   value,
   onChange,
   excludeTeamIds,
+  position,
   disabled,
 }: {
   value: string
   onChange: (name: string) => void
   excludeTeamIds?: string[]
+  position?: FantasyPosition
   disabled?: boolean
 }) {
   const { players, loading } = usePlayers()
   const [open, setOpen] = useState(false)
   const [openUp, setOpenUp] = useState(false)
   const [search, setSearch] = useState('')
+  const [imgError, setImgError] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
 
-  const pool = excludeTeamIds?.length ? players.filter((p) => !excludeTeamIds.includes(p.team_id ?? '')) : players
+  let pool = excludeTeamIds?.length ? players.filter((p) => !excludeTeamIds.includes(p.team_id ?? '')) : players
+  if (position) pool = pool.filter((p) => p.player_position === position)
   const selected = pool.find((p) => p.name === value)
 
-  const filtered = search.trim()
-    ? pool.filter((p) => normalizeText(p.name).includes(normalizeText(search)))
-    : pool
+  const filtered = search.trim() ? pool.filter((p) => playerMatchesSearch(p, search)) : pool
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -42,6 +45,10 @@ export default function PlayerSelect({
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
+
+  useEffect(() => {
+    setImgError(false)
+  }, [value])
 
   function toggleOpen() {
     if (!open && btnRef.current) {
@@ -75,6 +82,30 @@ export default function PlayerSelect({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
+
+      {selected && !open && (
+        <div className="mt-2 flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-gray-200">
+            {selected.photo_url && !imgError ? (
+              <img
+                src={selected.photo_url}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <img src={SILHOUETTE} alt="" className="h-full w-full scale-110 object-cover" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-gray-800">{selected.name}</p>
+            <p className="text-xs text-gray-400">
+              {selected.player_position}
+              {selectedTeam ? ` · ${selectedTeam.name}` : ''}
+            </p>
+          </div>
+        </div>
+      )}
 
       {open && (
         <div

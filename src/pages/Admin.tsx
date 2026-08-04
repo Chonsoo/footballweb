@@ -320,21 +320,36 @@ function ConfigBuilder({
           Buscador de jugador (en vez de opciones de texto)
         </label>
         {config.player_choice ? (
-          <input
-            type="text"
-            placeholder="Ids de equipos a excluir, separados por coma (opcional, p.ej. real-madrid,barcelona,atletico-madrid)"
-            defaultValue={(config.exclude_team_ids ?? []).join(',')}
-            onBlur={(e) =>
-              onChange({
-                ...config,
-                exclude_team_ids: e.target.value
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              })
-            }
-            className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-          />
+          <>
+            <input
+              type="text"
+              placeholder="Ids de equipos a excluir, separados por coma (opcional, p.ej. real-madrid,barcelona,atletico-madrid)"
+              defaultValue={(config.exclude_team_ids ?? []).join(',')}
+              onBlur={(e) =>
+                onChange({
+                  ...config,
+                  exclude_team_ids: e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+            />
+            <select
+              value={config.player_position ?? ''}
+              onChange={(e) =>
+                onChange({ ...config, player_position: (e.target.value || undefined) as QuestionConfig['player_position'] })
+              }
+              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+            >
+              <option value="">Cualquier posición</option>
+              <option value="POR">Solo porteros</option>
+              <option value="DEF">Solo defensas</option>
+              <option value="MED">Solo centrocampistas</option>
+              <option value="DEL">Solo delanteros</option>
+            </select>
+          </>
         ) : (
           <OptionsBuilder
             options={config.options ?? []}
@@ -614,6 +629,7 @@ function GradingPanel({
               value={(resultDraft as string) ?? ''}
               onChange={(name) => setResultDraft(name)}
               excludeTeamIds={question.config.exclude_team_ids}
+              position={question.config.player_position}
             />
           ) : question.answer_type === 'choice' ? (
             <select
@@ -848,7 +864,13 @@ function MatchdaysSection() {
 }
 
 // ---------------- Jugadores fantasy (alta manual, sin API) ----------------
-const BULK_LINE_RE = /^(.+);(POR|DEF|MED|DEL);(\d{4}-\d{2}-\d{2});([a-z0-9-]+)$/i
+// Formato: Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo
+// Los últimos 3 campos son opcionales — se puede dejar un hueco vacío entre
+// punto y coma para saltarse uno y rellenar el siguiente (p.ej.
+// "Nombre;POR;1990-01-01;sevilla;;https://foto.jpg" salta la nacionalidad
+// pero sí trae foto). Nombre y nombre_completo no se tocan si vienen vacíos.
+const BULK_MIN_FIELDS = 4
+const POSITIONS = ['POR', 'DEF', 'MED', 'DEL']
 
 function FantasyPlayersSection() {
   const [players, setPlayers] = useState<FantasyPlayer[]>([])
@@ -859,6 +881,9 @@ function FantasyPlayersSection() {
   const [search, setSearch] = useState('')
   const [showTeamIds, setShowTeamIds] = useState(false)
   const [lastImportSummary, setLastImportSummary] = useState<string | null>(null)
+  const [laligaSelected, setLaligaSelected] = useState<string[]>([])
+  const [laligaLoading, setLaligaLoading] = useState(false)
+  const [laligaErrors, setLaligaErrors] = useState<string[]>([])
 
   async function load() {
     setLoading(true)
@@ -871,19 +896,84 @@ function FantasyPlayersSection() {
     load()
   }, [])
 
+  function toggleLaligaTeam(teamId: string) {
+    setLaligaSelected((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]))
+  }
+
+  // Trae las plantillas seleccionadas desde la API pública de laliga.com (vía
+  // nuestro proxy en /api/laliga-players, que evita el problema de CORS y no
+  // expone la clave en el navegador) y rellena el textarea de abajo con el
+  // mismo formato que ya entiende parseBulk — no se guarda nada solo, el
+  // usuario revisa y pulsa "Importar jugadores" como siempre.
+  async function fetchFromLaliga() {
+    if (laligaSelected.length === 0) return
+    setLaligaLoading(true)
+    setLaligaErrors([])
+    try {
+      const resp = await fetch(`/api/laliga-players?teams=${laligaSelected.join(',')}`)
+      if (!resp.ok) throw new Error(`El proxy respondió ${resp.status}`)
+      const data = (await resp.json()) as {
+        results: Record<
+          string,
+          | { ok: true; players: { name: string; full_name: string | null; player_position: string; birth_date: string | null; nationality: string | null; photo_url: string | null }[] }
+          | { ok: false; error: string }
+        >
+      }
+      const lines: string[] = []
+      const errors: string[] = []
+      for (const teamId of laligaSelected) {
+        const teamName = LALIGA_TEAMS_2026_27.find((t) => t.id === teamId)?.name ?? teamId
+        const entry = data.results[teamId]
+        if (!entry) {
+          errors.push(`${teamName}: sin respuesta del proxy`)
+          continue
+        }
+        if (!entry.ok) {
+          errors.push(`${teamName}: ${entry.error}`)
+          continue
+        }
+        for (const p of entry.players) {
+          if (!p.birth_date) {
+            errors.push(`${teamName}: "${p.name}" no trae fecha de nacimiento, se omite (añádelo a mano si hace falta)`)
+            continue
+          }
+          lines.push(
+            `${p.name};${p.player_position};${p.birth_date};${teamId};${p.nationality ?? ''};${p.photo_url ?? ''};${p.full_name ?? ''}`
+          )
+        }
+      }
+      setBulkText(lines.join('\n'))
+      setLaligaErrors(errors)
+    } catch (err) {
+      setLaligaErrors([err instanceof Error ? err.message : 'Error desconocido al conectar con laliga.com'])
+    } finally {
+      setLaligaLoading(false)
+    }
+  }
+
   function parseBulk(): { rows: Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'>[]; errors: string[] } {
     const lines = bulkText.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
     const rows: Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'>[] = []
     const errors: string[] = []
 
     lines.forEach((line, i) => {
-      const match = line.match(BULK_LINE_RE)
-      if (!match) {
-        errors.push(`Línea ${i + 1}: formato incorrecto (usa Nombre;POSICION;AAAA-MM-DD;id_equipo) — "${line}"`)
+      const parts = line.split(';').map((p) => p.trim())
+      if (parts.length < BULK_MIN_FIELDS) {
+        errors.push(
+          `Línea ${i + 1}: formato incorrecto (usa Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo) — "${line}"`
+        )
         return
       }
-      const [, name, posRaw, birthDate, teamIdRaw] = match
-      const position = posRaw.toUpperCase() as FantasyPosition
+      const [name, posRaw, birthDate, teamIdRaw, nationalityRaw, photoUrlRaw, fullNameRaw] = parts
+      const position = posRaw.toUpperCase()
+      if (!POSITIONS.includes(position)) {
+        errors.push(`Línea ${i + 1}: posición "${posRaw}" no válida (usa POR, DEF, MED o DEL) — "${line}"`)
+        return
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        errors.push(`Línea ${i + 1}: fecha de nacimiento "${birthDate}" no tiene formato AAAA-MM-DD — "${line}"`)
+        return
+      }
       const teamId = teamIdRaw.toLowerCase()
       const team = LALIGA_TEAMS_2026_27.find((t) => t.id === teamId)
       if (!team) {
@@ -891,12 +981,14 @@ function FantasyPlayersSection() {
         return
       }
       rows.push({
-        name: name.trim(),
-        player_position: position,
+        name,
+        player_position: position as FantasyPosition,
         birth_date: birthDate,
         team_id: team.id,
         api_team_id: null,
-        photo_url: null,
+        photo_url: photoUrlRaw || null,
+        nationality: nationalityRaw || null,
+        full_name: fullNameRaw || null,
         active: true,
       })
     })
@@ -926,7 +1018,15 @@ function FantasyPlayersSection() {
     const teamsInPaste = new Set(rows.map((r) => r.team_id))
     const matchedIds = new Set<number>()
     const toInsert: (Omit<FantasyPlayer, 'api_player_id' | 'eligible_abuelonchos'> & { api_player_id: number })[] = []
-    const toUpdate: { api_player_id: number; player_position: FantasyPosition; birth_date: string | null; active: boolean }[] = []
+    const toUpdate: {
+      api_player_id: number
+      player_position: FantasyPosition
+      birth_date: string | null
+      nationality: string | null
+      photo_url: string | null
+      full_name: string | null
+      active: boolean
+    }[] = []
 
     // IDs sintéticos (sin API real todavía): seguimos a partir del mayor id
     // ya usado en el rango reservado 9.000.000+ para altas manuales, para no
@@ -947,6 +1047,13 @@ function FantasyPlayersSection() {
           api_player_id: match.api_player_id,
           player_position: r.player_position,
           birth_date: r.birth_date,
+          // Los campos opcionales (nacionalidad, foto, nombre completo): si
+          // la línea pegada no los trae, se conserva lo que ya hubiera en
+          // vez de borrarlo — así una lista con menos campos no destruye
+          // datos que ya se habían cargado en una importación anterior.
+          nationality: r.nationality ?? match.nationality,
+          photo_url: r.photo_url ?? match.photo_url,
+          full_name: r.full_name ?? match.full_name,
           active: true,
         })
       } else {
@@ -971,7 +1078,14 @@ function FantasyPlayersSection() {
     for (const u of toUpdate) {
       const { error } = await supabase
         .from('fantasy_players')
-        .update({ player_position: u.player_position, birth_date: u.birth_date, active: u.active })
+        .update({
+          player_position: u.player_position,
+          birth_date: u.birth_date,
+          nationality: u.nationality,
+          photo_url: u.photo_url,
+          full_name: u.full_name,
+          active: u.active,
+        })
         .eq('api_player_id', u.api_player_id)
       if (error) {
         setSaving(false)
@@ -1013,8 +1127,17 @@ function FantasyPlayersSection() {
     <section className="flex flex-col gap-4">
       <p className="text-sm text-gray-500">
         Sin conexión a ninguna API de fútbol, los jugadores del "11 de Abuelonchos" se dan de alta a mano. Pega una
-        línea por jugador con el formato <code className="rounded bg-gray-100 px-1">Nombre;POSICION;AAAA-MM-DD;id_equipo</code>,
-        por ejemplo <code className="rounded bg-gray-100 px-1">Sergio Ramos;DEF;1986-03-30;sevilla</code>. Posiciones
+        línea por jugador con el formato{' '}
+        <code className="rounded bg-gray-100 px-1">Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo</code>,
+        por ejemplo{' '}
+        <code className="rounded bg-gray-100 px-1">
+          Sergio Ramos;DEF;1986-03-30;sevilla;Spain;https://…/foto.jpg;Sergio Ramos García
+        </code>
+        . Los últimos 3 campos son opcionales (deja un hueco vacío entre punto y coma para saltarte uno, p.ej.
+        <code className="rounded bg-gray-100 px-1">Nombre;POR;1990-01-01;sevilla;;https://foto.jpg</code>) y si se
+        omiten se conserva lo que ya hubiera. La nacionalidad va en inglés, como la da laliga.com (se usa para la
+        bandera de la carta). El nombre completo no cambia lo que se ve — solo hace que la búsqueda también lo
+        encuentre por un apellido que el nombre corto no muestre (p.ej. "Simeone" para "Giuliano"). Posiciones
         válidas: POR, DEF, MED, DEL. Solo hace falta cargar a los que la gente vaya a elegir, no toda la plantilla.
         Si pegas una lista de un equipo que ya tenía jugadores cargados, es un re-sincronizado: los que coincidan
         por nombre se actualizan, los nuevos se dan de alta, y los que ya no aparezcan se marcan inactivos (no se
@@ -1022,11 +1145,68 @@ function FantasyPlayersSection() {
       </p>
 
       <div className="rounded border border-gray-200 bg-white p-4">
+        <p className="mb-2 text-sm font-medium text-gray-700">Importar desde LaLiga.com</p>
+        <p className="mb-3 text-xs text-gray-500">
+          Elige uno o varios equipos y trae su plantilla real (nombre, posición, nacimiento, nacionalidad y foto)
+          directamente de laliga.com. Rellena el texto de abajo para que lo revises antes de pulsar "Importar
+          jugadores" — no se guarda nada automáticamente.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {LALIGA_TEAMS_2026_27.map((t) => {
+            const selected = laligaSelected.includes(t.id)
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => toggleLaligaTeam(t.id)}
+                title={t.name}
+                className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs transition-colors ${
+                  selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {t.badge && <img src={t.badge} alt="" className="h-4 w-4 object-contain" />}
+                {t.name}
+              </button>
+            )
+          })}
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setLaligaSelected(LALIGA_TEAMS_2026_27.map((t) => t.id))}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            Seleccionar todos
+          </button>
+          {laligaSelected.length > 0 && (
+            <button type="button" onClick={() => setLaligaSelected([])} className="text-xs text-blue-600 hover:underline">
+              Quitar selección
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={fetchFromLaliga}
+            disabled={laligaLoading || laligaSelected.length === 0}
+            className="rounded bg-gray-800 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {laligaLoading ? 'Trayendo…' : `Traer de LaLiga (${laligaSelected.length})`}
+          </button>
+        </div>
+        {laligaErrors.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 rounded bg-amber-50 p-2 text-xs text-amber-800">
+            {laligaErrors.map((e, i) => (
+              <p key={i}>{e}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded border border-gray-200 bg-white p-4">
         <textarea
           value={bulkText}
           onChange={(e) => setBulkText(e.target.value)}
           rows={6}
-          placeholder={'Sergio Ramos;DEF;1986-03-30;sevilla\nDani Parejo;MED;1989-04-16;villarreal'}
+          placeholder={'Sergio Ramos;DEF;1986-03-30;sevilla;Spain\nDani Parejo;MED;1989-04-16;villarreal;Spain'}
           className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm"
         />
         <div className="mt-2 flex flex-wrap items-center gap-3">

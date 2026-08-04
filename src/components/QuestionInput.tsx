@@ -106,6 +106,7 @@ export function QuestionDraftInput({
           value={(value as string) ?? ''}
           onChange={onChange}
           excludeTeamIds={question.config.exclude_team_ids}
+          position={question.config.player_position}
         />
       )
     }
@@ -204,6 +205,7 @@ export function QuestionInput({
             value={(value as string) ?? ''}
             onChange={onSave}
             excludeTeamIds={question.config.exclude_team_ids}
+            position={question.config.player_position}
           />
         </div>
       )

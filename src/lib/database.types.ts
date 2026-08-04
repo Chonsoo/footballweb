@@ -33,6 +33,7 @@ export interface QuestionConfig {
   team_ids?: string[] // 'choice' — si están presentes, se muestra un desplegable de equipos (escudo + nombre) en vez de botones, limitado a estos ids
   player_choice?: boolean // 'choice' — si es true, se muestra un buscador de jugadores (fantasy_players) en vez de botones/desplegable de equipos
   exclude_team_ids?: string[] // 'choice' con player_choice — equipos a excluir del buscador (p.ej. "Pichichi Clase Media" excluye a los 3 grandes)
+  player_position?: 'POR' | 'DEF' | 'MED' | 'DEL' // 'choice' con player_choice — limita el buscador a una posición (p.ej. Trofeo Zamora solo porteros)
   items?: TierItem[] // 'tier_list' | 'ranking'
   tiers?: TierDef[] // 'tier_list' | 'ranking' (tiers "especiales"; el resto cae en una tier implícita "media")
   home_team?: string // 'score_prediction'
