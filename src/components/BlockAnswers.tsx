@@ -1,4 +1,5 @@
 import AnswerSummary, { TeamBadgeLabel } from './AnswerSummary'
+import RankingAccuracySummary from './RankingAccuracySummary'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { formatPoints } from '../lib/formatPoints'
@@ -71,6 +72,7 @@ export default function BlockAnswers({
   answers,
   points = {},
   currentResults = {},
+  emptyLabel,
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
@@ -78,6 +80,10 @@ export default function BlockAnswers({
   // Clasificación actual del Bloque 1 (question_id -> resultado), para los
   // ✓/✗ por equipo -- ver Información › Clasificación actual.
   currentResults?: Record<string, AnswerValue | undefined>
+  // Ver AnswerSummary: "Sin responder" por defecto, pero en Información
+  // (donde "answers" es el resultado oficial, no la respuesta de un usuario)
+  // tiene más sentido "Aún sin resolver".
+  emptyLabel?: string
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -96,14 +102,21 @@ export default function BlockAnswers({
             <h3 className="text-[11px] font-semibold uppercase tracking-wide text-brand-600">{BLOCK_LABELS[b] ?? `Bloque ${b}`}</h3>
 
             {b === 1 &&
-              qs.map((q) => (
-                <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
-                  <div className="mb-1 flex justify-end">
-                    <PointsPill points={points[q.id]} />
+              qs.map((q) => {
+                const real = currentResults[q.id] as Record<string, number> | undefined
+                const predicted = answers[q.id] as Record<string, number> | undefined
+                return (
+                  <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+                    <div className="mb-1 flex justify-end">
+                      <PointsPill points={points[q.id]} />
+                    </div>
+                    {q.answer_type === 'ranking' && (
+                      <RankingAccuracySummary real={real} predicted={predicted} total={q.config.items?.length ?? 0} />
+                    )}
+                    <AnswerSummary question={q} value={answers[q.id]} currentResult={real} emptyLabel={emptyLabel} />
                   </div>
-                  <AnswerSummary question={q} value={answers[q.id]} currentResult={currentResults[q.id] as Record<string, number> | undefined} />
-                </div>
-              ))}
+                )
+              })}
 
             {b === 2 && (
               <div className="grid grid-cols-2 gap-2">
@@ -115,7 +128,7 @@ export default function BlockAnswers({
                       </p>
                       <PointsPill points={points[q.id]} />
                     </div>
-                    <AnswerSummary question={q} value={answers[q.id]} />
+                    <AnswerSummary question={q} value={answers[q.id]} emptyLabel={emptyLabel} />
                   </div>
                 ))}
               </div>
@@ -129,7 +142,7 @@ export default function BlockAnswers({
                   <div key={q.id} className="flex items-center justify-between gap-2 px-3 py-2">
                     <span className="min-w-0 flex-1 text-xs text-gray-600">{q.question}</span>
                     <div className="flex shrink-0 items-center gap-2">
-                      <AnswerSummary question={q} value={answers[q.id]} />
+                      <AnswerSummary question={q} value={answers[q.id]} emptyLabel={emptyLabel} />
                       <PointsPill points={points[q.id]} />
                     </div>
                   </div>

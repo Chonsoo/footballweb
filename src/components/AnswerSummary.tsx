@@ -16,16 +16,21 @@ export default function AnswerSummary({
   question,
   value,
   currentResult,
+  emptyLabel = 'Sin responder',
 }: {
   question: SeasonQuestion
   value: AnswerValue | undefined | null
   // Clasificación actual (Bloque 1, ver Información › Clasificación actual):
-  // si se pasa, cada equipo del grid lleva un ✓/✗ según si su posición
-  // predicha coincide con la posición actual de ese equipo. Opcional para no
-  // afectar a otros usos de AnswerSummary (Oráculo, asistente...).
+  // si se pasa, cada equipo del grid lleva un ✓ cuando la posición predicha
+  // coincide con la posición actual de ese equipo. Opcional para no afectar a
+  // otros usos de AnswerSummary (Oráculo, asistente...).
   currentResult?: Record<string, number>
+  // Texto cuando no hay valor -- "Sin responder" tiene sentido para la
+  // respuesta de un usuario, pero en Información (resultado oficial) es más
+  // claro "Aún sin resolver".
+  emptyLabel?: string
 }) {
-  if (value == null) return <p className="text-sm text-gray-400">Sin responder</p>
+  if (value == null) return <p className="text-sm text-gray-400">{emptyLabel}</p>
 
   if (question.answer_type === 'ranking') {
     return <RankingSummary config={question.config} value={value as Record<string, number>} currentResult={currentResult} />
@@ -151,13 +156,9 @@ function RankingSummary({
             title={`${pos}º ${item.name}`}
             className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 ${ZONE_BG[zone.id] ?? 'bg-gray-50'}`}
           >
-            {matches != null && (
-              <span
-                className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-bold text-white ${
-                  matches ? 'bg-green-600' : 'bg-red-500'
-                }`}
-              >
-                {matches ? '✓' : '✕'}
+            {matches === true && (
+              <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-green-600 text-[8px] font-bold text-white">
+                ✓
               </span>
             )}
             {item.badge ? (

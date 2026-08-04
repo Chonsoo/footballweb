@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { zoneForPosition } from '../lib/rankingZones'
-import type { SeasonQuestion, TierItem } from '../lib/database.types'
+import BlockAnswers from '../components/BlockAnswers'
+import AnswerSummary from '../components/AnswerSummary'
+import { shortQuestionLabel } from '../lib/questionLabel'
+import { getFlashStatus, FLASH_STATUS_LABELS, FLASH_STATUS_COLORS } from '../lib/flashStatus'
+import type { AnswerValue, SeasonQuestion, TierItem } from '../lib/database.types'
 
-type Subview = 'clasificacion' | 'reglas'
+type Subview = 'clasificacion' | 'resultados' | 'flash' | 'reglas'
 
 const SUBVIEWS: [Subview, string][] = [
   ['clasificacion', 'Clasificación actual'],
+  ['resultados', 'Resultados'],
+  ['flash', 'Apuestas flash'],
   ['reglas', 'Reglas'],
 ]
 
@@ -18,41 +24,48 @@ const ZONE_CHIP: Record<string, string> = {
   media: 'bg-gray-50 text-gray-400',
 }
 
-// La Clasificación actual es, literalmente, la "clasificación real" que el
-// admin fija en Admin › Resolver apuestas para el Bloque 1 (se puede volver
-// a fijar tantas veces como haga falta durante la temporada) -- aquí solo se
-// muestra en público, y es la misma que usan los ✓/✗ de Mis apuestas y
-// Apuestas detalladas.
+const EMPTY_RESULT_LABEL = 'Aún sin resolver'
+
+// Todo lo de esta página lee de season_results (lo que el admin fija en
+// Admin › Bloques iniciales / Apuestas flash), nunca de las respuestas de un
+// usuario concreto -- es el "resultado oficial" público, se pueda volver a
+// fijar cuantas veces haga falta según avance la temporada.
 export default function Informacion() {
   const [subview, setSubview] = useState<Subview>('clasificacion')
-  const [question, setQuestion] = useState<SeasonQuestion | null>(null)
-  const [result, setResult] = useState<Record<string, number> | null>(null)
+  const [questions, setQuestions] = useState<SeasonQuestion[]>([])
+  const [resultsMap, setResultsMap] = useState<Record<string, AnswerValue>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const { data: q } = await supabase.from('season_questions').select('*').eq('block', 1).eq('phase', 'initial').maybeSingle()
-      const question = (q as SeasonQuestion) ?? null
-      if (question) {
-        const { data: r } = await supabase.from('season_results').select('result').eq('question_id', question.id).maybeSingle()
-        setResult((r?.result as Record<string, number>) ?? null)
-      }
-      setQuestion(question)
+      const [{ data: qs }, { data: rs }] = await Promise.all([
+        supabase.from('season_questions').select('*').order('created_at', { ascending: true }),
+        supabase.from('season_results').select('*'),
+      ])
+      setQuestions((qs as SeasonQuestion[]) ?? [])
+      const map: Record<string, AnswerValue> = {}
+      for (const r of (rs as { question_id: string; result: AnswerValue }[]) ?? []) map[r.question_id] = r.result
+      setResultsMap(map)
       setLoading(false)
     }
     load()
   }, [])
 
-  const items = question?.config.items ?? []
-  const tiers = question?.config.tiers ?? []
+  const block1Question = questions.find((q) => q.phase === 'initial' && q.block === 1)
+  const block1Result = block1Question ? (resultsMap[block1Question.id] as Record<string, number> | undefined) : undefined
+  const items = block1Question?.config.items ?? []
+  const tiers = block1Question?.config.tiers ?? []
   const total = items.length
 
-  const ordered = result
+  const ordered = block1Result
     ? items
-        .map((item) => ({ item, pos: result[item.id] }))
+        .map((item) => ({ item, pos: block1Result[item.id] }))
         .filter((e): e is { item: TierItem; pos: number } => e.pos != null)
         .sort((a, b) => a.pos - b.pos)
     : []
+
+  const otherBlocksQuestions = questions.filter((q) => q.phase === 'initial' && q.block != null && q.block !== 1)
+  const flashQuestions = questions.filter((q) => q.phase === 'weekly')
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,10 +89,10 @@ export default function Informacion() {
         ))}
       </div>
 
-      {subview === 'clasificacion' ? (
-        loading ? (
-          <p className="text-gray-500">Cargando…</p>
-        ) : ordered.length === 0 ? (
+      {loading ? (
+        <p className="text-gray-500">Cargando…</p>
+      ) : subview === 'clasificacion' ? (
+        ordered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
             Todavía no se ha actualizado la clasificación actual.
           </div>
@@ -104,12 +117,46 @@ export default function Informacion() {
             })}
           </div>
         )
+      ) : subview === 'resultados' ? (
+        otherBlocksQuestions.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+            Todavía no hay preguntas aquí.
+          </div>
+        ) : (
+          <BlockAnswers questions={otherBlocksQuestions} answers={resultsMap} emptyLabel={EMPTY_RESULT_LABEL} />
+        )
+      ) : subview === 'flash' ? (
+        flashQuestions.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+            Todavía no hay preguntas aquí.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {flashQuestions.map((q) => {
+              const resolved = q.id in resultsMap
+              const status = getFlashStatus(q, resolved)
+              return (
+                <div key={q.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${FLASH_STATUS_COLORS[status]}`}>
+                      {FLASH_STATUS_LABELS[status]}
+                    </span>
+                  </div>
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
+                    {shortQuestionLabel(q)}
+                  </p>
+                  <AnswerSummary question={q} value={resultsMap[q.id]} emptyLabel={EMPTY_RESULT_LABEL} />
+                </div>
+              )
+            })}
+          </div>
+        )
       ) : (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
           <span className="text-3xl">🚧</span>
           <p className="font-medium text-gray-600">En construcción</p>
           <p className="max-w-sm text-sm text-gray-400">
-            Aquí irán subpáginas con el detalle de las apuestas cerradas y el estado de cada una.
+            Aquí irán las reglas completas de la porra.
           </p>
         </div>
       )}

@@ -594,8 +594,8 @@ function Block3Panel({
   const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result as { home: number; away: number } | undefined
 
   const [drafts, setDrafts] = useState<Record<string, { home: number; away: number }>>({})
-  const [saving, setSaving] = useState(false)
-  const [status, setStatus] = useState<Status>(null)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [statusById, setStatusById] = useState<Record<string, Status>>({})
 
   useEffect(() => {
     const init: Record<string, { home: number; away: number }> = {}
@@ -604,54 +604,56 @@ function Block3Panel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
 
-  async function save() {
-    setStatus(null)
-    setSaving(true)
-    for (const q of questions) {
-      const draft = drafts[q.id] ?? { home: 0, away: 0 }
-      const label = `${q.config.home_team ?? 'Local'} vs ${q.config.away_team ?? 'Visitante'}`
-      const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
-      if (e1) {
-        setStatus({ type: 'error', text: `Error en "${label}": ${e1.message}` })
-        setSaving(false)
-        return
-      }
-      const { error: e2 } = await supabase.rpc('apply_season_result_points', { p_question_id: q.id })
-      if (e2) {
-        setStatus({ type: 'error', text: `Puntos de "${label}": ${e2.message}` })
-        setSaving(false)
-        await onChanged()
-        return
-      }
+  // Cada duelo se guarda por separado -- se van jugando en fechas distintas,
+  // así que forzar un único "Guardar" para los 6 obligaría a fijar 0-0 (un
+  // resultado real, no "sin jugar todavía") en los que aún no se han disputado.
+  async function saveOne(q: SeasonQuestion) {
+    setStatusById((s) => ({ ...s, [q.id]: null }))
+    setSavingId(q.id)
+    const draft = drafts[q.id] ?? { home: 0, away: 0 }
+    const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
+    if (e1) {
+      setStatusById((s) => ({ ...s, [q.id]: { type: 'error', text: `No se pudo guardar: ${e1.message}` } }))
+      setSavingId(null)
+      return
     }
-    setSaving(false)
-    setStatus({ type: 'ok', text: 'Bloque 3 guardado ✓' })
+    const { error: e2 } = await supabase.rpc('apply_season_result_points', { p_question_id: q.id })
+    setSavingId(null)
+    if (e2) {
+      setStatusById((s) => ({ ...s, [q.id]: { type: 'error', text: `Resultado guardado, pero fallaron los puntos: ${e2.message}` } }))
+      await onChanged()
+      return
+    }
+    setStatusById((s) => ({ ...s, [q.id]: { type: 'ok', text: 'Guardado ✓' } }))
     await onChanged()
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <StatusBanner status={status} />
       <div className="flex flex-col gap-2 rounded bg-gray-50 p-3">
         {questions.map((q) => {
           const draft = drafts[q.id] ?? { home: 0, away: 0 }
+          const resolved = !!resultFor(q.id)
           return (
-            <div key={q.id} className="flex flex-wrap items-center gap-2 rounded bg-white px-3 py-2 text-sm">
-              <TeamLabel name={q.config.home_team ?? 'Local'} align="right" />
-              <ScoreStepper value={draft.home} onChange={(home) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, home } }))} />
-              <span className="shrink-0">-</span>
-              <ScoreStepper value={draft.away} onChange={(away) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, away } }))} />
-              <TeamLabel name={q.config.away_team ?? 'Visitante'} />
+            <div key={q.id} className="flex flex-col gap-1 rounded bg-white px-3 py-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <TeamLabel name={q.config.home_team ?? 'Local'} align="right" />
+                <ScoreStepper value={draft.home} onChange={(home) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, home } }))} />
+                <span className="shrink-0">-</span>
+                <ScoreStepper value={draft.away} onChange={(away) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, away } }))} />
+                <TeamLabel name={q.config.away_team ?? 'Visitante'} />
+                <button
+                  onClick={() => saveOne(q)}
+                  disabled={savingId === q.id}
+                  className="ml-auto shrink-0 rounded bg-brand-700 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
+                >
+                  {savingId === q.id ? 'Guardando…' : resolved ? 'Actualizar' : 'Guardar'}
+                </button>
+              </div>
+              <StatusBanner status={statusById[q.id] ?? null} />
             </div>
           )
         })}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="mt-1 self-start rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {saving ? 'Guardando…' : 'Guardar'}
-        </button>
       </div>
 
       {questions.map((q) => (
@@ -678,6 +680,7 @@ function Block4Panel({
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [status, setStatus] = useState<Status>(null)
 
   useEffect(() => {
@@ -713,9 +716,7 @@ function Block4Panel({
   }
 
   async function clearAll() {
-    if (!confirm('¿Borrar el resultado fijado de las preguntas del Bloque 4? Nadie aparecerá como acertante hasta que se vuelva a guardar.')) {
-      return
-    }
+    setConfirmClear(false)
     setStatus(null)
     setClearing(true)
     for (const q of questions) {
@@ -760,7 +761,7 @@ function Block4Panel({
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
           <button
-            onClick={clearAll}
+            onClick={() => setConfirmClear(true)}
             disabled={clearing}
             className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
           >
@@ -772,6 +773,17 @@ function Block4Panel({
       {questions.map((q) => (
         <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
       ))}
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="Limpiar resultado"
+          message="¿Borrar el resultado fijado de las preguntas del Bloque 4? Nadie aparecerá como acertante hasta que se vuelva a guardar."
+          confirmLabel="Limpiar"
+          danger
+          onConfirm={clearAll}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
     </div>
   )
 }

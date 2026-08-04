@@ -4,7 +4,6 @@ import BlockAnswers from './BlockAnswers'
 import { BLOCK_LABELS } from '../lib/blocks'
 import { computeRanks } from '../lib/ranking'
 import { fantasyRankBonus } from '../lib/fantasyRankBonus'
-import { zoneBonusBreakdown, type ZoneBonusRow } from '../lib/rankingScoring'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface Props {
@@ -21,18 +20,6 @@ interface CategoryRow {
   expandable?: boolean
 }
 
-// Cuántos equipos coinciden EXACTOS entre la posición real (season_results)
-// y la predicha en el Bloque 1 -- aparte de los puntos por margen de error,
-// para que se vea de un vistazo cuántos "clavó" del todo.
-function countExactMatches(real: Record<string, number> | undefined, predicted: Record<string, number> | undefined): number {
-  if (!real || !predicted) return 0
-  let n = 0
-  for (const [teamId, pos] of Object.entries(real)) {
-    if (predicted[teamId] === pos) n++
-  }
-  return n
-}
-
 // Popup de desglose de puntos de Clasificación: de dónde salen los puntos de
 // un participante, por bloque de "Apuestas iniciales" (desplegables, con lo
 // que puso en cada uno) + Apuestas flash, más el bonus por puesto en la Liga
@@ -45,8 +32,7 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
   const [pointsByQuestion, setPointsByQuestion] = useState<Record<string, number | null>>({})
-  const [exactMatches, setExactMatches] = useState(0)
-  const [zoneBonuses, setZoneBonuses] = useState<ZoneBonusRow[]>([])
+  const [currentResults, setCurrentResults] = useState<Record<string, AnswerValue>>({})
   const [expandedBlock, setExpandedBlock] = useState<number | null>(null)
 
   useEffect(() => {
@@ -85,15 +71,11 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
         }
       }
 
-      // Aciertos exactos y bonus de zona (Champions/Europa/Descenso) del
-      // Bloque 1: compara la predicción con el resultado real ya cargado
-      // (season_results), si existe -- si no, sale todo a 0.
-      const block1Question = allQuestions.find((q) => q.block === 1)
-      const resultByQuestion = new Map(results.map((r) => [r.question_id, r.result]))
-      const realPositions = block1Question ? (resultByQuestion.get(block1Question.id) as Record<string, number> | undefined) : undefined
-      const predictedPositions = block1Question ? (answerMap[block1Question.id] as Record<string, number> | undefined) : undefined
-      const exact = countExactMatches(realPositions, predictedPositions)
-      const zones = zoneBonusBreakdown(realPositions ?? {}, predictedPositions ?? {})
+      // Clasificación real (season_results) -- se pasa a BlockAnswers para que
+      // el Bloque 1 muestre el resumen de aciertos y los ✓ por equipo, igual
+      // que en Mis apuestas y Apuestas detalladas.
+      const resultsMap: Record<string, AnswerValue> = {}
+      for (const r of results) resultsMap[r.question_id] = r.result
 
       // Puesto en la Liga fantasy (empates comparten puesto, "1224") y su
       // bonus correspondiente -- 0 si el usuario no tiene 11 puesto todavía.
@@ -117,8 +99,7 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
         setQuestions(allQuestions)
         setAnswers(answerMap)
         setPointsByQuestion(pointsMap)
-        setExactMatches(exact)
-        setZoneBonuses(zones)
+        setCurrentResults(resultsMap)
         setItems(rows)
       }
     }
@@ -197,28 +178,7 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
                     </button>
                     {isOpen && (
                       <div className="bg-white/95 px-3 py-3">
-                        {blockNum === 1 && (
-                          <div className="mb-2 flex flex-col gap-1 text-xs">
-                            <p className="font-medium text-gray-500">
-                              Aciertos exactos:{' '}
-                              <span className="font-semibold text-gray-700">
-                                {exactMatches} / {blockQuestions[0]?.config.items?.length ?? 20}
-                              </span>
-                            </p>
-                            {zoneBonuses.map((z) => (
-                              <p key={z.key} className="flex items-center justify-between text-gray-500">
-                                <span>
-                                  {z.label} ({z.from}-{z.to}): <span className="font-semibold text-gray-700">{z.matched}/{z.size}</span>
-                                </span>
-                                <span className={`font-semibold ${z.bonus > 0 ? 'text-green-600' : 'text-gray-300'}`}>
-                                  {z.bonus > 0 ? '+' : ''}
-                                  {z.bonus}
-                                </span>
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                        <BlockAnswers questions={blockQuestions} answers={answers} points={pointsByQuestion} />
+                        <BlockAnswers questions={blockQuestions} answers={answers} points={pointsByQuestion} currentResults={currentResults} />
                       </div>
                     )}
                   </div>

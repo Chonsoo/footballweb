@@ -146,7 +146,9 @@ export default function PlayerSelect({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nombre del jugador…"
-            className="m-1.5 rounded border border-gray-200 px-2 py-1.5 text-sm"
+            // text-base (16px) en vez de text-sm: por debajo de 16px, iOS Safari
+            // hace zoom automático de toda la página al enfocar el campo.
+            className="m-1.5 rounded border border-gray-200 px-2 py-1.5 text-base sm:text-sm"
           />
           <div className="overflow-y-auto">
             {filtered.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">Sin resultados</p>}
