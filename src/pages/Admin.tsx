@@ -4,8 +4,11 @@ import { useAuth } from '../context/AuthContext'
 import { formatAnswer } from '../lib/answerFormat'
 import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
+import { computeFiasco, computeUnderdogPodium, scoreUnderdogAnswer, type UnderdogPodium } from '../lib/underdogScoring'
 import RankingAnswer from '../components/RankingAnswer'
 import PlayerSelect from '../components/PlayerSelect'
+import TeamSelect from '../components/TeamSelect'
+import { ScoreStepper, TeamLabel } from '../components/QuestionInput'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import {
@@ -25,6 +28,7 @@ import type {
   SeasonAnswer,
   SeasonQuestion,
   SeasonResult,
+  TierItem,
 } from '../lib/database.types'
 
 type Tab = 'users' | 'flash' | 'initial' | 'fantasy' | 'fantasy-stats'
@@ -63,20 +67,16 @@ export default function Admin() {
       </div>
 
       {tab === 'users' && <UsersSection />}
-      {tab === 'flash' && <PhaseAdminSection phase="weekly" />}
-      {tab === 'initial' && <PhaseAdminSection phase="initial" />}
+      {tab === 'flash' && <FlashAdminSection />}
+      {tab === 'initial' && <InitialBlocksSection />}
       {tab === 'fantasy' && <FantasyPlayersSection />}
       {tab === 'fantasy-stats' && <FantasyStatsSection />}
     </div>
   )
 }
 
-// ---------------- Apuestas flash / Bloques iniciales: crear + resolver, ya
-// filtrado por fase -- antes "Crear apuesta" y "Resolver apuestas" mezclaban
-// preguntas semanales (se crean y resuelven cada semana) con los bloques
-// iniciales (se fijan una vez al principio de temporada y solo se van
-// resolviendo), lo que hacía difícil ver de un vistazo el estado de cada uno.
-function PhaseAdminSection({ phase }: { phase: QuestionPhase }) {
+// ---------------- Apuestas flash: crear + resolver, cada semana según van llegando ----------------
+function FlashAdminSection() {
   const [subtab, setSubtab] = useState<'resolve' | 'create'>('resolve')
 
   return (
@@ -102,8 +102,677 @@ function PhaseAdminSection({ phase }: { phase: QuestionPhase }) {
         </button>
       </div>
 
-      {subtab === 'resolve' ? <ResolveQuestionsSection lockedPhase={phase} /> : <CreateQuestionSection lockedPhase={phase} />}
+      {subtab === 'resolve' ? <ResolveQuestionsSection lockedPhase="weekly" /> : <CreateQuestionSection lockedPhase="weekly" />}
     </section>
+  )
+}
+
+// ---------------- Bloques iniciales: un formulario dedicado por bloque en vez
+// de una lista plana de preguntas -- se fijan una vez al principio de
+// temporada y solo se van resolviendo, así que aquí no hay "Crear". Bloque 1
+// es la clasificación real (ranking); 2, 3 y 4 se resuelven por campos
+// (dropdowns/marcadores) con un único "Guardar" por bloque en vez de tener
+// que entrar pregunta a pregunta. ----------------
+const INITIAL_BLOCKS = [1, 2, 3, 4] as const
+const BLOCK_LABELS: Record<number, string> = {
+  1: 'Bloque 1 · Clasificación',
+  2: 'Bloque 2 · Premios',
+  3: 'Bloque 3 · Duelos',
+  4: 'Bloque 4 · Sí / No',
+}
+
+type AnswerWithProfile = SeasonAnswer & { profile?: Profile }
+type Status = { type: 'ok' | 'error'; text: string } | null
+
+function StatusBanner({ status }: { status: Status }) {
+  if (!status) return null
+  return (
+    <p className={`rounded px-3 py-2 text-xs font-medium ${status.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+      {status.text}
+    </p>
+  )
+}
+
+function teamOptionsFor(config: QuestionConfig): TierItem[] {
+  const ids = config.team_ids ?? []
+  return ids.map((id) => LALIGA_TEAMS_2026_27.find((t) => t.id === id)).filter((t): t is TierItem => !!t)
+}
+
+function isUnderdogQuestion(q: SeasonQuestion) {
+  return q.question.toLowerCase().includes('underdog')
+}
+
+function InitialBlocksSection() {
+  const [questions, setQuestions] = useState<SeasonQuestion[]>([])
+  const [answers, setAnswers] = useState<AnswerWithProfile[]>([])
+  const [results, setResults] = useState<SeasonResult[]>([])
+  const [loading, setLoading] = useState(true)
+  const [block, setBlock] = useState<(typeof INITIAL_BLOCKS)[number]>(1)
+
+  async function load() {
+    const [{ data: qs }, { data: as_ }, { data: rs }] = await Promise.all([
+      supabase.from('season_questions').select('*').eq('phase', 'initial').order('created_at', { ascending: true }),
+      supabase.from('season_answers').select('*, profile:profiles(*)'),
+      supabase.from('season_results').select('*'),
+    ])
+    setQuestions((qs as SeasonQuestion[]) ?? [])
+    setAnswers((as_ as AnswerWithProfile[]) ?? [])
+    setResults((rs as SeasonResult[]) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  if (loading) return <p className="text-gray-500">Cargando…</p>
+
+  const blockQuestions = (n: number) => questions.filter((q) => q.block === n)
+  const block1Question = blockQuestions(1)[0]
+  const block1Result = results.find((r) => r.question_id === block1Question?.id)?.result as Record<string, number> | undefined
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        {INITIAL_BLOCKS.map((n) => (
+          <button
+            key={n}
+            onClick={() => setBlock(n)}
+            className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              block === n ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {BLOCK_LABELS[n]}
+          </button>
+        ))}
+      </div>
+
+      {block === 1 && (
+        <Block1Panel
+          question={block1Question}
+          answers={answers.filter((a) => a.question_id === block1Question?.id)}
+          result={results.find((r) => r.question_id === block1Question?.id)}
+          onChanged={load}
+        />
+      )}
+      {block === 2 && (
+        <Block2Panel questions={blockQuestions(2)} answers={answers} results={results} block1Result={block1Result} onChanged={load} />
+      )}
+      {block === 3 && <Block3Panel questions={blockQuestions(3)} answers={answers} results={results} onChanged={load} />}
+      {block === 4 && <Block4Panel questions={blockQuestions(4)} answers={answers} results={results} onChanged={load} />}
+    </section>
+  )
+}
+
+// ---------------- Ajuste manual de puntos por respuesta, reutilizable en
+// cualquier bloque -- colapsado por defecto, para no perder la posibilidad de
+// corregir un caso puntual sin que sea el flujo principal. ----------------
+function ManualPointsEditor({
+  question,
+  answers,
+  onChanged,
+}: {
+  question: SeasonQuestion
+  answers: AnswerWithProfile[]
+  onChanged: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
+
+  const sortedAnswers = [...answers].sort((a, b) =>
+    normalizeText(formatAnswer(question, a.answer)).localeCompare(normalizeText(formatAnswer(question, b.answer)))
+  )
+
+  async function saveOne(answerId: string) {
+    const raw = pointsDrafts[answerId]
+    if (raw === undefined || raw === '') return
+    const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+    if (error) {
+      setStatus({ type: 'error', text: error.message })
+      return
+    }
+    await onChanged()
+  }
+
+  async function saveAll() {
+    setSaving(true)
+    setStatus(null)
+    const entries = Object.entries(pointsDrafts).filter(([, v]) => v !== '')
+    for (const [answerId, raw] of entries) {
+      const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+      if (error) {
+        setStatus({ type: 'error', text: error.message })
+        setSaving(false)
+        return
+      }
+    }
+    setSaving(false)
+    setStatus({ type: 'ok', text: 'Puntos guardados ✓' })
+    await onChanged()
+  }
+
+  return (
+    <div className="rounded border border-gray-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-gray-500"
+      >
+        <span>
+          Ajustar a mano · {question.question.split(':')[0]} ({answers.length})
+        </span>
+        <span className="text-gray-400">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 border-t border-gray-100 p-3">
+          <StatusBanner status={status} />
+          {Object.keys(pointsDrafts).length > 0 && (
+            <button onClick={saveAll} disabled={saving} className="self-end text-xs text-brand-700 hover:underline disabled:opacity-50">
+              {saving ? 'Guardando…' : 'Guardar todas'}
+            </button>
+          )}
+          <div className="flex flex-col gap-1.5">
+            {answers.length === 0 && <p className="text-sm text-gray-400">Nadie ha respondido todavía.</p>}
+            {sortedAnswers.map((a) => (
+              <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
+                <span>
+                  <strong>{a.profile?.username ?? '—'}</strong>: {formatAnswer(question, a.answer)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder={a.points != null ? String(a.points) : 'pts'}
+                    value={pointsDrafts[a.id] ?? ''}
+                    onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
+                    className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+                  />
+                  <button onClick={() => saveOne(a.id)} className="text-brand-700 hover:underline">
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------- Bloque 1: Clasificación de Liga ----------------
+function Block1Panel({
+  question,
+  answers,
+  result,
+  onChanged,
+}: {
+  question?: SeasonQuestion
+  answers: AnswerWithProfile[]
+  result?: SeasonResult
+  onChanged: () => void
+}) {
+  const [resultDraft, setResultDraft] = useState<Record<string, number>>((result?.result as Record<string, number>) ?? {})
+  const [saving, setSaving] = useState(false)
+  const [laligaLoading, setLaligaLoading] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
+
+  useEffect(() => {
+    setResultDraft((result?.result as Record<string, number>) ?? {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.resolved_at])
+
+  if (!question) return <p className="text-sm text-gray-400">No hay pregunta de Clasificación de Liga creada.</p>
+
+  async function fetchStandingsFromLaliga() {
+    setStatus(null)
+    setLaligaLoading(true)
+    try {
+      const resp = await fetch('/api/laliga-standings')
+      const data = (await resp.json()) as { positions?: Record<string, number>; unmapped?: string[]; error?: string }
+      if (!resp.ok || !data.positions) throw new Error(data.error ?? `El proxy respondió ${resp.status}`)
+      setResultDraft(data.positions)
+      const extra = data.unmapped && data.unmapped.length > 0 ? ` (sin mapear: ${data.unmapped.join(', ')})` : ''
+      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — revisa y pulsa "Guardar"` })
+    } catch (err) {
+      setStatus({ type: 'error', text: `No se pudo traer de LaLiga.com: ${err instanceof Error ? err.message : 'error desconocido'}` })
+    } finally {
+      setLaligaLoading(false)
+    }
+  }
+
+  async function save() {
+    setStatus(null)
+    setSaving(true)
+    const { error } = await supabase.rpc('set_season_result', { p_question_id: question!.id, p_result: resultDraft })
+    if (error) {
+      setStatus({ type: 'error', text: `No se pudo guardar: ${error.message}` })
+      setSaving(false)
+      return
+    }
+    for (const a of answers) {
+      const pts = scoreRankingAnswer(resultDraft, (a.answer as Record<string, number>) ?? {})
+      const { error: pe } = await supabase.rpc('set_answer_points', { p_answer_id: a.id, p_points: pts })
+      if (pe) {
+        setStatus({ type: 'error', text: `Resultado guardado, pero fallaron algunos puntos: ${pe.message}` })
+        setSaving(false)
+        await onChanged()
+        return
+      }
+    }
+    setSaving(false)
+    setStatus({ type: 'ok', text: `Guardado ✓ — resultado y puntos de ${answers.length} participante(s) actualizados` })
+    await onChanged()
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StatusBanner status={status} />
+      <div className="rounded bg-gray-50 p-3">
+        <p className="mb-2 text-xs font-medium text-gray-500">Clasificación real</p>
+        <RankingAnswer items={question.config.items ?? []} tiers={question.config.tiers ?? []} value={resultDraft} onChange={setResultDraft} />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            onClick={fetchStandingsFromLaliga}
+            disabled={laligaLoading}
+            className="rounded bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          >
+            {laligaLoading ? 'Trayendo…' : 'Actualizar desde LaLiga.com'}
+          </button>
+          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          Guardar fija la clasificación real (se ve en Información › Clasificación actual y en los ✓/✗ de Mis
+          apuestas / Apuestas detalladas) y calcula y aplica los puntos de todos los participantes a la vez, con el
+          bonus de zona incluido (Champions +3, Europa League +3, Descenso +5).
+        </p>
+      </div>
+
+      <ManualPointsEditor question={question} answers={answers} onChanged={onChanged} />
+    </div>
+  )
+}
+
+// ---------------- Bloque 2: Premios individuales y narrativos ----------------
+function Block2Panel({
+  questions,
+  answers,
+  results,
+  block1Result,
+  onChanged,
+}: {
+  questions: SeasonQuestion[]
+  answers: AnswerWithProfile[]
+  results: SeasonResult[]
+  block1Result?: Record<string, number>
+  onChanged: () => void
+}) {
+  const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result
+
+  const [drafts, setDrafts] = useState<Record<string, AnswerValue>>({})
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
+
+  useEffect(() => {
+    const init: Record<string, AnswerValue> = {}
+    for (const q of questions) {
+      init[q.id] = resultFor(q.id) ?? (isUnderdogQuestion(q) ? { gold: '', silver: '', bronze: '' } : '')
+    }
+    setDrafts(init)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  function teamName(id: string | null) {
+    return LALIGA_TEAMS_2026_27.find((t) => t.id === id)?.name ?? ''
+  }
+
+  function computeFromClassification() {
+    if (!block1Result) return
+    const next = { ...drafts }
+    for (const q of questions) {
+      if (!q.config.team_ids) continue
+      if (isUnderdogQuestion(q)) {
+        const qAnswers = answers.filter((a) => a.question_id === q.id)
+        const pickedIds = qAnswers
+          .map((a) => LALIGA_TEAMS_2026_27.find((t) => t.name === a.answer)?.id)
+          .filter((id): id is string => !!id)
+        const podium = computeUnderdogPodium(block1Result, pickedIds)
+        next[q.id] = { gold: teamName(podium.gold), silver: teamName(podium.silver), bronze: teamName(podium.bronze) }
+      } else {
+        const worst = computeFiasco(block1Result, q.config.team_ids)
+        next[q.id] = teamName(worst)
+      }
+    }
+    setDrafts(next)
+  }
+
+  async function save() {
+    setStatus(null)
+    setSaving(true)
+    for (const q of questions) {
+      const draft = drafts[q.id]
+      const underdog = isUnderdogQuestion(q)
+      const isEmpty = underdog ? !(draft as { gold?: string })?.gold : !draft
+      if (isEmpty) continue
+
+      const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
+      if (e1) {
+        setStatus({ type: 'error', text: `Error en "${q.question.split(':')[0]}": ${e1.message}` })
+        setSaving(false)
+        return
+      }
+
+      if (underdog) {
+        const names = draft as { gold: string; silver: string; bronze: string }
+        const podium: UnderdogPodium = {
+          gold: LALIGA_TEAMS_2026_27.find((t) => t.name === names.gold)?.id ?? null,
+          silver: LALIGA_TEAMS_2026_27.find((t) => t.name === names.silver)?.id ?? null,
+          bronze: LALIGA_TEAMS_2026_27.find((t) => t.name === names.bronze)?.id ?? null,
+        }
+        const qAnswers = answers.filter((a) => a.question_id === q.id)
+        for (const a of qAnswers) {
+          const pts = scoreUnderdogAnswer(podium, a.answer as string)
+          const { error: pe } = await supabase.rpc('set_answer_points', { p_answer_id: a.id, p_points: pts })
+          if (pe) {
+            setStatus({ type: 'error', text: `Puntos de "${q.question.split(':')[0]}": ${pe.message}` })
+            setSaving(false)
+            await onChanged()
+            return
+          }
+        }
+      } else {
+        const { error: e2 } = await supabase.rpc('apply_season_result_points', { p_question_id: q.id })
+        if (e2) {
+          setStatus({ type: 'error', text: `Puntos de "${q.question.split(':')[0]}": ${e2.message}` })
+          setSaving(false)
+          await onChanged()
+          return
+        }
+      }
+    }
+    setSaving(false)
+    setStatus({ type: 'ok', text: 'Bloque 2 guardado ✓' })
+    await onChanged()
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StatusBanner status={status} />
+      <div className="flex flex-col gap-4 rounded bg-gray-50 p-3">
+        {questions.map((q) => {
+          const teams = teamOptionsFor(q.config)
+          const underdog = isUnderdogQuestion(q)
+          return (
+            <div key={q.id} className="flex flex-col gap-1.5">
+              <p className="text-xs font-medium text-gray-500">{q.question.split(':')[0]}</p>
+              {q.config.player_choice ? (
+                <PlayerSelect
+                  value={(drafts[q.id] as string) ?? ''}
+                  onChange={(name) => setDrafts((d) => ({ ...d, [q.id]: name }))}
+                  excludeTeamIds={q.config.exclude_team_ids}
+                  position={q.config.player_position}
+                  nationality={q.config.player_nationality}
+                />
+              ) : q.config.team_ids && underdog ? (
+                <div className="flex flex-wrap gap-3">
+                  {(['gold', 'silver', 'bronze'] as const).map((tier) => {
+                    const draft = (drafts[q.id] as { gold: string; silver: string; bronze: string }) ?? {
+                      gold: '',
+                      silver: '',
+                      bronze: '',
+                    }
+                    const currentId = teams.find((t) => t.name === draft[tier])?.id ?? ''
+                    return (
+                      <div key={tier} className="flex items-center gap-1.5">
+                        <span className="text-sm">{tier === 'gold' ? '🥇' : tier === 'silver' ? '🥈' : '🥉'}</span>
+                        <TeamSelect
+                          teams={teams}
+                          value={currentId}
+                          onChange={(id) =>
+                            setDrafts((d) => ({
+                              ...d,
+                              [q.id]: { ...draft, [tier]: teams.find((t) => t.id === id)?.name ?? '' },
+                            }))
+                          }
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : q.config.team_ids ? (
+                <TeamSelect
+                  teams={teams}
+                  value={teams.find((t) => t.name === drafts[q.id])?.id ?? ''}
+                  onChange={(id) => setDrafts((d) => ({ ...d, [q.id]: teams.find((t) => t.id === id)?.name ?? '' }))}
+                />
+              ) : null}
+            </div>
+          )
+        })}
+        <div className="mt-1 flex flex-wrap gap-2">
+          <button
+            onClick={computeFromClassification}
+            disabled={!block1Result}
+            title={!block1Result ? 'Primero fija la clasificación real en el Bloque 1' : undefined}
+            className="rounded bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          >
+            Calcular Fiasco / Underdog desde la clasificación
+          </button>
+          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400">
+          El Fiasco Europeo se calcula como el peor colocado de los equipos con Europa la temporada pasada. El Podio
+          Underdog se calcula solo entre los equipos que algún participante haya elegido: si nadie eligió al que
+          quedó mejor, el oro pasa al siguiente que sí haya elegido alguien (15 / 8 / 3 pts).
+        </p>
+      </div>
+
+      {questions.map((q) => (
+        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
+      ))}
+    </div>
+  )
+}
+
+// ---------------- Bloque 3: Duelos directos (marcadores) ----------------
+function Block3Panel({
+  questions,
+  answers,
+  results,
+  onChanged,
+}: {
+  questions: SeasonQuestion[]
+  answers: AnswerWithProfile[]
+  results: SeasonResult[]
+  onChanged: () => void
+}) {
+  const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result as { home: number; away: number } | undefined
+
+  const [drafts, setDrafts] = useState<Record<string, { home: number; away: number }>>({})
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
+
+  useEffect(() => {
+    const init: Record<string, { home: number; away: number }> = {}
+    for (const q of questions) init[q.id] = resultFor(q.id) ?? { home: 0, away: 0 }
+    setDrafts(init)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  async function save() {
+    setStatus(null)
+    setSaving(true)
+    for (const q of questions) {
+      const draft = drafts[q.id] ?? { home: 0, away: 0 }
+      const label = `${q.config.home_team ?? 'Local'} vs ${q.config.away_team ?? 'Visitante'}`
+      const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
+      if (e1) {
+        setStatus({ type: 'error', text: `Error en "${label}": ${e1.message}` })
+        setSaving(false)
+        return
+      }
+      const { error: e2 } = await supabase.rpc('apply_season_result_points', { p_question_id: q.id })
+      if (e2) {
+        setStatus({ type: 'error', text: `Puntos de "${label}": ${e2.message}` })
+        setSaving(false)
+        await onChanged()
+        return
+      }
+    }
+    setSaving(false)
+    setStatus({ type: 'ok', text: 'Bloque 3 guardado ✓' })
+    await onChanged()
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StatusBanner status={status} />
+      <div className="flex flex-col gap-2 rounded bg-gray-50 p-3">
+        {questions.map((q) => {
+          const draft = drafts[q.id] ?? { home: 0, away: 0 }
+          return (
+            <div key={q.id} className="flex flex-wrap items-center gap-2 rounded bg-white px-3 py-2 text-sm">
+              <TeamLabel name={q.config.home_team ?? 'Local'} align="right" />
+              <ScoreStepper value={draft.home} onChange={(home) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, home } }))} />
+              <span className="shrink-0">-</span>
+              <ScoreStepper value={draft.away} onChange={(away) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, away } }))} />
+              <TeamLabel name={q.config.away_team ?? 'Visitante'} />
+            </div>
+          )
+        })}
+        <button
+          onClick={save}
+          disabled={saving}
+          className="mt-1 self-start rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+        >
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+      </div>
+
+      {questions.map((q) => (
+        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
+      ))}
+    </div>
+  )
+}
+
+// ---------------- Bloque 4: Sí / No ----------------
+function Block4Panel({
+  questions,
+  answers,
+  results,
+  onChanged,
+}: {
+  questions: SeasonQuestion[]
+  answers: AnswerWithProfile[]
+  results: SeasonResult[]
+  onChanged: () => void
+}) {
+  const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result as string | undefined
+
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [status, setStatus] = useState<Status>(null)
+
+  useEffect(() => {
+    const init: Record<string, string> = {}
+    for (const q of questions) init[q.id] = resultFor(q.id) ?? ''
+    setDrafts(init)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  async function save() {
+    setStatus(null)
+    setSaving(true)
+    for (const q of questions) {
+      const draft = drafts[q.id]
+      if (!draft) continue
+      const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
+      if (e1) {
+        setStatus({ type: 'error', text: `Error: ${e1.message}` })
+        setSaving(false)
+        return
+      }
+      const { error: e2 } = await supabase.rpc('apply_season_result_points', { p_question_id: q.id })
+      if (e2) {
+        setStatus({ type: 'error', text: `Puntos: ${e2.message}` })
+        setSaving(false)
+        await onChanged()
+        return
+      }
+    }
+    setSaving(false)
+    setStatus({ type: 'ok', text: 'Bloque 4 guardado ✓' })
+    await onChanged()
+  }
+
+  async function clearAll() {
+    if (!confirm('¿Borrar el resultado fijado de las preguntas del Bloque 4? Nadie aparecerá como acertante hasta que se vuelva a guardar.')) {
+      return
+    }
+    setStatus(null)
+    setClearing(true)
+    for (const q of questions) {
+      if (!resultFor(q.id)) continue
+      const { error } = await supabase.rpc('clear_season_result', { p_question_id: q.id })
+      if (error) {
+        setStatus({ type: 'error', text: `No se pudo limpiar: ${error.message}` })
+        setClearing(false)
+        return
+      }
+    }
+    setClearing(false)
+    setStatus({ type: 'ok', text: 'Resultado del Bloque 4 limpiado ✓' })
+    await onChanged()
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <StatusBanner status={status} />
+      <div className="flex flex-col gap-4 rounded bg-gray-50 p-3">
+        {questions.map((q) => (
+          <div key={q.id} className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium text-gray-500">{q.question}</p>
+            <div className="flex gap-2">
+              {(q.config.options ?? ['Sí', 'No']).map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setDrafts((d) => ({ ...d, [q.id]: opt }))}
+                  className={`rounded-full border px-3 py-1.5 text-sm ${
+                    drafts[q.id] === opt ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 bg-white text-gray-700'
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="mt-1 flex flex-wrap gap-2">
+          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+          <button
+            onClick={clearAll}
+            disabled={clearing}
+            className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
+          >
+            {clearing ? 'Limpiando…' : 'Limpiar resultado'}
+          </button>
+        </div>
+      </div>
+
+      {questions.map((q) => (
+        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
+      ))}
+    </div>
   )
 }
 

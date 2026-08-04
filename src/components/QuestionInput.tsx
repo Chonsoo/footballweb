@@ -34,7 +34,7 @@ function saveBtnClass(answered: boolean, hasUnsaved: boolean) {
 // validación del navegador solo se aplica al enviar el formulario, no al
 // teclear). Aquí se sanea la entrada a solo dígitos y se añaden botones +/-
 // para no depender del teclado numérico del navegador.
-function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+export function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
     <div className="flex shrink-0 items-stretch overflow-hidden rounded border border-gray-300">
       <button
@@ -78,7 +78,7 @@ function teamOptionsFor(config: QuestionConfig) {
     .filter((t): t is (typeof LALIGA_TEAMS_2026_27)[number] => !!t)
 }
 
-function TeamLabel({ name, align = 'left' }: { name: string; align?: 'left' | 'right' }) {
+export function TeamLabel({ name, align = 'left' }: { name: string; align?: 'left' | 'right' }) {
   const badge = findTeamBadge(name)
   return (
     <span

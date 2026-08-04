@@ -265,6 +265,24 @@ begin
 end;
 $$;
 
+-- "Deshacer" un resultado ya fijado (botón "Limpiar resultado" del Bloque 4):
+-- borra season_results y resetea los puntos ya aplicados a esa pregunta.
+create or replace function public.clear_season_result(p_question_id uuid)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    raise exception 'not authorized';
+  end if;
+  delete from public.season_results where question_id = p_question_id;
+  update public.season_answers
+  set points = null, graded_at = null
+  where question_id = p_question_id;
+end;
+$$;
+
 -- Asignar puntos a mano a la respuesta de un usuario (apuestas complejas: tier list, marcadores...)
 create or replace function public.set_answer_points(p_answer_id uuid, p_points int)
 returns void
