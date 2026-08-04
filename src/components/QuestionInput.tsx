@@ -36,13 +36,13 @@ function saveBtnClass(answered: boolean, hasUnsaved: boolean) {
 // para no depender del teclado numérico del navegador.
 function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex shrink-0 items-stretch overflow-hidden rounded border border-gray-300">
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value <= 0}
         aria-label="Restar"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+        className="w-5 shrink-0 bg-gray-50 text-sm leading-none text-gray-600 hover:bg-gray-100 disabled:opacity-30"
       >
         −
       </button>
@@ -55,13 +55,13 @@ function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number
           const digits = e.target.value.replace(/[^0-9]/g, '')
           onChange(digits === '' ? 0 : Math.max(0, Number(digits)))
         }}
-        className="w-10 shrink-0 rounded border border-gray-300 px-1 py-1 text-center"
+        className="w-6 shrink-0 border-x border-gray-300 py-1 text-center text-sm"
       />
       <button
         type="button"
         onClick={() => onChange(value + 1)}
         aria-label="Sumar"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
+        className="w-5 shrink-0 bg-gray-50 text-sm leading-none text-gray-600 hover:bg-gray-100"
       >
         +
       </button>
