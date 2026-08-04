@@ -37,6 +37,11 @@ export function calculateFantasyPoints(s: FantasyStatInput): number {
 export interface FantasyPointsBreakdownItem {
   key: string
   label: string
+  // Cantidad "cruda" del concepto (minutos jugados, número de goles, de
+  // tarjetas...) -- se muestra en su propia columna en vez de metida dentro
+  // de la etiqueta, para que quede como una tabla (Cantidad · Estadística ·
+  // Puntos).
+  count: number
   points: number
 }
 
@@ -49,13 +54,13 @@ export function fantasyPointsBreakdown(s: FantasyStatInput): FantasyPointsBreakd
   const minutePts = s.minutes >= 60 ? 2 : s.minutes >= 1 ? 1 : 0
   const cleanSheetPts = s.clean_sheet && s.minutes >= 60 ? CLEAN_SHEET_POINTS[s.player_position] : 0
   return [
-    { key: 'minutes', label: 'Minutos jugados', points: minutePts },
-    { key: 'goals', label: `Goles (${s.goals})`, points: s.goals * GOAL_POINTS[s.player_position] },
-    { key: 'assists', label: `Asistencias (${s.assists})`, points: s.assists * ASSIST_POINTS[s.player_position] },
-    { key: 'clean_sheet', label: 'Portería a cero', points: cleanSheetPts },
-    { key: 'yellow', label: `Tarjetas amarillas (${s.yellow_cards})`, points: -s.yellow_cards },
-    { key: 'red', label: `Tarjetas rojas (${s.red_cards})`, points: -s.red_cards * 3 },
-    { key: 'own_goals', label: `Goles en propia (${s.own_goals})`, points: -s.own_goals * 2 },
+    { key: 'minutes', label: 'Minutos jugados', count: s.minutes, points: minutePts },
+    { key: 'goals', label: 'Goles', count: s.goals, points: s.goals * GOAL_POINTS[s.player_position] },
+    { key: 'assists', label: 'Asistencias', count: s.assists, points: s.assists * ASSIST_POINTS[s.player_position] },
+    { key: 'clean_sheet', label: 'Portería a cero', count: s.clean_sheet && s.minutes >= 60 ? 1 : 0, points: cleanSheetPts },
+    { key: 'yellow', label: 'Tarjetas amarillas', count: s.yellow_cards, points: -s.yellow_cards },
+    { key: 'red', label: 'Tarjetas rojas', count: s.red_cards, points: -s.red_cards * 3 },
+    { key: 'own_goals', label: 'Goles en propia', count: s.own_goals, points: -s.own_goals * 2 },
   ]
 }
 
@@ -67,8 +72,10 @@ export function emptyFantasyStats(position: FantasyPosition): FantasyStatInput {
 }
 
 // Igual que fantasyPointsBreakdown pero acumulado a lo largo de varias
-// jornadas (para el modo "Total" del popup) -- mismas 7 líneas fijas.
+// jornadas (para el modo "Total" del popup) -- mismas 7 líneas fijas; la
+// "cantidad" de minutos es la suma de minutos jugados en toda la temporada.
 export function aggregateFantasyBreakdown(rows: FantasyStatInput[], position: FantasyPosition): { items: FantasyPointsBreakdownItem[]; total: number } {
+  let minutesSum = 0
   let minutePts = 0
   let goals = 0
   let assists = 0
@@ -77,6 +84,7 @@ export function aggregateFantasyBreakdown(rows: FantasyStatInput[], position: Fa
   let reds = 0
   let ownGoals = 0
   for (const s of rows) {
+    minutesSum += s.minutes
     minutePts += s.minutes >= 60 ? 2 : s.minutes >= 1 ? 1 : 0
     goals += s.goals
     assists += s.assists
@@ -87,13 +95,13 @@ export function aggregateFantasyBreakdown(rows: FantasyStatInput[], position: Fa
   }
 
   const items: FantasyPointsBreakdownItem[] = [
-    { key: 'minutes', label: 'Minutos jugados', points: minutePts },
-    { key: 'goals', label: `Goles (${goals})`, points: goals * GOAL_POINTS[position] },
-    { key: 'assists', label: `Asistencias (${assists})`, points: assists * ASSIST_POINTS[position] },
-    { key: 'clean_sheet', label: `Portería a cero (${cleanSheets})`, points: cleanSheets * CLEAN_SHEET_POINTS[position] },
-    { key: 'yellow', label: `Tarjetas amarillas (${yellows})`, points: -yellows },
-    { key: 'red', label: `Tarjetas rojas (${reds})`, points: -reds * 3 },
-    { key: 'own_goals', label: `Goles en propia (${ownGoals})`, points: -ownGoals * 2 },
+    { key: 'minutes', label: 'Minutos jugados', count: minutesSum, points: minutePts },
+    { key: 'goals', label: 'Goles', count: goals, points: goals * GOAL_POINTS[position] },
+    { key: 'assists', label: 'Asistencias', count: assists, points: assists * ASSIST_POINTS[position] },
+    { key: 'clean_sheet', label: 'Portería a cero', count: cleanSheets, points: cleanSheets * CLEAN_SHEET_POINTS[position] },
+    { key: 'yellow', label: 'Tarjetas amarillas', count: yellows, points: -yellows },
+    { key: 'red', label: 'Tarjetas rojas', count: reds, points: -reds * 3 },
+    { key: 'own_goals', label: 'Goles en propia', count: ownGoals, points: -ownGoals * 2 },
   ]
 
   const total = items.reduce((sum, i) => sum + i.points, 0)
