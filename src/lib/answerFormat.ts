@@ -18,6 +18,16 @@ export function formatAnswer(question: SeasonQuestion, answer: AnswerValue | und
     return formatRanking(question.config, answer as Record<string, number>)
   }
 
+  // Podio Underdog (Bloque 2): resultado real guardado como {gold, silver,
+  // bronze} en vez de un nombre de equipo -- caso especial para que no salga
+  // "[object Object]" si algún día se formatea aquí en vez de con AnswerSummary.
+  if (answer && typeof answer === 'object' && 'gold' in (answer as Record<string, unknown>)) {
+    const podium = answer as { gold?: string; silver?: string; bronze?: string }
+    return [podium.gold && `🥇 ${podium.gold}`, podium.silver && `🥈 ${podium.silver}`, podium.bronze && `🥉 ${podium.bronze}`]
+      .filter(Boolean)
+      .join(' · ')
+  }
+
   // text | choice
   return String(answer)
 }

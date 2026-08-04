@@ -56,6 +56,32 @@ export default function AnswerSummary({
   if (question.answer_type === 'choice') {
     if (question.config.player_choice) return <PlayerAnswer name={value as string} />
     if (question.config.team_ids) {
+      // El resultado real del Podio Underdog (Bloque 2) se guarda como
+      // {gold, silver, bronze} en vez de un único nombre de equipo -- a
+      // diferencia de la respuesta de un usuario (que sí es solo un nombre,
+      // elige un único equipo). Sin este caso especial, pintar el objeto
+      // directamente rompe la página (React no admite objetos como hijos).
+      if (value && typeof value === 'object' && 'gold' in (value as Record<string, unknown>)) {
+        const podium = value as { gold?: string; silver?: string; bronze?: string }
+        const tiers: [keyof typeof podium, string][] = [
+          ['gold', '🥇'],
+          ['silver', '🥈'],
+          ['bronze', '🥉'],
+        ]
+        return (
+          <div className="flex flex-col gap-1">
+            {tiers.map(([tier, medal]) =>
+              podium[tier] ? (
+                <div key={tier} className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                  <span>{medal}</span>
+                  <TeamBadgeImg name={podium[tier]} />
+                  {podium[tier]}
+                </div>
+              ) : null
+            )}
+          </div>
+        )
+      }
       return (
         <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
           <TeamBadgeImg name={value as string} />
