@@ -4,7 +4,13 @@ import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import FantasyPointsPopup from '../components/FantasyPointsPopup'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { fetchPlayedMatchdays, fetchPlayerStats, pointsByPlayerFromStats } from '../lib/fantasyStatsQueries'
-import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyMatchday, type FantasyPlayer } from '../lib/fantasyTypes'
+import {
+  DEFAULT_FANTASY_FORMATION,
+  type FantasyFormation,
+  type FantasyMatchday,
+  type FantasyPlayer,
+  type FantasyPlayerStats,
+} from '../lib/fantasyTypes'
 
 type Subview = 'liga' | 'resumen'
 
@@ -25,6 +31,22 @@ const SUBVIEWS: [Subview, string][] = [
   ['resumen', 'Mi equipo'],
 ]
 
+// Selector de pestañas/jornadas con "pista" oscura y estado activo en
+// dorado — el resto de la app es deliberadamente clara, así que este es uno
+// de los puntos donde Fantasy tiene su propia identidad visual (verde
+// oscuro + dorado, ya en la paleta de marca) en vez de blanco/gris.
+function darkTrackBtn(active: boolean) {
+  return `rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+    active ? 'bg-gold-500 text-brand-950' : 'text-brand-100 hover:bg-brand-800/60'
+  }`
+}
+
+function scopeChip(active: boolean) {
+  return `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+    active ? 'bg-gold-500 text-brand-950' : 'bg-brand-800/60 text-brand-100 hover:bg-brand-800'
+  }`
+}
+
 export default function Fantasy() {
   const [subview, setSubview] = useState<Subview>('liga')
   const [matchdays, setMatchdays] = useState<FantasyMatchday[]>([])
@@ -42,28 +64,21 @@ export default function Fantasy() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">⚽ Fantasy</h1>
-        <p className="text-sm text-gray-500">Tu 11 de Abuelonchos, jornada a jornada.</p>
-      </div>
+      <div className="rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 px-4 py-4 text-white shadow-sm">
+        <h1 className="text-xl font-bold">⚽ Fantasy</h1>
+        <p className="text-sm text-brand-100">Tu 11 de Abuelonchos, jornada a jornada.</p>
 
-      <div className="flex overflow-hidden rounded-lg border border-gray-300 text-sm">
-        {SUBVIEWS.map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setSubview(key)}
-            className={`flex-1 px-3 py-2 font-medium transition-colors ${
-              subview === key ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <div className="mt-3 flex overflow-hidden rounded-lg bg-black/20 p-1 text-sm">
+          {SUBVIEWS.map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setSubview(key)} className={`flex-1 ${darkTrackBtn(subview === key)}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {subview === 'resumen' && <MiEquipoView matchdays={matchdays} onPlayerSelect={openPopup} />}
-      {subview === 'liga' && <LigaView matchdays={matchdays} onPlayerSelect={(p) => openPopup(p)} />}
+      {subview === 'liga' && <LigaView matchdays={matchdays} onPlayerSelect={openPopup} />}
 
       {popupPlayer && (
         <FantasyPointsPopup
@@ -90,18 +105,19 @@ function MiEquipoView({
 }) {
   const { players, value, formation, loading, complete } = useFantasyLineup()
   const [scope, setScope] = useState<number | 'total'>('total')
-  const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
+  const [rawStats, setRawStats] = useState<FantasyPlayerStats[]>([])
   const [loadingPoints, setLoadingPoints] = useState(true)
 
   const playerIds = useMemo(() => Object.keys(value).map(Number), [value])
   const idsKey = playerIds.slice().sort((a, b) => a - b).join(',')
   const playedNumbers = useMemo(() => new Set(matchdays.map((m) => m.number)), [matchdays])
+  const lastMd = matchdays.length > 0 ? matchdays[matchdays.length - 1].number : null
 
   useEffect(() => {
     let active = true
     async function load() {
       if (playerIds.length === 0) {
-        setPointsByPlayer({})
+        setRawStats([])
         setLoadingPoints(false)
         return
       }
@@ -109,7 +125,7 @@ function MiEquipoView({
       const stats = await fetchPlayerStats(playerIds, scope === 'total' ? undefined : scope)
       const filtered = scope === 'total' ? stats.filter((s) => playedNumbers.has(s.matchday_num)) : stats
       if (active) {
-        setPointsByPlayer(pointsByPlayerFromStats(filtered))
+        setRawStats(filtered)
         setLoadingPoints(false)
       }
     }
@@ -122,39 +138,40 @@ function MiEquipoView({
 
   if (loading) return <p className="text-gray-500">Cargando…</p>
 
+  const pointsByPlayer = pointsByPlayerFromStats(rawStats)
   const total = Object.values(pointsByPlayer).reduce((a, b) => a + b, 0)
+  // Puntos de la última jornada jugada, para el aviso pequeño bajo el total
+  // (solo tiene sentido en modo Total, viendo una jornada concreta ya es
+  // justo ese número).
+  const lastJornadaTotal =
+    lastMd != null ? rawStats.filter((s) => s.matchday_num === lastMd).reduce((sum, s) => sum + s.points, 0) : 0
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => setScope('total')}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-            scope === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
+        <button type="button" onClick={() => setScope('total')} className={scopeChip(scope === 'total')}>
           Total
         </button>
         {matchdays.map((md) => (
-          <button
-            key={md.number}
-            type="button"
-            onClick={() => setScope(md.number)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              scope === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
+          <button key={md.number} type="button" onClick={() => setScope(md.number)} className={scopeChip(scope === md.number)}>
             J{md.number}
           </button>
         ))}
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
-        <span className="text-sm text-gray-500">
+      <div className="flex items-center justify-between rounded-lg bg-gradient-to-br from-brand-900 to-brand-800 px-4 py-3 text-white shadow-sm">
+        <span className="text-sm text-brand-100">
           {scope === 'total' ? 'Tus puntos fantasy (jornadas jugadas)' : `Tus puntos en la jornada ${scope}`}
         </span>
-        <span className="text-2xl font-bold text-brand-700">{loadingPoints ? '…' : total}</span>
+        <div className="text-right">
+          <span className="text-2xl font-bold text-gold-400">{loadingPoints ? '…' : total}</span>
+          {scope === 'total' && lastMd != null && (
+            <p className="text-[11px] text-brand-200">
+              {lastJornadaTotal > 0 ? '+' : ''}
+              {lastJornadaTotal} en J{lastMd}
+            </p>
+          )}
+        </div>
       </div>
       {!complete && (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -178,14 +195,27 @@ function MiEquipoView({
   )
 }
 
-// --- Liga fantasy: clasificación de participantes, con selector Total / Jn
-// arriba — al elegir una jornada concreta, tanto el orden como los puntos
-// que se ven al abrir un 11 son los de esa jornada, no el acumulado.
+// --- Clasificación: participantes con selector Total / Jn arriba — al
+// elegir una jornada concreta, tanto el orden como los puntos que se ven al
+// abrir un 11 son los de esa jornada, no el acumulado. En Total, cada fila
+// lleva también cuánto sumó en la última jornada y una flecha si ha subido o
+// bajado puestos respecto a antes de esa última jornada.
+
+const MEDALS = ['🥇', '🥈', '🥉']
+
+function rankRowStyle(rank: number): { background: string; borderColor: string } {
+  if (rank === 1) return { background: 'linear-gradient(to right, #fbe9b8, #fffdf6)', borderColor: '#e0b64a' }
+  if (rank === 2) return { background: 'linear-gradient(to right, #e2e8f0, #fafbfc)', borderColor: '#94a3b8' }
+  if (rank === 3) return { background: 'linear-gradient(to right, #e8c4a0, #fdf8f3)', borderColor: '#b97a4a' }
+  return { background: '#ffffff', borderColor: '#e5e7eb' }
+}
 
 interface RankingRow {
   user_id: string
   username: string
   points: number
+  lastJornadaPoints?: number
+  arrow?: 'up' | 'down' | 'same' | null
 }
 
 interface MatchdayLeaderboardRow {
@@ -201,11 +231,11 @@ function LigaView({
   onPlayerSelect,
 }: {
   matchdays: FantasyMatchday[]
-  onPlayerSelect: (player: FantasyPlayer) => void
+  onPlayerSelect: (player: FantasyPlayer, matchday?: number) => void
 }) {
   const [scope, setScope] = useState<number | 'total'>('total')
-  const [totalRows, setTotalRows] = useState<RankingRow[]>([])
-  const [matchdayRows, setMatchdayRows] = useState<RankingRow[]>([])
+  const [totalBase, setTotalBase] = useState<RankingRow[]>([])
+  const [byMatchday, setByMatchday] = useState<MatchdayLeaderboardRow[]>([])
   const [loadingRows, setLoadingRows] = useState(true)
   const [players, setPlayers] = useState<FantasyPlayer[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -214,8 +244,12 @@ function LigaView({
   const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
 
   const playedNumbers = useMemo(() => new Set(matchdays.map((m) => m.number)), [matchdays])
+  const lastMd = matchdays.length > 0 ? matchdays[matchdays.length - 1].number : null
 
-  // Carga inicial: jugadores fantasy (para pintar los 11) + clasificación total.
+  // Carga inicial: jugadores fantasy (para pintar los 11) + los dos listados
+  // de puntos (total acumulado, y el desglose por jornada de una sola vez,
+  // para no tener que volver a pedir nada al cambiar de jornada o calcular
+  // cómo iba la clasificación antes de la última).
   useEffect(() => {
     async function load() {
       const { data: fp } = await supabase
@@ -226,39 +260,57 @@ function LigaView({
         .order('name')
       setPlayers((fp as FantasyPlayer[]) ?? [])
 
-      const { data: lb } = await supabase
-        .from('fantasy_leaderboard')
-        .select('*')
-        .eq('mode', 'abuelonchos')
-        .order('total_points', { ascending: false })
-      setTotalRows(((lb as FantasyLeaderboardRow[]) ?? []).map((r) => ({ user_id: r.user_id, username: r.username, points: r.total_points })))
+      const { data: lb } = await supabase.from('fantasy_leaderboard').select('*').eq('mode', 'abuelonchos')
+      setTotalBase(((lb as FantasyLeaderboardRow[]) ?? []).map((r) => ({ user_id: r.user_id, username: r.username, points: r.total_points })))
+
+      const { data: bm } = await supabase.from('fantasy_leaderboard_by_matchday').select('*').eq('mode', 'abuelonchos')
+      setByMatchday((bm as MatchdayLeaderboardRow[]) ?? [])
+
       setLoadingRows(false)
     }
     load()
   }, [])
 
-  // Clasificación de una jornada concreta, bajo demanda al elegirla.
-  useEffect(() => {
-    if (scope === 'total') return
-    let active = true
-    async function load() {
-      setLoadingRows(true)
-      const { data } = await supabase
-        .from('fantasy_leaderboard_by_matchday')
-        .select('*')
-        .eq('mode', 'abuelonchos')
-        .eq('matchday_num', scope)
-        .order('points', { ascending: false })
-      if (active) {
-        setMatchdayRows(((data as MatchdayLeaderboardRow[]) ?? []).map((r) => ({ user_id: r.user_id, username: r.username, points: r.points })))
-        setLoadingRows(false)
-      }
+  const lastJornadaByUser = useMemo(() => {
+    const m = new Map<string, number>()
+    if (lastMd == null) return m
+    for (const r of byMatchday) {
+      if (r.matchday_num === lastMd) m.set(r.user_id, r.points)
     }
-    load()
-    return () => {
-      active = false
+    return m
+  }, [byMatchday, lastMd])
+
+  // Clasificación total: viene de fantasy_leaderboard (funciona incluso sin
+  // ninguna jornada jugada, todos a 0), con la flecha de movimiento respecto
+  // a como iba la clasificación antes de la última jornada -- solo tiene
+  // sentido con 2+ jornadas jugadas para tener algo con lo que comparar.
+  const totalRows = useMemo<RankingRow[]>(() => {
+    const sorted = totalBase.slice().sort((a, b) => b.points - a.points)
+    if (matchdays.length < 2) {
+      return sorted.map((r) => ({ ...r, lastJornadaPoints: lastJornadaByUser.get(r.user_id) ?? 0, arrow: null }))
     }
-  }, [scope])
+    const previous = sorted
+      .map((r) => ({ user_id: r.user_id, points: r.points - (lastJornadaByUser.get(r.user_id) ?? 0) }))
+      .sort((a, b) => b.points - a.points)
+    const prevRank = new Map<string, number>()
+    previous.forEach((r, i) => prevRank.set(r.user_id, i + 1))
+    return sorted.map((r, i) => {
+      const currentRank = i + 1
+      const prev = prevRank.get(r.user_id)
+      const arrow: 'up' | 'down' | 'same' | null = prev == null ? null : currentRank < prev ? 'up' : currentRank > prev ? 'down' : 'same'
+      return { ...r, lastJornadaPoints: lastJornadaByUser.get(r.user_id) ?? 0, arrow }
+    })
+  }, [totalBase, matchdays.length, lastJornadaByUser])
+
+  // Clasificación de una jornada concreta: se saca del mismo fetch inicial,
+  // filtrando en el cliente -- no hace falta pedir nada nuevo al cambiar.
+  const matchdayRows = useMemo<RankingRow[]>(() => {
+    if (scope === 'total') return []
+    return byMatchday
+      .filter((r) => r.matchday_num === scope)
+      .map((r) => ({ user_id: r.user_id, username: r.username, points: r.points }))
+      .sort((a, b) => b.points - a.points)
+  }, [byMatchday, scope])
 
   const rows = scope === 'total' ? totalRows : matchdayRows
 
@@ -329,24 +381,11 @@ function LigaView({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => setScope('total')}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-            scope === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-          }`}
-        >
+        <button type="button" onClick={() => setScope('total')} className={scopeChip(scope === 'total')}>
           Total
         </button>
         {matchdays.map((md) => (
-          <button
-            key={md.number}
-            type="button"
-            onClick={() => setScope(md.number)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              scope === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
+          <button key={md.number} type="button" onClick={() => setScope(md.number)} className={scopeChip(scope === md.number)}>
             J{md.number}
           </button>
         ))}
@@ -357,19 +396,47 @@ function LigaView({
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((r, i) => {
+            const rank = i + 1
             const isOpen = expanded === r.user_id
+            const style = rankRowStyle(rank)
             return (
-              <div key={r.user_id} className="overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
-                <button onClick={() => toggle(r.user_id)} className="flex w-full items-center gap-3 bg-white px-4 py-3 text-left">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-50 text-xs font-semibold text-gray-500 ring-1 ring-gray-100">
-                    {i + 1}
+              <div
+                key={r.user_id}
+                className="overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md"
+                style={{ borderColor: style.borderColor }}
+              >
+                <button
+                  onClick={() => toggle(r.user_id)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                  style={{ background: style.background }}
+                >
+                  <span className="flex w-7 shrink-0 items-center justify-center text-lg font-bold leading-none">
+                    {rank <= 3 ? MEDALS[rank - 1] : <span className="text-sm text-gray-400">{rank}</span>}
                   </span>
                   <span className="min-w-0 flex-1 truncate font-semibold text-gray-800">{r.username}</span>
-                  <span className="flex shrink-0 items-center gap-3 text-sm text-gray-500">
-                    <span className="font-semibold text-gray-700">{r.points}</span> pts
+                  {scope === 'total' && r.arrow && r.arrow !== 'same' && (
+                    <span
+                      className={`shrink-0 text-sm font-bold ${r.arrow === 'up' ? 'text-green-600' : 'text-red-600'}`}
+                      title={r.arrow === 'up' ? 'Sube en la clasificación' : 'Baja en la clasificación'}
+                    >
+                      {r.arrow === 'up' ? '▲' : '▼'}
+                    </span>
+                  )}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-right">
+                      <p className="text-sm font-semibold text-gray-700">
+                        {r.points} <span className="font-normal text-gray-500">pts</span>
+                      </p>
+                      {scope === 'total' && lastMd != null && (
+                        <p className="text-[10px] text-gray-400">
+                          {(r.lastJornadaPoints ?? 0) > 0 ? '+' : ''}
+                          {r.lastJornadaPoints ?? 0} en J{lastMd}
+                        </p>
+                      )}
+                    </span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -392,7 +459,7 @@ function LigaView({
                           readOnly
                           hideSidebar
                           pointsByPlayer={pointsByPlayer}
-                          onPlayerSelect={onPlayerSelect}
+                          onPlayerSelect={(p) => onPlayerSelect(p, scope === 'total' ? undefined : scope)}
                         />
                       </div>
                     ) : (
