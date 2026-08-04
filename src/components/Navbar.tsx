@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import EditProfileModal from './EditProfileModal'
 import TabStrip from './TabStrip'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import { isInitialPhaseClosed } from '../lib/deadlines'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
@@ -27,6 +28,7 @@ export default function Navbar() {
 
   const betsActive = location.pathname.startsWith('/apuestas-')
   const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+  const initialClosed = isInitialPhaseClosed()
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -69,15 +71,17 @@ export default function Navbar() {
             </button>
             {betsOpen && (
               <div className="absolute left-0 top-full z-20 mt-1 w-48 rounded border border-gray-200 bg-white py-1 shadow-lg">
-                <NavLink
-                  to="/apuestas-iniciales"
-                  onClick={() => setBetsOpen(false)}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
-                  }
-                >
-                  Apuestas iniciales
-                </NavLink>
+                {!initialClosed && (
+                  <NavLink
+                    to="/apuestas-iniciales"
+                    onClick={() => setBetsOpen(false)}
+                    className={({ isActive }) =>
+                      `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
+                    }
+                  >
+                    Apuestas iniciales
+                  </NavLink>
+                )}
                 <NavLink
                   to="/apuestas-semana"
                   onClick={() => setBetsOpen(false)}
@@ -85,7 +89,7 @@ export default function Navbar() {
                     `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
                   }
                 >
-                  Apuestas de la semana
+                  Apuestas flash
                 </NavLink>
               </div>
             )}
@@ -194,11 +198,13 @@ export default function Navbar() {
           </NavLink>
 
           <p className="px-3 pt-2 text-xs font-semibold uppercase text-gray-400">Apuestas</p>
-          <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
-            Apuestas iniciales
-          </NavLink>
+          {!initialClosed && (
+            <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
+              Apuestas iniciales
+            </NavLink>
+          )}
           <NavLink to="/apuestas-semana" onClick={closeAll} className={mobileLinkClass}>
-            Apuestas de la semana
+            Apuestas flash
           </NavLink>
 
           <NavLink to="/oraculo" onClick={closeAll} className={mobileLinkClass}>

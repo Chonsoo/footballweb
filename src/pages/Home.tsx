@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { computeRanks, distFromLastTier } from '../lib/ranking'
+import { isInitialPhaseClosed } from '../lib/deadlines'
 import type { LeaderboardRow } from '../lib/database.types'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -32,8 +33,8 @@ const CARDS: HomeCard[] = [
   },
   {
     to: '/apuestas-semana',
-    icon: '📅',
-    title: 'Apuestas de la semana',
+    icon: '⚡',
+    title: 'Apuestas flash',
     description: 'Pronósticos jornada a jornada.',
     accent: 'bg-brand-100 text-brand-700',
   },
@@ -149,7 +150,7 @@ export default function Home() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {CARDS.map((card) => (
+        {CARDS.filter((card) => card.to !== '/apuestas-iniciales' || !isInitialPhaseClosed()).map((card) => (
           <Link
             key={card.to}
             to={card.to}

@@ -1,4 +1,5 @@
 import { QuestionInput } from './QuestionInput'
+import Countdown from './Countdown'
 import { formatAnswer } from '../lib/answerFormat'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
@@ -11,9 +12,23 @@ interface Props {
   onSave: (value: AnswerValue) => void
   otherAnswers?: (SeasonAnswer & { profile?: Profile })[]
   result?: SeasonResult
+  // Contador de cuenta atrás junto al plazo — lo activa Apuestas flash,
+  // donde cada pregunta puede tener su propia fecha límite. En Apuestas
+  // iniciales no hace falta repetirlo en cada tarjeta porque ya hay un
+  // contador único arriba de la página (todas comparten la misma fecha).
+  showCountdown?: boolean
 }
 
-export default function QuestionCard({ question, myAnswer, closed, saving, onSave, otherAnswers = [], result }: Props) {
+export default function QuestionCard({
+  question,
+  myAnswer,
+  closed,
+  saving,
+  onSave,
+  otherAnswers = [],
+  result,
+  showCountdown,
+}: Props) {
   const complete = isAnswerComplete(question, myAnswer?.answer)
   return (
     <div className="rounded border border-gray-200 bg-white p-4">
@@ -35,7 +50,15 @@ export default function QuestionCard({ question, myAnswer, closed, saving, onSav
           )}
         </span>
       </div>
-      <p className="mb-3 font-medium">{question.question}</p>
+      <p className={showCountdown && !closed && question.closes_at ? 'mb-1 font-medium' : 'mb-3 font-medium'}>
+        {question.question}
+      </p>
+      {showCountdown && !closed && question.closes_at && (
+        <Countdown
+          deadline={new Date(question.closes_at)}
+          className="mb-3 inline-block rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700"
+        />
+      )}
 
       {!closed ? (
         <QuestionInput question={question} value={myAnswer?.answer} saving={saving} onSave={onSave} />

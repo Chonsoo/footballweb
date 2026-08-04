@@ -194,7 +194,7 @@ export default function ApuestasDetalladas() {
 
                       {weeklyQs.length > 0 && (
                         <div>
-                          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">Apuestas de la semana</h3>
+                          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">Apuestas flash</h3>
                           <div className="grid grid-cols-2 gap-2">
                             {weeklyQs.map((q) => (
                               <div key={q.id} className="rounded-lg border border-gray-100 bg-gray-50/60 p-2">

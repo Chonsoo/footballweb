@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
 import FantasyLineupBlock from '../components/FantasyLineupBlock'
+import Countdown from '../components/Countdown'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
+import { isInitialPhaseClosed, INITIAL_PHASE_DEADLINE, INITIAL_PHASE_DEADLINE_LABEL } from '../lib/deadlines'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface QuestionWithAnswers extends SeasonQuestion {
@@ -104,9 +106,26 @@ export default function SeasonBets() {
     )
   }
 
+  const closed = isInitialPhaseClosed()
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">Apuestas iniciales</h1>
+
+      {closed ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Esto ya no se puede editar — para ver el resumen de lo
+          que pusiste, mejor entra en <strong>Mis apuestas</strong>.
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+          <span>
+            Puedes rellenar o actualizar tus respuestas hasta el <strong>{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
+          </span>
+          <Countdown deadline={INITIAL_PHASE_DEADLINE} className="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700" />
+        </div>
+      )}
+
       {questions.length === 0 && (
         <p className="text-gray-400">Todavía no hay preguntas. El admin puede crearlas desde el panel.</p>
       )}

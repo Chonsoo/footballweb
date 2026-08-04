@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import FantasyLineupPicker from './FantasyLineupPicker'
+import Countdown from './Countdown'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
+import { isInitialPhaseClosed, INITIAL_PHASE_DEADLINE, INITIAL_PHASE_DEADLINE_LABEL } from '../lib/deadlines'
 
 // Bloque 5 de "Apuestas iniciales": el 11 de Abuelonchos. A diferencia de los
 // bloques 1-4 (que leen/escriben season_questions/season_answers), este lee y
@@ -13,6 +15,7 @@ export default function FantasyLineupBlock() {
   const { players, value, formation, slots, filled, complete, loading, handleChange, handleFormationChange } =
     useFantasyLineup()
   const [open, setOpen] = useState(false)
+  const closed = isInitialPhaseClosed()
 
   return (
     <div className="rounded border border-gray-200 bg-white">
@@ -46,10 +49,22 @@ export default function FantasyLineupBlock() {
       </button>
       {open && (
         <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">
-          <p className="text-xs text-gray-500">
-            Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
-            jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
-          </p>
+          {closed ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Tu once se queda tal cual estaba.
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-gray-500">
+                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
+                jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
+              </p>
+              <Countdown
+                deadline={INITIAL_PHASE_DEADLINE}
+                className="shrink-0 rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold text-brand-700"
+              />
+            </div>
+          )}
           {loading ? (
             <p className="text-sm text-gray-400">Cargando…</p>
           ) : players.length === 0 ? (
@@ -63,7 +78,8 @@ export default function FantasyLineupBlock() {
               formation={formation}
               value={value}
               onChange={handleChange}
-              onFormationChange={handleFormationChange}
+              onFormationChange={closed ? undefined : handleFormationChange}
+              readOnly={closed}
             />
           )}
         </div>

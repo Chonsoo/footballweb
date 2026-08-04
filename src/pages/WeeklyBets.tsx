@@ -4,8 +4,8 @@ export default function WeeklyBets() {
   return (
     <PhaseBetsList
       phase="weekly"
-      title="Apuestas de la semana"
-      emptyText="Todavía no hay apuestas de esta semana. El admin las va añadiendo jornada a jornada."
+      title="Apuestas flash"
+      emptyText="Ahora mismo no hay apuestas flash abiertas. El admin las va añadiendo jornada a jornada."
     />
   )
 }

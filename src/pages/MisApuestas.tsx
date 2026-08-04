@@ -10,7 +10,7 @@ import type { AnswerValue, QuestionPhase, SeasonAnswer, SeasonQuestion } from '.
 
 const TABS: { id: QuestionPhase; label: string }[] = [
   { id: 'initial', label: 'Apuestas iniciales' },
-  { id: 'weekly', label: 'Apuestas de la semana' },
+  { id: 'weekly', label: 'Apuestas flash' },
 ]
 
 export default function MisApuestas() {

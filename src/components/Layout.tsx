@@ -4,7 +4,7 @@ import Navbar from './Navbar'
 import OnboardingWizard from './OnboardingWizard'
 import ProfileSetupModal from './ProfileSetupModal'
 import { useAuth } from '../context/AuthContext'
-import { NAV_TABS, activeTabIndex } from '../lib/navTabs'
+import { getNavTabs, activeTabIndex } from '../lib/navTabs'
 
 // Umbral mínimo (px) para considerar el gesto un swipe de navegación, y
 // cuánto más horizontal que vertical debe ser para no confundirlo con un
@@ -34,15 +34,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 
     if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy) * 1.5) return
 
+    const tabs = getNavTabs()
     const currentIndex = activeTabIndex(location.pathname)
     if (currentIndex === -1) return
 
     // Deslizar a la izquierda (dx negativo) = avanzar a la siguiente pestaña.
     // Deslizar a la derecha (dx positivo) = volver a la anterior.
     const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1
-    if (nextIndex < 0 || nextIndex >= NAV_TABS.length) return
+    if (nextIndex < 0 || nextIndex >= tabs.length) return
 
-    navigate(NAV_TABS[nextIndex].path)
+    navigate(tabs[nextIndex].path)
   }
 
   if (profile && !profile.favorite_team) {

@@ -76,19 +76,24 @@ export default function PhaseBetsList({ phase, title, emptyText }: { phase: Ques
 
   if (loading) return <p className="text-gray-500">Cargando…</p>
 
+  // Una vez se cierra una pregunta, desaparece de aquí — a partir de ahí solo
+  // se ve el resultado en "Mis apuestas" (y en "Apuestas detalladas" para
+  // los demás). Esta pestaña se queda solo con lo que todavía está abierto.
+  const openQuestions = questions.filter((q) => !isClosed(q))
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">{title}</h1>
-      {questions.length === 0 && <p className="text-gray-400">{emptyText}</p>}
-      {questions.map((q) => {
+      {openQuestions.length === 0 && <p className="text-gray-400">{emptyText}</p>}
+      {openQuestions.map((q) => {
         const myAnswer = q.answers.find((a) => a.user_id === user?.id)
-        const closed = isClosed(q)
         return (
           <QuestionCard
             key={q.id}
             question={q}
             myAnswer={myAnswer}
-            closed={closed}
+            closed={false}
+            showCountdown
             saving={savingId === q.id}
             onSave={(value) => saveAnswer(q.id, value)}
             otherAnswers={q.answers}

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { NAV_TABS, activeTabIndex } from '../lib/navTabs'
+import { getNavTabs, activeTabIndex } from '../lib/navTabs'
 
 // Tira de pestañas horizontal, visible solo en móvil (en escritorio ya está
 // todo el listado en el Navbar). Es la navegación "a la vista" que pedía el
@@ -9,6 +9,7 @@ import { NAV_TABS, activeTabIndex } from '../lib/navTabs'
 // qué página estás", sin necesitar un título aparte.
 export default function TabStrip() {
   const location = useLocation()
+  const tabs = getNavTabs()
   const activeIndex = activeTabIndex(location.pathname)
   const activeRef = useRef<HTMLAnchorElement>(null)
 
@@ -21,7 +22,7 @@ export default function TabStrip() {
       className="flex gap-1.5 overflow-x-auto border-b border-brand-100 bg-white px-3 py-2 md:hidden"
       style={{ scrollbarWidth: 'none' }}
     >
-      {NAV_TABS.map((tab, i) => (
+      {tabs.map((tab, i) => (
         <NavLink
           key={tab.path}
           ref={i === activeIndex ? activeRef : undefined}
