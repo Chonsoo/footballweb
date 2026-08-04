@@ -167,7 +167,7 @@ export default function FantasyLineupPicker({
           <button
             type="button"
             onClick={() => setView('list')}
-            className={`px-2 py-1 font-medium ${view === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+            className={`px-2 py-1 font-medium ${view === 'list' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
           >
             Lista
           </button>
@@ -199,7 +199,7 @@ export default function FantasyLineupPicker({
                   className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
                     selectedPlayer && !readOnly
                       ? eligible
-                        ? 'cursor-pointer bg-blue-50/40 hover:bg-blue-50'
+                        ? 'cursor-pointer bg-brand-50/40 hover:bg-brand-50'
                         : 'cursor-not-allowed opacity-40'
                       : ''
                   }`}
@@ -247,7 +247,7 @@ export default function FantasyLineupPicker({
                     onClick={() => togglePositionFilter(pos)}
                     disabled={readOnly}
                     className={`rounded px-2 py-1 text-[10px] font-semibold transition-colors ${
-                      active ? POSITION_COLORS[pos] + ' ring-2 ring-offset-1 ring-blue-400' : 'bg-gray-100 text-gray-500'
+                      active ? POSITION_COLORS[pos] + ' ring-2 ring-offset-1 ring-brand-500' : 'bg-gray-100 text-gray-500'
                     }`}
                   >
                     {pos}
@@ -261,7 +261,7 @@ export default function FantasyLineupPicker({
                 <button
                   type="button"
                   onClick={() => setPoolView('chips')}
-                  className={`px-1.5 py-0.5 font-medium ${poolView === 'chips' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+                  className={`px-1.5 py-0.5 font-medium ${poolView === 'chips' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
                 >
                   Lista
                 </button>
@@ -278,7 +278,7 @@ export default function FantasyLineupPicker({
               onClick={handlePoolAreaClick}
               className={`flex max-h-64 overflow-y-auto rounded border border-dashed p-2 transition-colors sm:max-h-[60vh] ${
                 poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1'
-              } ${selected != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'}`}
+              } ${selected != null && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'}`}
             >
               {filtered.length === 0 && <span className="text-xs text-gray-300">Sin resultados</span>}
               {filtered.map((p) =>
@@ -442,7 +442,7 @@ function PitchAvatar({
     >
       <span
         className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 ${
-          selected ? 'border-white ring-2 ring-blue-400' : 'border-white/70'
+          selected ? 'border-white ring-2 ring-brand-500' : 'border-white/70'
         }`}
       >
         {!readOnly && (
@@ -521,7 +521,7 @@ function PlayerChip({
   // En el banquillo (pool): en vez del círculo, el fondo de toda la
   // tarjeta lleva el color de la posición, para verlo de un vistazo.
   const colorClasses = selected
-    ? 'border-blue-600 bg-blue-600 text-white'
+    ? 'border-brand-700 bg-brand-700 text-white'
     : pool
       ? `border-transparent ${POSITION_COLORS[player.player_position]}`
       : 'border-gray-300 bg-white text-gray-700'
@@ -558,7 +558,7 @@ function PlayerChip({
       <span className="flex min-w-0 flex-col items-start leading-tight">
         <span className="min-w-0 max-w-full truncate">{player.name}</span>
         {pool && (
-          <span className={`text-[10px] ${selected ? 'text-blue-100' : 'opacity-70'}`}>
+          <span className={`text-[10px] ${selected ? 'text-brand-100' : 'opacity-70'}`}>
             {player.player_position}
             {team ? ` · ${team.name}` : ''}
           </span>

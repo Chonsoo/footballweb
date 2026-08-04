@@ -56,7 +56,7 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-blue-600 px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded bg-brand-700 px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
@@ -75,7 +75,7 @@ export default function Login() {
       </button>
 
       <p className="text-center text-sm text-gray-500">
-        ¿No tienes cuenta? <Link to="/signup" className="text-blue-600">Regístrate</Link>
+        ¿No tienes cuenta? <Link to="/signup" className="text-brand-700">Regístrate</Link>
       </p>
     </div>
   )

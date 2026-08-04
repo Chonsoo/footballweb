@@ -33,3 +33,37 @@ body {
     Roboto,
     sans-serif;
 }
+
+/* Efecto táctil global: cualquier botón/enlace de la app se hunde un poco al
+   pulsarlo, sin tener que añadir clases una a una en cada página. Se respeta
+   prefers-reduced-motion para quien lo tenga desactivado por accesibilidad. */
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled),
+  a {
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease,
+      box-shadow 0.15s ease,
+      opacity 0.15s ease;
+  }
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  /* Transición de página: el contenido entra con un fundido + deslizado
+     sutil cada vez que cambias de ruta (ver Layout.tsx, que reinicia la
+     animación con key={pathname}). */
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .page-enter {
+    animation: page-enter 0.25s ease-out;
+  }
+}

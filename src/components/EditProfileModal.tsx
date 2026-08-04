@@ -55,7 +55,7 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={save}
             disabled={saving || !username.trim() || !favoriteTeam}
-            className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {saving ? 'Guardando…' : 'Guardar'}
           </button>

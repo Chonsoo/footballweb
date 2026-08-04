@@ -149,7 +149,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           </div>
           <button
             onClick={() => setShowIntro(false)}
-            className="self-center rounded bg-blue-600 px-5 py-2.5 font-medium text-white"
+            className="self-center rounded bg-brand-700 px-5 py-2.5 font-medium text-white"
           >
             Comenzar →
           </button>
@@ -184,7 +184,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         </p>
         <div className="h-1.5 w-full rounded-full bg-gray-100">
           <div
-            className="h-1.5 rounded-full bg-blue-600 transition-all"
+            className="h-1.5 rounded-full bg-brand-700 transition-all"
             style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
           />
         </div>
@@ -238,7 +238,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         <button
           onClick={goNext}
           disabled={!allAnswered}
-          className="shrink-0 rounded bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+          className="shrink-0 rounded bg-brand-700 px-4 py-2 font-medium text-white disabled:opacity-50"
         >
           Siguiente →
         </button>

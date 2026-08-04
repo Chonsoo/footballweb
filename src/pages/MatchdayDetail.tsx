@@ -67,7 +67,7 @@ export default function MatchdayDetail() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/jornadas" className="text-sm text-blue-600">
+      <Link to="/jornadas" className="text-sm text-brand-700">
         ← Jornadas
       </Link>
       <h1 className="text-xl font-semibold">
@@ -129,7 +129,7 @@ export default function MatchdayDetail() {
                   <button
                     onClick={() => saveBet(m)}
                     disabled={savingId === m.id}
-                    className="ml-2 rounded bg-blue-600 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
+                    className="ml-2 rounded bg-brand-700 px-3 py-1 text-sm font-medium text-white disabled:opacity-50"
                   >
                     Guardar
                   </button>

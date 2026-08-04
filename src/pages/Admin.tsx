@@ -44,7 +44,7 @@ export default function Admin() {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`rounded-t px-3 py-2 text-sm font-medium ${
-              tab === t.id ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
+              tab === t.id ? 'border-b-2 border-brand-700 text-brand-700' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {t.label}
@@ -120,7 +120,7 @@ function UsersSection() {
                 <td className="px-4 py-2">{u.is_admin ? 'Sí' : 'No'}</td>
                 <td className="px-4 py-2 text-right">
                   <div className="flex items-center justify-end gap-3">
-                    <button onClick={() => toggleAdmin(u)} className="text-blue-600 hover:underline">
+                    <button onClick={() => toggleAdmin(u)} className="text-brand-700 hover:underline">
                       {u.is_admin ? 'Quitar admin' : 'Hacer admin'}
                     </button>
                     {u.id !== currentUser?.id && (
@@ -267,7 +267,7 @@ function CreateQuestionSection() {
 
         <button
           onClick={addQuestion}
-          className="self-start rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white"
+          className="self-start rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white"
         >
           Añadir pregunta
         </button>
@@ -464,7 +464,7 @@ function ResolveQuestionsSection() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-full border px-3 py-1 ${filter === f ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 text-gray-600'}`}
+            className={`rounded-full border px-3 py-1 ${filter === f ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 text-gray-600'}`}
           >
             {f === 'all' ? 'Todas' : f === 'initial' ? 'Iniciales' : 'Semana'}
           </button>
@@ -590,7 +590,7 @@ function GradingPanel({
             <button onClick={saveResult} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
               Fijar resultado
             </button>
-            <button onClick={calculateRankingSuggestions} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white">
+            <button onClick={calculateRankingSuggestions} className="rounded bg-brand-700 px-3 py-1.5 text-sm text-white">
               Calcular puntos sugeridos
             </button>
           </div>
@@ -665,7 +665,7 @@ function GradingPanel({
             <button onClick={saveResult} className="rounded border border-gray-300 px-3 py-1.5 text-sm">
               Fijar resultado
             </button>
-            <button onClick={autoApply} className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white">
+            <button onClick={autoApply} className="rounded bg-brand-700 px-3 py-1.5 text-sm text-white">
               Auto-aplicar puntos a quien acertó
             </button>
           </div>
@@ -676,7 +676,7 @@ function GradingPanel({
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs font-medium text-gray-500">Respuestas y puntos (puedes ajustarlos a mano)</p>
           {Object.keys(pointsDrafts).length > 0 && (
-            <button onClick={saveAllDrafts} disabled={saving} className="text-xs text-blue-600 hover:underline disabled:opacity-50">
+            <button onClick={saveAllDrafts} disabled={saving} className="text-xs text-brand-700 hover:underline disabled:opacity-50">
               {saving ? 'Guardando…' : 'Guardar todas'}
             </button>
           )}
@@ -696,7 +696,7 @@ function GradingPanel({
                   onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
                   className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
                 />
-                <button onClick={() => saveAnswerPoints(a.id)} className="text-blue-600 hover:underline">
+                <button onClick={() => saveAnswerPoints(a.id)} className="text-brand-700 hover:underline">
                   Guardar
                 </button>
               </div>
@@ -791,7 +791,7 @@ function MatchdaysSection() {
           onChange={(e) => setDeadline(e.target.value)}
           className="rounded border border-gray-300 px-2 py-2 text-sm"
         />
-        <button onClick={addMatchday} className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white">
+        <button onClick={addMatchday} className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white">
           Crear jornada
         </button>
       </div>
@@ -829,7 +829,7 @@ function MatchdaysSection() {
           onChange={(e) => setKickoff(e.target.value)}
           className="rounded border border-gray-300 px-2 py-2 text-sm"
         />
-        <button onClick={addMatch} className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white">
+        <button onClick={addMatch} className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white">
           Añadir partido
         </button>
       </div>
@@ -860,7 +860,7 @@ function MatchdaysSection() {
                     setScoreDrafts((d) => ({ ...d, [m.id]: { home: d[m.id]?.home ?? '', away: e.target.value } }))
                   }
                 />
-                <button onClick={() => settleMatch(m)} className="text-blue-600 hover:underline">
+                <button onClick={() => settleMatch(m)} className="text-brand-700 hover:underline">
                   Cerrar partido
                 </button>
               </div>
@@ -1151,7 +1151,7 @@ function FantasyPlayersSection() {
                 onClick={() => toggleLaligaTeam(t.id)}
                 title={t.name}
                 className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs transition-colors ${
-                  selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  selected ? 'border-brand-600 bg-brand-50 text-brand-800' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 {t.badge && <img src={t.badge} alt="" className="h-4 w-4 object-contain" />}
@@ -1164,12 +1164,12 @@ function FantasyPlayersSection() {
           <button
             type="button"
             onClick={() => setLaligaSelected(LALIGA_TEAMS_2026_27.map((t) => t.id))}
-            className="text-xs text-blue-600 hover:underline"
+            className="text-xs text-brand-700 hover:underline"
           >
             Seleccionar todos
           </button>
           {laligaSelected.length > 0 && (
-            <button type="button" onClick={() => setLaligaSelected([])} className="text-xs text-blue-600 hover:underline">
+            <button type="button" onClick={() => setLaligaSelected([])} className="text-xs text-brand-700 hover:underline">
               Quitar selección
             </button>
           )}
@@ -1203,11 +1203,11 @@ function FantasyPlayersSection() {
           <button
             onClick={importBulk}
             disabled={saving || !bulkText.trim()}
-            className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {saving ? 'Importando…' : 'Importar jugadores'}
           </button>
-          <button type="button" onClick={() => setShowTeamIds((v) => !v)} className="text-xs text-blue-600 hover:underline">
+          <button type="button" onClick={() => setShowTeamIds((v) => !v)} className="text-xs text-brand-700 hover:underline">
             {showTeamIds ? 'Ocultar ids de equipo' : 'Ver ids de equipo'}
           </button>
         </div>

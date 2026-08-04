@@ -30,7 +30,7 @@ export default function Matchdays() {
         <Link
           key={m.id}
           to={`/jornadas/${m.id}`}
-          className="flex items-center justify-between rounded border border-gray-200 bg-white px-4 py-3 hover:border-blue-400"
+          className="flex items-center justify-between rounded border border-gray-200 bg-white px-4 py-3 hover:border-brand-500"
         >
           <span className="font-medium">
             {m.competition} — Jornada {m.number}

@@ -162,7 +162,7 @@ export default function PlayerSelect({
                     setOpen(false)
                   }}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                    p.name === value ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                    p.name === value ? 'bg-brand-50 font-medium text-brand-800' : 'text-gray-700'
                   }`}
                 >
                   <RowAvatar photoUrl={p.photo_url} />

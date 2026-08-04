@@ -73,7 +73,7 @@ export default function TierListAnswer({ items, tiers, value, onChange, readOnly
                   selected && !readOnly
                     ? full
                       ? 'cursor-not-allowed bg-gray-50'
-                      : 'cursor-pointer bg-blue-50'
+                      : 'cursor-pointer bg-brand-50'
                     : 'bg-white'
                 }`}
               >
@@ -93,7 +93,7 @@ export default function TierListAnswer({ items, tiers, value, onChange, readOnly
         <div
           onClick={() => handleTierClick(MEDIA_TIER_ID)}
           className={`flex min-h-[64px] flex-wrap gap-1.5 rounded border border-dashed p-2 transition-colors ${
-            selected && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+            selected && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'
           }`}
         >
           {media.length === 0 && <span className="text-xs text-gray-300">—</span>}
@@ -123,7 +123,7 @@ function TeamChip({ item, selected, onClick }: { item: TierItem; selected: boole
       }}
       title={item.name}
       className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs ${
-        selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'
+        selected ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 bg-white text-gray-700'
       }`}
     >
       {item.badge && !imgError ? (

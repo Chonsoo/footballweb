@@ -13,7 +13,7 @@ import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/databas
 // azul si todavía no se ha contestado.
 const SAVE_BTN_CLASS = {
   answered: 'bg-green-600 hover:bg-green-700',
-  unanswered: 'bg-blue-600 hover:bg-blue-700',
+  unanswered: 'bg-brand-700 hover:bg-brand-800',
 }
 
 // Para preguntas 'choice' que piden un equipo (config.team_ids presente): lista de
@@ -126,7 +126,7 @@ export function QuestionDraftInput({
             onClick={() => onChange(opt)}
             className={`rounded-full border px-3 py-1.5 text-sm ${
               value === opt
-                ? 'border-blue-600 bg-blue-600 text-white'
+                ? 'border-brand-700 bg-brand-700 text-white'
                 : 'border-gray-300 bg-white text-gray-700'
             }`}
           >
@@ -232,7 +232,7 @@ export function QuestionInput({
             onClick={() => onSave(opt)}
             className={`rounded-full border px-3 py-1.5 text-sm ${
               value === opt
-                ? 'border-blue-600 bg-blue-600 text-white'
+                ? 'border-brand-700 bg-brand-700 text-white'
                 : 'border-gray-300 bg-white text-gray-700'
             }`}
           >

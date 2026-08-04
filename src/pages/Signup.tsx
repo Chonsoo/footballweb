@@ -68,14 +68,14 @@ export default function Signup() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-blue-600 px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded bg-brand-700 px-3 py-2 font-medium text-white disabled:opacity-50"
         >
           {loading ? 'Creando…' : 'Crear cuenta'}
         </button>
       </form>
 
       <p className="text-center text-sm text-gray-500">
-        ¿Ya tienes cuenta? <Link to="/login" className="text-blue-600">Inicia sesión</Link>
+        ¿Ya tienes cuenta? <Link to="/login" className="text-brand-700">Inicia sesión</Link>
       </p>
     </div>
   )

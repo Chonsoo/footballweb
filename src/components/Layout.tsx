@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import OnboardingWizard from './OnboardingWizard'
 import ProfileSetupModal from './ProfileSetupModal'
@@ -7,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useAuth()
   const [dismissed, setDismissed] = useState(false)
+  const location = useLocation()
 
   if (profile && !profile.favorite_team) {
     return <ProfileSetupModal />
@@ -26,7 +28,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <div className="relative z-10">
         <Navbar />
-        <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+        <main key={location.pathname} className="page-enter mx-auto max-w-4xl px-4 py-6">
+          {children}
+        </main>
       </div>
     </div>
   )

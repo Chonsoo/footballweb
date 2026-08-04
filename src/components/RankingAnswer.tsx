@@ -68,7 +68,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
                 key={position}
                 onClick={() => handlePositionClick(position)}
                 className={`flex h-11 items-center gap-2 border-b border-gray-100 px-2 transition-colors last:border-b-0 ${
-                  selected && !readOnly ? 'cursor-pointer hover:bg-blue-50' : ''
+                  selected && !readOnly ? 'cursor-pointer hover:bg-brand-50' : ''
                 }`}
               >
                 <span
@@ -97,7 +97,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
             <div
               onClick={handlePoolClick}
               className={`flex max-h-[70vh] flex-wrap gap-1.5 overflow-y-auto rounded border border-dashed p-2 transition-colors ${
-                selected && value[selected] != null && !readOnly ? 'cursor-pointer border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50'
+                selected && value[selected] != null && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'
               }`}
             >
               {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
@@ -145,7 +145,7 @@ function TeamChip({
       title={item.name}
       className={`flex items-center gap-1 rounded-full border text-xs ${
         pool ? 'p-1.5 sm:px-2 sm:py-1' : `max-w-full px-2 py-1 ${compact ? 'w-36 sm:w-40' : 'max-w-full'}`
-      } ${selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white text-gray-700'}`}
+      } ${selected ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 bg-white text-gray-700'}`}
     >
       {item.badge && !imgError ? (
         <img src={item.badge} alt="" className="h-4 w-4 shrink-0 object-contain" onError={() => setImgError(true)} />

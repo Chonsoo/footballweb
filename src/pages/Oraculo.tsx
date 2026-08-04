@@ -150,7 +150,7 @@ export default function Oraculo() {
                   <li key={r.team_id} className="flex items-center justify-between gap-2 border-b border-gray-50 py-1">
                     <span className="text-gray-700">{teamName(q, r.team_id)}</span>
                     <span className="text-gray-500">
-                      {tierLabel(q, r.tier_id)} <span className="font-semibold text-blue-600">{Math.round(r.pct)}%</span>
+                      {tierLabel(q, r.tier_id)} <span className="font-semibold text-brand-700">{Math.round(r.pct)}%</span>
                     </span>
                   </li>
                 ))}
@@ -159,7 +159,7 @@ export default function Oraculo() {
           ) : simpleStats[q.id] ? (
             <p className="text-sm">
               <span className="font-semibold text-gray-800">{formatAnswerValue(q, simpleStats[q.id]!.top)}</span>{' '}
-              <span className="font-semibold text-blue-600">{Math.round(simpleStats[q.id]!.pct)}%</span>{' '}
+              <span className="font-semibold text-brand-700">{Math.round(simpleStats[q.id]!.pct)}%</span>{' '}
               <span className="text-gray-400">({simpleStats[q.id]!.total} respuestas)</span>
             </p>
           ) : (

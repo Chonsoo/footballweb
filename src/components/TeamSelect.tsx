@@ -72,7 +72,7 @@ export default function TeamSelect({
                 setOpen(false)
               }}
               className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                t.id === value ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                t.id === value ? 'bg-brand-50 font-medium text-brand-800' : 'text-gray-700'
               }`}
             >
               {t.badge && <img src={t.badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}

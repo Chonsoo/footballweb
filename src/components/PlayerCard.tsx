@@ -43,7 +43,7 @@ export default function PlayerCard({
       onClick={onClick}
       className={`flex ${dims} shrink-0 flex-col items-center rounded-xl text-center transition-transform ${
         onClick ? 'cursor-pointer hover:scale-[1.03]' : ''
-      } ${selected ? 'ring-2 ring-blue-400' : ''}`}
+      } ${selected ? 'ring-2 ring-brand-500' : ''}`}
     >
       {/* Escudo Abueluchos FC con la foto del jugador en el hueco central */}
       <div className="relative aspect-square w-full">
