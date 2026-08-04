@@ -8,17 +8,17 @@ import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/database.types'
 
-// Color del botón "Guardar", con tres estados bien diferenciados (antes
-// "sin contestar" usaba el verde de marca, casi idéntico al verde de
-// "contestado", así que a simple vista todos los botones parecían iguales):
-//  - gris: todavía no se ha guardado ninguna respuesta (falta por rellenar).
+// Color del botón "Guardar", tipo semáforo (antes "sin contestar" usaba el
+// verde de marca, casi idéntico al verde de "contestado", así que a simple
+// vista todos los botones parecían iguales):
+//  - rojo: todavía no se ha guardado ninguna respuesta (falta por rellenar).
 //  - ámbar: ya había una respuesta guardada, pero se ha modificado el valor
 //    sin volver a pulsar "Guardar" (cambio pendiente).
 //  - verde: guardado y coincide con lo que se ve en el formulario.
 const SAVE_BTN_CLASS = {
   answered: 'bg-green-600 hover:bg-green-700',
   unsaved: 'bg-amber-500 hover:bg-amber-600',
-  unanswered: 'bg-gray-400 hover:bg-gray-500',
+  unanswered: 'bg-red-500 hover:bg-red-600',
 }
 
 function saveBtnClass(answered: boolean, hasUnsaved: boolean) {
