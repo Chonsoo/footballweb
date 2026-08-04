@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { FANTASY_POSITION_LABELS, type FantasyMatchday, type FantasyPlayer, type FantasyPlayerStats } from '../lib/fantasyTypes'
-import { aggregateFantasyBreakdown, calculateFantasyPoints, fantasyPointsBreakdown } from '../lib/fantasyScoring'
+import { aggregateFantasyBreakdown, calculateFantasyPoints, emptyFantasyStats, fantasyPointsBreakdown } from '../lib/fantasyScoring'
 
 interface Props {
   player: FantasyPlayer
@@ -43,13 +43,13 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
   }, [player.api_player_id])
 
   const statsByMatchday = new Map(stats.map((s) => [s.matchday_num, s]))
-  const selectedRow = selected === 'total' ? null : statsByMatchday.get(selected)
   const { items, total } =
     selected === 'total'
-      ? aggregateFantasyBreakdown(stats)
-      : selectedRow
-        ? { items: fantasyPointsBreakdown(selectedRow), total: calculateFantasyPoints(selectedRow) }
-        : { items: [], total: 0 }
+      ? aggregateFantasyBreakdown(stats, player.player_position)
+      : (() => {
+          const row = statsByMatchday.get(selected) ?? emptyFantasyStats(player.player_position)
+          return { items: fantasyPointsBreakdown(row), total: calculateFantasyPoints(row) }
+        })()
 
   const team = LALIGA_TEAMS_2026_27.find((t) => t.id === player.team_id)
 
@@ -81,60 +81,53 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
           </button>
         </div>
 
-        {matchdays.length === 0 ? (
-          <p className="text-sm text-gray-400">Todavía no hay jornadas jugadas.</p>
-        ) : (
-          <>
-            <div className="mb-3 flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSelected('total')}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  selected === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                Total
-              </button>
-              {matchdays.map((md) => (
-                <button
-                  key={md.number}
-                  type="button"
-                  onClick={() => setSelected(md.number)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    selected === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  J{md.number}
-                </button>
-              ))}
-            </div>
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSelected('total')}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+              selected === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            Total
+          </button>
+          {matchdays.map((md) => (
+            <button
+              key={md.number}
+              type="button"
+              onClick={() => setSelected(md.number)}
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                selected === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              J{md.number}
+            </button>
+          ))}
+        </div>
 
-            {loading ? (
-              <p className="text-sm text-gray-400">Cargando…</p>
-            ) : items.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                {selected === 'total' ? 'Sin puntos todavía.' : 'No jugó, o no hay datos de esta jornada.'}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {items.map((it) => (
-                  <div key={it.key} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">{it.label}</span>
-                    <span className={`font-medium ${it.points < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {it.points > 0 ? '+' : ''}
-                      {it.points}
-                    </span>
-                  </div>
-                ))}
+        {/* Siempre las mismas 7 líneas (a 0 cuando no aplica) y una altura
+            mínima mientras carga, para que el popup no cambie de tamaño
+            según el jugador o la jornada. */}
+        <div className="flex min-h-[188px] flex-col justify-center gap-1">
+          {loading ? (
+            <p className="text-center text-sm text-gray-400">Cargando…</p>
+          ) : (
+            items.map((it) => (
+              <div key={it.key} className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">{it.label}</span>
+                <span className={`font-medium ${it.points < 0 ? 'text-red-600' : it.points > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {it.points > 0 ? '+' : ''}
+                  {it.points}
+                </span>
               </div>
-            )}
+            ))
+          )}
+        </div>
 
-            <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2">
-              <span className="text-sm font-semibold text-gray-700">Total</span>
-              <span className="text-lg font-bold text-brand-700">{total} pts</span>
-            </div>
-          </>
-        )}
+        <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2">
+          <span className="text-sm font-semibold text-gray-700">Total</span>
+          <span className="text-lg font-bold text-brand-700">{total} pts</span>
+        </div>
       </div>
     </div>
   )

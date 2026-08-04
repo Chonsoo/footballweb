@@ -6,7 +6,7 @@ import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { fetchPlayedMatchdays, fetchPlayerStats, pointsByPlayerFromStats } from '../lib/fantasyStatsQueries'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyMatchday, type FantasyPlayer } from '../lib/fantasyTypes'
 
-type Subview = 'resumen' | 'jornadas' | 'liga'
+type Subview = 'liga' | 'resumen'
 
 interface FantasyLeaderboardRow {
   mode: string
@@ -21,13 +21,12 @@ interface RivalLineup {
 }
 
 const SUBVIEWS: [Subview, string][] = [
-  ['resumen', 'Resumen'],
-  ['jornadas', 'Jornadas'],
-  ['liga', 'Liga fantasy'],
+  ['liga', 'Clasificación'],
+  ['resumen', 'Mi equipo'],
 ]
 
 export default function Fantasy() {
-  const [subview, setSubview] = useState<Subview>('resumen')
+  const [subview, setSubview] = useState<Subview>('liga')
   const [matchdays, setMatchdays] = useState<FantasyMatchday[]>([])
   const [popupPlayer, setPopupPlayer] = useState<FantasyPlayer | null>(null)
   const [popupMatchday, setPopupMatchday] = useState<number | undefined>(undefined)
@@ -63,8 +62,7 @@ export default function Fantasy() {
         ))}
       </div>
 
-      {subview === 'resumen' && <ResumenView matchdays={matchdays} onPlayerSelect={(p) => openPopup(p)} />}
-      {subview === 'jornadas' && <JornadasView matchdays={matchdays} onPlayerSelect={openPopup} />}
+      {subview === 'resumen' && <MiEquipoView matchdays={matchdays} onPlayerSelect={openPopup} />}
       {subview === 'liga' && <LigaView matchdays={matchdays} onPlayerSelect={(p) => openPopup(p)} />}
 
       {popupPlayer && (
@@ -79,16 +77,19 @@ export default function Fantasy() {
   )
 }
 
-// --- Resumen: tu 11 y el total de puntos acumulado en las jornadas jugadas.
+// --- Mi equipo: tu 11, con selector Total / Jn arriba (igual que en
+// Clasificación) — en Total se ve el acumulado de puntos de la temporada, en
+// una jornada concreta solo los de ese día.
 
-function ResumenView({
+function MiEquipoView({
   matchdays,
   onPlayerSelect,
 }: {
   matchdays: FantasyMatchday[]
-  onPlayerSelect: (player: FantasyPlayer) => void
+  onPlayerSelect: (player: FantasyPlayer, matchday?: number) => void
 }) {
   const { players, value, formation, loading, complete } = useFantasyLineup()
+  const [scope, setScope] = useState<number | 'total'>('total')
   const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
   const [loadingPoints, setLoadingPoints] = useState(true)
 
@@ -105,8 +106,8 @@ function ResumenView({
         return
       }
       setLoadingPoints(true)
-      const stats = await fetchPlayerStats(playerIds)
-      const filtered = stats.filter((s) => playedNumbers.has(s.matchday_num))
+      const stats = await fetchPlayerStats(playerIds, scope === 'total' ? undefined : scope)
+      const filtered = scope === 'total' ? stats.filter((s) => playedNumbers.has(s.matchday_num)) : stats
       if (active) {
         setPointsByPlayer(pointsByPlayerFromStats(filtered))
         setLoadingPoints(false)
@@ -117,7 +118,7 @@ function ResumenView({
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsKey, playedNumbers])
+  }, [idsKey, scope, playedNumbers])
 
   if (loading) return <p className="text-gray-500">Cargando…</p>
 
@@ -125,8 +126,34 @@ function ResumenView({
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => setScope('total')}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+            scope === 'total' ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+          }`}
+        >
+          Total
+        </button>
+        {matchdays.map((md) => (
+          <button
+            key={md.number}
+            type="button"
+            onClick={() => setScope(md.number)}
+            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+              scope === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
+            }`}
+          >
+            J{md.number}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
-        <span className="text-sm text-gray-500">Tus puntos fantasy (jornadas jugadas)</span>
+        <span className="text-sm text-gray-500">
+          {scope === 'total' ? 'Tus puntos fantasy (jornadas jugadas)' : `Tus puntos en la jornada ${scope}`}
+        </span>
         <span className="text-2xl font-bold text-brand-700">{loadingPoints ? '…' : total}</span>
       </div>
       {!complete && (
@@ -143,101 +170,10 @@ function ResumenView({
           readOnly
           hideSidebar
           pointsByPlayer={pointsByPlayer}
-          onPlayerSelect={onPlayerSelect}
+          onPlayerSelect={(p) => onPlayerSelect(p, scope === 'total' ? undefined : scope)}
         />
       </div>
       <p className="text-center text-xs text-gray-400">Toca un jugador para ver de dónde salen sus puntos.</p>
-    </div>
-  )
-}
-
-// --- Jornadas: el mismo 11, pero con los puntos de una jornada concreta.
-
-function JornadasView({
-  matchdays,
-  onPlayerSelect,
-}: {
-  matchdays: FantasyMatchday[]
-  onPlayerSelect: (player: FantasyPlayer, matchday?: number) => void
-}) {
-  const { players, value, formation, loading } = useFantasyLineup()
-  const [selectedMd, setSelectedMd] = useState<number | null>(null)
-  const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
-  const [loadingPoints, setLoadingPoints] = useState(false)
-
-  const playerIds = useMemo(() => Object.keys(value).map(Number), [value])
-  const idsKey = playerIds.slice().sort((a, b) => a - b).join(',')
-
-  useEffect(() => {
-    if (matchdays.length > 0 && selectedMd == null) {
-      setSelectedMd(matchdays[matchdays.length - 1].number)
-    }
-  }, [matchdays, selectedMd])
-
-  useEffect(() => {
-    let active = true
-    async function load() {
-      if (selectedMd == null || playerIds.length === 0) {
-        setPointsByPlayer({})
-        return
-      }
-      setLoadingPoints(true)
-      const stats = await fetchPlayerStats(playerIds, selectedMd)
-      if (active) {
-        setPointsByPlayer(pointsByPlayerFromStats(stats))
-        setLoadingPoints(false)
-      }
-    }
-    load()
-    return () => {
-      active = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMd, idsKey])
-
-  if (loading) return <p className="text-gray-500">Cargando…</p>
-
-  if (matchdays.length === 0) {
-    return <p className="text-gray-400">Todavía no hay jornadas marcadas como jugadas.</p>
-  }
-
-  const total = Object.values(pointsByPlayer).reduce((a, b) => a + b, 0)
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1.5">
-        {matchdays.map((md) => (
-          <button
-            key={md.number}
-            type="button"
-            onClick={() => setSelectedMd(md.number)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-              selectedMd === md.number ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            J{md.number}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3">
-        <span className="text-sm text-gray-500">Puntos en la jornada {selectedMd}</span>
-        <span className="text-2xl font-bold text-brand-700">{loadingPoints ? '…' : total}</span>
-      </div>
-
-      <div className="overflow-hidden rounded-lg border border-gray-100">
-        <FantasyLineupPicker
-          players={players}
-          formation={formation}
-          value={value}
-          onChange={() => {}}
-          readOnly
-          hideSidebar
-          pointsByPlayer={pointsByPlayer}
-          onPlayerSelect={(p) => onPlayerSelect(p, selectedMd ?? undefined)}
-        />
-      </div>
-      <p className="text-center text-xs text-gray-400">Toca un jugador para ver el desglose de esa jornada.</p>
     </div>
   )
 }
