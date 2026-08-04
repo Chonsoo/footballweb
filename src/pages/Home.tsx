@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { computeRanks } from '../lib/ranking'
+import { computeRanks, distFromLastTier } from '../lib/ranking'
 import type { LeaderboardRow } from '../lib/database.types'
+
+const MEDALS = ['🥇', '🥈', '🥉']
 
 interface HomeCard {
   to: string
@@ -96,6 +98,7 @@ export default function Home() {
   const myRow = myIndex >= 0 ? rows[myIndex] : null
   // Ranking 1224: si empatas con otro en puntos, mostráis el mismo puesto.
   const myRank = myIndex >= 0 ? computeRanks(rows)[myIndex] : null
+  const myIsLast = myRow != null && rows.length > 1 && distFromLastTier(myRow.total_points, rows) === 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,11 +119,22 @@ export default function Home() {
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Participantes</p>
               <p className="text-xl font-bold">{loading ? '…' : rows.length}</p>
             </div>
-            {myRow && (
-              <div className="rounded-xl border border-gold-400/40 bg-white/10 px-4 py-2 backdrop-blur-sm">
+            {myRow && myRank != null && (
+              <div
+                className={`rounded-xl border px-4 py-2 backdrop-blur-sm ${
+                  myIsLast ? 'border-red-400/50 bg-red-500/10' : 'border-gold-400/40 bg-white/10'
+                }`}
+              >
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Tu puesto</p>
-                <p className="text-xl font-bold text-gold-400">
-                  #{myRank} <span className="text-sm font-medium text-brand-100">· {myRow.total_points} pts</span>
+                <p className={`flex items-center justify-center gap-1.5 text-xl font-bold ${myIsLast ? 'text-red-200' : 'text-gold-400'}`}>
+                  {myRank <= 3 && !myIsLast ? (
+                    <span className="text-2xl leading-none">{MEDALS[myRank - 1]}</span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      {myRank}º {myIsLast && <span className="text-2xl leading-none">🏮</span>}
+                    </span>
+                  )}
+                  <span className="text-sm font-medium text-brand-100">· {myRow.total_points} pts</span>
                 </p>
               </div>
             )}
