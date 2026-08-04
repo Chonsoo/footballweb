@@ -3,9 +3,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import FantasyLineupPicker from '../components/FantasyLineupPicker'
-import AnswerSummary from '../components/AnswerSummary'
 import BlockAnswers from '../components/BlockAnswers'
-import { shortQuestionLabel } from '../lib/questionLabel'
+import FlashAnswerCard from '../components/FlashAnswerCard'
+import FlashStatusFilter from '../components/FlashStatusFilter'
+import { getFlashStatus, type FlashStatus } from '../lib/flashStatus'
 import type { AnswerValue, QuestionPhase, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 const TABS: { id: QuestionPhase; label: string }[] = [
@@ -17,8 +18,11 @@ export default function MisApuestas() {
   const { user } = useAuth()
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
+  const [points, setPoints] = useState<Record<string, number | null>>({})
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<QuestionPhase>('initial')
+  const [statusFilter, setStatusFilter] = useState<Set<FlashStatus>>(new Set())
 
   const lineup = useFantasyLineup()
 
@@ -27,10 +31,17 @@ export default function MisApuestas() {
       if (!user) return
       const { data: qs } = await supabase.from('season_questions').select('*').order('created_at', { ascending: true })
       const { data: as_ } = await supabase.from('season_answers').select('*').eq('user_id', user.id)
+      const { data: res } = await supabase.from('season_results').select('question_id')
       const map: Record<string, AnswerValue> = {}
-      for (const a of (as_ as SeasonAnswer[]) ?? []) map[a.question_id] = a.answer
+      const pointsMap: Record<string, number | null> = {}
+      for (const a of (as_ as SeasonAnswer[]) ?? []) {
+        map[a.question_id] = a.answer
+        pointsMap[a.question_id] = a.points
+      }
       setQuestions((qs as SeasonQuestion[]) ?? [])
       setAnswers(map)
+      setPoints(pointsMap)
+      setResolvedIds(new Set(((res as { question_id: string }[]) ?? []).map((r) => r.question_id)))
       setLoading(false)
     }
     load()
@@ -40,6 +51,10 @@ export default function MisApuestas() {
 
   const initialQuestions = questions.filter((q) => q.phase === 'initial')
   const weeklyQuestions = questions.filter((q) => q.phase === 'weekly')
+  const visibleWeeklyQuestions =
+    statusFilter.size > 0
+      ? weeklyQuestions.filter((q) => statusFilter.has(getFlashStatus(q, resolvedIds.has(q.id))))
+      : weeklyQuestions
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,21 +110,30 @@ export default function MisApuestas() {
         </div>
       ) : (
         <>
-          {weeklyQuestions.length === 0 && (
+          {weeklyQuestions.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
               Todavía no hay preguntas aquí.
             </div>
+          ) : (
+            <>
+              <FlashStatusFilter value={statusFilter} onChange={setStatusFilter} />
+              {visibleWeeklyQuestions.length === 0 ? (
+                <p className="text-sm text-gray-400">Ninguna pregunta con ese estado.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {visibleWeeklyQuestions.map((q) => (
+                    <FlashAnswerCard
+                      key={q.id}
+                      question={q}
+                      value={answers[q.id]}
+                      points={points[q.id]}
+                      resolved={resolvedIds.has(q.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            {weeklyQuestions.map((q) => (
-              <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
-                <p className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
-                  {shortQuestionLabel(q)}
-                </p>
-                <AnswerSummary question={q} value={answers[q.id]} />
-              </div>
-            ))}
-          </div>
         </>
       )}
     </div>

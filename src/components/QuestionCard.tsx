@@ -30,35 +30,42 @@ export default function QuestionCard({
   showCountdown,
 }: Props) {
   const complete = isAnswerComplete(question, myAnswer?.answer)
+  const pointsBadge = (
+    <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+      {question.points} pts
+      {complete && (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-4 w-4 text-green-600"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-label="Respondida"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </span>
+  )
   return (
     <div className="rounded border border-gray-200 bg-white p-4">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-xs uppercase text-gray-400">{question.competition}</span>
-        <span className="flex items-center gap-1.5 text-xs text-gray-400">
-          {question.points} pts
-          {complete && (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-green-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-label="Respondida"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </span>
-      </div>
-      <p className={showCountdown && !closed && question.closes_at ? 'mb-1 font-medium' : 'mb-3 font-medium'}>
-        {question.question}
-      </p>
-      {showCountdown && !closed && question.closes_at && (
-        <Countdown
-          deadline={new Date(question.closes_at)}
-          className="mb-3 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700"
-        />
+      {/* En apuestas flash no mostramos la competición (de momento todas son
+          Liga) — en su lugar, puntuación arriba a la izquierda y el
+          contador de esta pregunta arriba a la derecha. En apuestas
+          iniciales se mantiene el formato de siempre (competición + puntos),
+          ya que ahí el contador único va arriba de toda la página. */}
+      {showCountdown ? (
+        <div className="mb-1 flex items-center justify-between gap-2">
+          {pointsBadge}
+          {!closed && question.closes_at && <Countdown deadline={new Date(question.closes_at)} />}
+        </div>
+      ) : (
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs uppercase text-gray-400">{question.competition}</span>
+          {pointsBadge}
+        </div>
       )}
+      <p className="mb-3 font-medium">{question.question}</p>
 
       {!closed ? (
         <QuestionInput question={question} value={myAnswer?.answer} saving={saving} onSave={onSave} />

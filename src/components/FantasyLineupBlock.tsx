@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import FantasyLineupPicker from './FantasyLineupPicker'
-import Countdown from './Countdown'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
-import { isInitialPhaseClosed, INITIAL_PHASE_DEADLINE, INITIAL_PHASE_DEADLINE_LABEL } from '../lib/deadlines'
+import { isInitialPhaseClosed, INITIAL_PHASE_DEADLINE_LABEL } from '../lib/deadlines'
 
 // Bloque 5 de "Apuestas iniciales": el 11 de Abuelonchos. A diferencia de los
 // bloques 1-4 (que leen/escriben season_questions/season_answers), este lee y
@@ -54,16 +53,13 @@ export default function FantasyLineupBlock() {
               El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Tu once se queda tal cual estaba.
             </p>
           ) : (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              <p className="flex items-start gap-1.5 text-xs text-gray-600">
-                <span aria-hidden className="shrink-0">💡</span>
-                <span>
-                  Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
-                  jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
-                </span>
-              </p>
-              <Countdown deadline={INITIAL_PHASE_DEADLINE} />
-            </div>
+            <p className="flex items-start gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+              <span aria-hidden className="shrink-0">💡</span>
+              <span>
+                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
+                jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
+              </span>
+            </p>
           )}
           {loading ? (
             <p className="text-sm text-gray-400">Cargando…</p>

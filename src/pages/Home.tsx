@@ -132,7 +132,7 @@ export default function Home() {
                     <span className="text-2xl leading-none">{MEDALS[myRank - 1]}</span>
                   ) : (
                     <span className="flex items-center gap-1">
-                      {myRank}º {myIsLast && <span className="text-2xl leading-none">🏮</span>}
+                      {myIsLast ? rows.length : myRank}º {myIsLast && <span className="text-2xl leading-none">🏮</span>}
                     </span>
                   )}
                   <span className="text-sm font-medium text-brand-100">· {myRow.total_points} pts</span>

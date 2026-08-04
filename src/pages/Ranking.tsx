@@ -114,8 +114,15 @@ export default function Ranking() {
                   {/* Marca "tú" con una franja verde a la izquierda, sin bordes raros */}
                   {isMe && <span className="absolute inset-y-0 left-0 w-1.5 bg-brand-600" />}
 
-                  <span className="flex w-7 shrink-0 items-center justify-center text-lg font-bold text-gray-500">
-                    {isLastTier ? '🏮' : rank <= 3 ? MEDALS[rank - 1] : rank}
+                  <span className="flex w-9 shrink-0 flex-col items-center justify-center leading-none text-gray-500">
+                    {isLastTier ? (
+                      <>
+                        <span className="text-base">🏮</span>
+                        <span className="mt-0.5 text-[10px] font-bold">{rows.length}º</span>
+                      </>
+                    ) : (
+                      <span className="text-lg font-bold">{rank <= 3 ? MEDALS[rank - 1] : rank}</span>
+                    )}
                   </span>
 
                 <span
