@@ -1,11 +1,14 @@
 -- Añade el equipo favorito a la vista de clasificación, para poder mostrar
 -- su escudo junto a cada participante en el rediseño de Clasificación.
+-- Postgres solo permite que "create or replace view" añada columnas al
+-- final de la lista (no en medio) sin quejarse de que cambia el nombre de
+-- una columna existente por posición — por eso favorite_team va al final.
 create or replace view public.leaderboard as
 select
   p.id as user_id,
   p.username,
-  p.favorite_team,
-  coalesce(mb.total, 0) + coalesce(sa.total, 0) as total_points
+  coalesce(mb.total, 0) + coalesce(sa.total, 0) as total_points,
+  p.favorite_team
 from public.profiles p
 left join (
   select user_id, sum(points) as total
