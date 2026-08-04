@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import EditProfileModal from './EditProfileModal'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-    isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+    isActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'
   }`
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block px-3 py-2 text-base font-medium rounded ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`
+  `block px-3 py-2 text-base font-medium rounded ${isActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'}`
 
 export default function Navbar() {
   const { profile, signOut } = useAuth()
@@ -24,6 +25,7 @@ export default function Navbar() {
   const profileRef = useRef<HTMLDivElement>(null)
 
   const betsActive = location.pathname.startsWith('/apuestas-')
+  const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -41,10 +43,13 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-gray-200 bg-white">
+    <nav className="sticky top-0 z-30 border-b border-brand-100 bg-white">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="hidden items-center gap-1 md:flex">
           <NavLink to="/" end className={linkClass}>
+            Inicio
+          </NavLink>
+          <NavLink to="/clasificacion" className={linkClass}>
             Clasificación
           </NavLink>
 
@@ -53,7 +58,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setBetsOpen((v) => !v)}
               className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-                betsActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                betsActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'
               }`}
             >
               Apuestas
@@ -67,7 +72,7 @@ export default function Navbar() {
                   to="/apuestas-iniciales"
                   onClick={() => setBetsOpen(false)}
                   className={({ isActive }) =>
-                    `block px-3 py-2 text-sm ${isActive ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`
+                    `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
                   }
                 >
                   Apuestas iniciales
@@ -76,7 +81,7 @@ export default function Navbar() {
                   to="/apuestas-semana"
                   onClick={() => setBetsOpen(false)}
                   className={({ isActive }) =>
-                    `block px-3 py-2 text-sm ${isActive ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`
+                    `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
                   }
                 >
                   Apuestas de la semana
@@ -102,10 +107,15 @@ export default function Navbar() {
           </NavLink>
         </div>
 
+        <NavLink to="/" end className="flex min-w-0 items-center gap-2 md:hidden">
+          {favoriteTeam?.badge && <img src={favoriteTeam.badge} alt="" className="h-7 w-7 shrink-0 object-contain" />}
+          <span className="truncate text-sm font-semibold text-brand-800">🏆 Porra Abueloncha 2026 LaLiga</span>
+        </NavLink>
+
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+          className="flex shrink-0 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 md:hidden"
           aria-label="Abrir menú"
           aria-expanded={open}
         >
@@ -174,6 +184,9 @@ export default function Navbar() {
       {open && (
         <div className="space-y-1 border-t border-gray-200 px-4 py-3 md:hidden">
           <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
+            Inicio
+          </NavLink>
+          <NavLink to="/clasificacion" onClick={closeAll} className={mobileLinkClass}>
             Clasificación
           </NavLink>
 

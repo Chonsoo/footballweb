@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Paleta de marca "Porra Abueloncha": verde césped (ya usado en el 11 de
+   Abuelonchos) + dorado del escudo (ya usado en PlayerCard), en vez del
+   azul/blanco genérico de antes. Usar como bg-brand-700, text-brand-gold,
+   etc. — ver https://tailwindcss.com/docs/theme para el uso de @theme. */
+@theme {
+  --color-brand-950: #0d3320;
+  --color-brand-900: #123f26;
+  --color-brand-800: #164f30;
+  --color-brand-700: #1b6b3f;
+  --color-brand-600: #227e4a;
+  --color-brand-500: #2f8f4e;
+  --color-brand-100: #e3f3e8;
+  --color-brand-50: #f2f9f4;
+
+  --color-gold-600: #b8862c;
+  --color-gold-500: #d9ad4a;
+  --color-gold-400: #f4d888;
+  --color-gold-100: #fbf1d9;
+}
+
 :root {
   color-scheme: light;
 }

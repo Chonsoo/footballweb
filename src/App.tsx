@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Ranking from './pages/Ranking'
+import Home from './pages/Home'
 import SeasonBets from './pages/SeasonBets'
 import WeeklyBets from './pages/WeeklyBets'
 import Matchdays from './pages/Matchdays'
@@ -25,6 +26,16 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route
           path="/"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Home />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clasificacion"
           element={
             <ProtectedRoute>
               <Layout>
