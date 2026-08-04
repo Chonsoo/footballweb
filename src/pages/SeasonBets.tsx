@@ -114,8 +114,8 @@ export default function SeasonBets() {
 
       {closed ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Esto ya no se puede editar — para ver el resumen de lo
-          que pusiste, mejor entra en <strong>Mis apuestas</strong>.
+          El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Esto ya no se puede editar, para ver el resumen de lo
+          que pusiste mejor entra en <strong>Mis apuestas</strong>.
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">

@@ -870,24 +870,24 @@ function FantasyPlayersSection() {
       const parts = line.split(';').map((p) => p.trim())
       if (parts.length < BULK_MIN_FIELDS) {
         errors.push(
-          `Línea ${i + 1}: formato incorrecto (usa Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo) — "${line}"`
+          `Línea ${i + 1}: formato incorrecto (usa Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo): "${line}"`
         )
         return
       }
       const [name, posRaw, birthDate, teamIdRaw, nationalityRaw, photoUrlRaw, fullNameRaw] = parts
       const position = posRaw.toUpperCase()
       if (!POSITIONS.includes(position)) {
-        errors.push(`Línea ${i + 1}: posición "${posRaw}" no válida (usa POR, DEF, MED o DEL) — "${line}"`)
+        errors.push(`Línea ${i + 1}: posición "${posRaw}" no válida (usa POR, DEF, MED o DEL): "${line}"`)
         return
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-        errors.push(`Línea ${i + 1}: fecha de nacimiento "${birthDate}" no tiene formato AAAA-MM-DD — "${line}"`)
+        errors.push(`Línea ${i + 1}: fecha de nacimiento "${birthDate}" no tiene formato AAAA-MM-DD: "${line}"`)
         return
       }
       const teamId = teamIdRaw.toLowerCase()
       const team = LALIGA_TEAMS_2026_27.find((t) => t.id === teamId)
       if (!team) {
-        errors.push(`Línea ${i + 1}: id de equipo "${teamIdRaw}" no reconocido — mira la lista de ids más abajo`)
+        errors.push(`Línea ${i + 1}: id de equipo "${teamIdRaw}" no reconocido, mira la lista de ids más abajo`)
         return
       }
       rows.push({
@@ -1040,7 +1040,7 @@ function FantasyPlayersSection() {
         <p className="mb-3 text-xs text-gray-500">
           Elige uno o varios equipos y trae su plantilla real (nombre, posición, nacimiento, nacionalidad y foto)
           directamente de laliga.com. Rellena el texto de abajo para que lo revises antes de pulsar "Importar
-          jugadores" — no se guarda nada automáticamente.
+          jugadores", no se guarda nada automáticamente.
         </p>
         <div className="flex flex-wrap gap-1.5">
           {LALIGA_TEAMS_2026_27.map((t) => {
@@ -1347,7 +1347,7 @@ function FantasyStatsSection() {
     <section className="flex flex-col gap-4">
       <div className="rounded border border-gray-200 bg-white p-4">
         <p className="mb-3 text-sm text-gray-500">
-          Puntuación del fantasy, jornada a jornada — solo aparecen los jugadores que algún participante ha puesto
+          Puntuación del fantasy, jornada a jornada: solo aparecen los jugadores que algún participante ha puesto
           realmente en su 11 (no todos los elegibles). Los puntos se calculan solos según minutos, goles,
           asistencias, tarjetas, goles en propia y portería a cero.
         </p>

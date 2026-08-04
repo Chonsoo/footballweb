@@ -42,7 +42,7 @@ const CARDS: HomeCard[] = [
     to: '/oraculo',
     icon: '🔮',
     title: 'El oráculo',
-    description: 'La mente colmena — qué ha votado la mayoría.',
+    description: 'La mente colmena: qué ha votado la mayoría.',
     accent: 'bg-purple-100 text-purple-700',
   },
   {
