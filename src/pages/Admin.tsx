@@ -1134,25 +1134,6 @@ function FantasyPlayersSection() {
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-sm text-gray-500">
-        Sin conexión a ninguna API de fútbol, los jugadores del "11 de Abuelonchos" se dan de alta a mano. Pega una
-        línea por jugador con el formato{' '}
-        <code className="rounded bg-gray-100 px-1">Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo</code>,
-        por ejemplo{' '}
-        <code className="rounded bg-gray-100 px-1">
-          Sergio Ramos;DEF;1986-03-30;sevilla;Spain;https://…/foto.jpg;Sergio Ramos García
-        </code>
-        . Los últimos 3 campos son opcionales (deja un hueco vacío entre punto y coma para saltarte uno, p.ej.
-        <code className="rounded bg-gray-100 px-1">Nombre;POR;1990-01-01;sevilla;;https://foto.jpg</code>) y si se
-        omiten se conserva lo que ya hubiera. La nacionalidad va en inglés, como la da laliga.com (se usa para la
-        bandera de la carta). El nombre completo no cambia lo que se ve — solo hace que la búsqueda también lo
-        encuentre por un apellido que el nombre corto no muestre (p.ej. "Simeone" para "Giuliano"). Posiciones
-        válidas: POR, DEF, MED, DEL. Solo hace falta cargar a los que la gente vaya a elegir, no toda la plantilla.
-        Si pegas una lista de un equipo que ya tenía jugadores cargados, es un re-sincronizado: los que coincidan
-        por nombre se actualizan, los nuevos se dan de alta, y los que ya no aparezcan se marcan inactivos (no se
-        borran, para no perder puntos). Útil en ventana de fichajes.
-      </p>
-
       <div className="rounded border border-gray-200 bg-white p-4">
         <p className="mb-2 text-sm font-medium text-gray-700">Importar desde LaLiga.com</p>
         <p className="mb-3 text-xs text-gray-500">
