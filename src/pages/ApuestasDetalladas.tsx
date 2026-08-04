@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { formatAnswer } from '../lib/answerFormat'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 export default function ApuestasDetalladas() {
@@ -45,26 +46,35 @@ export default function ApuestasDetalladas() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Apuestas detalladas</h1>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">🔍 Apuestas detalladas</h1>
+        <p className="text-sm text-gray-500">Lo que ha puesto cada participante, para llorar luego.</p>
+      </div>
 
       <input
         type="text"
         placeholder="Buscar jugador…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-xs rounded border border-gray-300 px-3 py-2 text-sm"
+        className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm"
       />
 
       <div className="flex flex-col gap-2">
         {filtered.map((r) => {
           const isOpen = expanded === r.user_id
           const answers = answersByUser[r.user_id]
+          const team = LALIGA_TEAMS_2026_27.find((t) => t.id === r.favorite_team)
           return (
-            <div key={r.user_id} className="rounded border border-gray-200 bg-white">
-              <button onClick={() => toggle(r.user_id)} className="flex w-full items-center justify-between px-4 py-3 text-left">
-                <span className="font-medium">{r.username}</span>
-                <span className="flex items-center gap-3 text-sm text-gray-500">
-                  {r.total_points} pts
+            <div key={r.user_id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <button onClick={() => toggle(r.user_id)} className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
+                    {team?.badge ? <img src={team.badge} alt="" className="h-6 w-6 object-contain" /> : <span className="text-xs">🛡️</span>}
+                  </span>
+                  <span className="truncate font-semibold text-gray-800">{r.username}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-3 text-sm text-gray-500">
+                  <span className="font-semibold text-gray-700">{r.total_points}</span> pts
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -84,7 +94,7 @@ export default function ApuestasDetalladas() {
                     <ul className="flex flex-col gap-2">
                       {questions.map((q) => (
                         <li key={q.id} className="flex flex-col gap-0.5 border-b border-gray-50 pb-2 text-sm last:border-b-0">
-                          <span className="text-xs uppercase text-gray-400">
+                          <span className="text-xs uppercase tracking-wide text-gray-400">
                             {q.competition} · {q.question}
                           </span>
                           <span className="text-gray-700">

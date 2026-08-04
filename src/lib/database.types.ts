@@ -113,6 +113,7 @@ export interface MatchBet {
 export interface LeaderboardRow {
   user_id: string
   username: string
+  favorite_team: string | null
   total_points: number
 }
 

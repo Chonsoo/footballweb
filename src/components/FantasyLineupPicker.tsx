@@ -30,6 +30,10 @@ interface Props {
   onChange: (next: Record<string, string>) => void
   onFormationChange?: (next: FantasyFormation) => void
   readOnly?: boolean
+  // Solo el campo, sin buscador/banquillo ni el toggle campo/lista — para
+  // mostrar un once ya cerrado (p.ej. en "Mis apuestas"), donde no hace
+  // falta nada de eso.
+  hideSidebar?: boolean
 }
 
 export default function FantasyLineupPicker({
@@ -39,6 +43,7 @@ export default function FantasyLineupPicker({
   onChange,
   onFormationChange,
   readOnly,
+  hideSidebar,
 }: Props) {
   const slots = useMemo(() => buildFantasySlots(formation), [formation])
   const [selected, setSelected] = useState<number | null>(null)
@@ -129,53 +134,57 @@ export default function FantasyLineupPicker({
     if (selected === id) setSelected(null)
   }
 
+  const effectiveView = hideSidebar ? 'pitch' : view
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        {onFormationChange && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-gray-500" htmlFor="fantasy-formation">
-              Formación
-            </label>
-            <select
-              id="fantasy-formation"
-              value={formationLabel(formation)}
-              disabled={readOnly}
-              onChange={(e) => {
-                const opt = FANTASY_FORMATIONS.find((f) => f.label === e.target.value)
-                if (opt) onFormationChange(opt.formation)
-              }}
-              className="rounded border border-gray-300 px-2 py-1 text-xs"
-            >
-              {FANTASY_FORMATIONS.map((f) => (
-                <option key={f.label} value={f.label}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      {!hideSidebar && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {onFormationChange && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-gray-500" htmlFor="fantasy-formation">
+                Formación
+              </label>
+              <select
+                id="fantasy-formation"
+                value={formationLabel(formation)}
+                disabled={readOnly}
+                onChange={(e) => {
+                  const opt = FANTASY_FORMATIONS.find((f) => f.label === e.target.value)
+                  if (opt) onFormationChange(opt.formation)
+                }}
+                className="rounded border border-gray-300 px-2 py-1 text-xs"
+              >
+                {FANTASY_FORMATIONS.map((f) => (
+                  <option key={f.label} value={f.label}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-        <div className="flex overflow-hidden rounded border border-gray-300 text-xs">
-          <button
-            type="button"
-            onClick={() => setView('pitch')}
-            className={`px-2 py-1 font-medium ${view === 'pitch' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
-          >
-            Campo
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('list')}
-            className={`px-2 py-1 font-medium ${view === 'list' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
-          >
-            Lista
-          </button>
+          <div className="flex overflow-hidden rounded border border-gray-300 text-xs">
+            <button
+              type="button"
+              onClick={() => setView('pitch')}
+              className={`px-2 py-1 font-medium ${view === 'pitch' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
+            >
+              Campo
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              className={`px-2 py-1 font-medium ${view === 'list' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
+            >
+              Lista
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
-        {view === 'pitch' ? (
+        {effectiveView === 'pitch' ? (
           <PitchView
             slots={slots}
             playerAtSlot={playerAtSlot}
@@ -227,6 +236,7 @@ export default function FantasyLineupPicker({
           </div>
         )}
 
+        {!hideSidebar && (
         <div className="sm:w-64 sm:shrink-0">
           <div className="flex flex-col gap-1.5 pt-1 sm:sticky sm:top-16 sm:pt-3">
             <input
@@ -303,9 +313,10 @@ export default function FantasyLineupPicker({
             </div>
           </div>
         </div>
+        )}
       </div>
 
-      {!readOnly && (
+      {!readOnly && !hideSidebar && (
         <p className="text-xs text-gray-400">
           {selectedPlayer
             ? `Ahora toca un hueco de ${FANTASY_POSITION_LABELS[selectedPlayer.player_position]} para colocarlo (los demás huecos se atenúan).`

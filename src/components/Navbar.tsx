@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import EditProfileModal from './EditProfileModal'
+import TabStrip from './TabStrip'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -180,6 +181,8 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      <TabStrip />
 
       {open && (
         <div className="space-y-1 border-t border-gray-200 px-4 py-3 md:hidden">

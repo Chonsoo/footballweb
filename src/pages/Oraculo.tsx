@@ -130,38 +130,52 @@ export default function Oraculo() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">El oráculo</h1>
+        <h1 className="text-xl font-bold text-gray-900">🔮 El oráculo</h1>
         <p className="text-sm text-gray-500">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
       </div>
 
-      {questions.length === 0 && <p className="text-gray-400">Todavía no hay preguntas.</p>}
+      {questions.length === 0 && (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+          Todavía no hay preguntas.
+        </div>
+      )}
 
       {questions.map((q) => (
-        <div key={q.id} className="rounded border border-gray-200 bg-white p-4">
-          <p className="mb-1 text-xs uppercase text-gray-400">{q.competition}</p>
-          <p className="mb-3 font-medium">{q.question}</p>
+        <div key={q.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">{q.competition}</p>
+          <p className="mb-3 text-sm font-medium text-gray-800">{q.question}</p>
 
           {q.answer_type === 'tier_list' || q.answer_type === 'ranking' ? (
             (tierStats[q.id]?.length ?? 0) === 0 ? (
               <p className="text-sm text-gray-400">Todavía no hay respuestas.</p>
             ) : (
-              <ul className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
                 {tierStats[q.id].map((r) => (
-                  <li key={r.team_id} className="flex items-center justify-between gap-2 border-b border-gray-50 py-1">
-                    <span className="text-gray-700">{teamName(q, r.team_id)}</span>
-                    <span className="text-gray-500">
-                      {tierLabel(q, r.tier_id)} <span className="font-semibold text-brand-700">{Math.round(r.pct)}%</span>
-                    </span>
+                  <li key={r.team_id} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-gray-700">{teamName(q, r.team_id)}</span>
+                      <span className="text-gray-500">
+                        {tierLabel(q, r.tier_id)} <span className="font-semibold text-brand-700">{Math.round(r.pct)}%</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${Math.round(r.pct)}%` }} />
+                    </div>
                   </li>
                 ))}
               </ul>
             )
           ) : simpleStats[q.id] ? (
-            <p className="text-sm">
-              <span className="font-semibold text-gray-800">{formatAnswerValue(q, simpleStats[q.id]!.top)}</span>{' '}
-              <span className="font-semibold text-brand-700">{Math.round(simpleStats[q.id]!.pct)}%</span>{' '}
-              <span className="text-gray-400">({simpleStats[q.id]!.total} respuestas)</span>
-            </p>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm">
+                <span className="font-semibold text-gray-800">{formatAnswerValue(q, simpleStats[q.id]!.top)}</span>{' '}
+                <span className="font-semibold text-brand-700">{Math.round(simpleStats[q.id]!.pct)}%</span>{' '}
+                <span className="text-gray-400">({simpleStats[q.id]!.total} respuestas)</span>
+              </p>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="h-full rounded-full bg-gold-500" style={{ width: `${Math.round(simpleStats[q.id]!.pct)}%` }} />
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-gray-400">Todavía no hay respuestas.</p>
           )}

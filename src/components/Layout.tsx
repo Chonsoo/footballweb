@@ -1,14 +1,49 @@
-import { useState, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useRef, useState, type ReactNode, type TouchEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './Navbar'
 import OnboardingWizard from './OnboardingWizard'
 import ProfileSetupModal from './ProfileSetupModal'
 import { useAuth } from '../context/AuthContext'
+import { NAV_TABS, activeTabIndex } from '../lib/navTabs'
+
+// Umbral mínimo (px) para considerar el gesto un swipe de navegación, y
+// cuánto más horizontal que vertical debe ser para no confundirlo con un
+// scroll normal de la página.
+const SWIPE_THRESHOLD = 60
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useAuth()
   const [dismissed, setDismissed] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+  function onTouchStart(e: TouchEvent) {
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy) * 1.5) return
+
+    const currentIndex = activeTabIndex(location.pathname)
+    if (currentIndex === -1) return
+
+    // Deslizar a la izquierda (dx negativo) = avanzar a la siguiente pestaña.
+    // Deslizar a la derecha (dx positivo) = volver a la anterior.
+    const nextIndex = dx < 0 ? currentIndex + 1 : currentIndex - 1
+    if (nextIndex < 0 || nextIndex >= NAV_TABS.length) return
+
+    navigate(NAV_TABS[nextIndex].path)
+  }
 
   if (profile && !profile.favorite_team) {
     return <ProfileSetupModal />
@@ -28,7 +63,12 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <div className="relative z-10">
         <Navbar />
-        <main key={location.pathname} className="page-enter mx-auto max-w-4xl px-4 py-6">
+        <main
+          key={location.pathname}
+          className="page-enter mx-auto max-w-4xl px-4 py-6"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           {children}
         </main>
       </div>
