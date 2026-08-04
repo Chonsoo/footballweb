@@ -23,6 +23,7 @@ export default function ApuestasDetalladas() {
   const [answersByUser, setAnswersByUser] = useState<Record<string, Record<string, AnswerValue>>>({})
   const [pointsByUser, setPointsByUser] = useState<Record<string, Record<string, number | null>>>({})
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set())
+  const [currentResults, setCurrentResults] = useState<Record<string, AnswerValue>>({})
   const [statusFilter, setStatusFilter] = useState<Set<FlashStatus>>(new Set())
   const [lineupByUser, setLineupByUser] = useState<Record<string, UserLineup | null>>({})
   const [loadingUser, setLoadingUser] = useState<string | null>(null)
@@ -38,13 +39,17 @@ export default function ApuestasDetalladas() {
         .eq('eligible_abuelonchos', true)
         .eq('active', true)
         .order('name')
-      const { data: res } = await supabase.from('season_results').select('question_id')
+      const { data: res } = await supabase.from('season_results').select('*')
       // Orden alfabético — el orden por puntos es cosa de Clasificación, no
       // de esta página (aquí no se muestra puesto ni podio).
+      const resultRows = (res as { question_id: string; result: AnswerValue }[]) ?? []
+      const resultsMap: Record<string, AnswerValue> = {}
+      for (const r of resultRows) resultsMap[r.question_id] = r.result
       setRows((lb as LeaderboardRow[]) ?? [])
       setQuestions((qs as SeasonQuestion[]) ?? [])
       setFantasyPlayers((fp as FantasyPlayer[]) ?? [])
-      setResolvedIds(new Set(((res as { question_id: string }[]) ?? []).map((r) => r.question_id)))
+      setResolvedIds(new Set(resultRows.map((r) => r.question_id)))
+      setCurrentResults(resultsMap)
       setLoading(false)
     }
     load()
@@ -165,7 +170,7 @@ export default function ApuestasDetalladas() {
                     <p className="text-sm text-gray-400">Cargando…</p>
                   ) : (
                     <>
-                      <BlockAnswers questions={initialQs} answers={answers ?? {}} points={userPoints ?? {}} />
+                      <BlockAnswers questions={initialQs} answers={answers ?? {}} points={userPoints ?? {}} currentResults={currentResults} />
 
                       <div>
                         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">El 11 de Abuelonchos</h3>

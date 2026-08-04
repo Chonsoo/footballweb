@@ -70,10 +70,14 @@ export default function BlockAnswers({
   questions,
   answers,
   points = {},
+  currentResults = {},
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
   points?: PointsMap
+  // Clasificación actual del Bloque 1 (question_id -> resultado), para los
+  // ✓/✗ por equipo -- ver Información › Clasificación actual.
+  currentResults?: Record<string, AnswerValue | undefined>
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -97,7 +101,7 @@ export default function BlockAnswers({
                   <div className="mb-1 flex justify-end">
                     <PointsPill points={points[q.id]} />
                   </div>
-                  <AnswerSummary question={q} value={answers[q.id]} />
+                  <AnswerSummary question={q} value={answers[q.id]} currentResult={currentResults[q.id] as Record<string, number> | undefined} />
                 </div>
               ))}
 

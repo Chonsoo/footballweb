@@ -12,11 +12,9 @@
 //                              3+ puestos: 0 pts
 //   posición real 18-20    -> 15 pts si acierta la posición exacta
 //
-// NOTA: esto NO incluye los bonus extra por "pleno de zona" (Champions completa,
-// Europa League completa, Descenso completo, etc.) del documento original, porque
-// los rangos de esas zonas de bonus no coinciden con los rangos de arriba y habría
-// que decidir exactamente qué puestos cuentan para cada bonus antes de automatizarlo.
-// Esos bonus, de momento, hay que añadirlos a mano sobre el resultado sugerido.
+// Además, bonus de "pleno de zona": si TODOS los equipos de una zona
+// coinciden con la predicción (da igual el orden dentro de la zona), suma un
+// extra fijo -- ver ZONES más abajo.
 export function scoreRankingAnswer(real: Record<string, number>, predicted: Record<string, number>): number {
   let total = 0
   for (const [teamId, realPos] of Object.entries(real)) {
@@ -36,5 +34,55 @@ export function scoreRankingAnswer(real: Record<string, number>, predicted: Reco
       if (predPos === realPos) total += 15
     }
   }
-  return total
+  return total + scoreZoneBonus(real, predicted)
+}
+
+// Bonus por "pleno de zona": Champions (1-4) +3, Europa League (5-6) +3,
+// Descenso (18-20) +5 -- todo o nada por zona, sin importar el orden interno
+// (p.ej. si predices los 4 equipos correctos de Champions pero en el orden
+// equivocado dentro de esas 4 posiciones, el bonus de Champions igualmente
+// se suma entero).
+export interface RankingZone {
+  key: string
+  label: string
+  from: number
+  to: number
+  bonus: number
+}
+
+export const RANKING_ZONES: RankingZone[] = [
+  { key: 'champions', label: 'Champions', from: 1, to: 4, bonus: 3 },
+  { key: 'europa', label: 'Europa League', from: 5, to: 6, bonus: 3 },
+  { key: 'descenso', label: 'Descenso', from: 18, to: 20, bonus: 5 },
+]
+
+function teamsInZone(positions: Record<string, number>, from: number, to: number): Set<string> {
+  return new Set(Object.entries(positions).filter(([, pos]) => pos >= from && pos <= to).map(([teamId]) => teamId))
+}
+
+export function scoreZoneBonus(real: Record<string, number>, predicted: Record<string, number>): number {
+  return zoneBonusBreakdown(real, predicted).reduce((sum, z) => sum + z.bonus, 0)
+}
+
+export interface ZoneBonusRow {
+  key: string
+  label: string
+  from: number
+  to: number
+  matched: number
+  size: number
+  bonus: number
+}
+
+// Desglose por zona (para mostrar en el popup de puntos): cuántos de esa
+// zona acertó (sin importar el orden) y si se llevó el bonus completo.
+export function zoneBonusBreakdown(real: Record<string, number>, predicted: Record<string, number>): ZoneBonusRow[] {
+  return RANKING_ZONES.map((zone) => {
+    const size = zone.to - zone.from + 1
+    const realTeams = teamsInZone(real, zone.from, zone.to)
+    const predictedTeams = teamsInZone(predicted, zone.from, zone.to)
+    const matched = [...realTeams].filter((id) => predictedTeams.has(id)).length
+    const fullMatch = realTeams.size === size && matched === size
+    return { key: zone.key, label: zone.label, from: zone.from, to: zone.to, matched, size, bonus: fullMatch ? zone.bonus : 0 }
+  })
 }

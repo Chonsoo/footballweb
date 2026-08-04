@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import BlockAnswers from './BlockAnswers'
 import { BLOCK_LABELS } from '../lib/blocks'
 import { computeRanks } from '../lib/ranking'
 import { fantasyRankBonus } from '../lib/fantasyRankBonus'
-import type { SeasonAnswer, SeasonQuestion } from '../lib/database.types'
+import { zoneBonusBreakdown, type ZoneBonusRow } from '../lib/rankingScoring'
+import type { AnswerValue, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface Props {
   userId: string
@@ -16,35 +18,63 @@ interface CategoryRow {
   key: string
   label: string
   points: number
+  expandable?: boolean
+}
+
+// Cuántos equipos coinciden EXACTOS entre la posición real (season_results)
+// y la predicha en el Bloque 1 -- aparte de los puntos por margen de error,
+// para que se vea de un vistazo cuántos "clavó" del todo.
+function countExactMatches(real: Record<string, number> | undefined, predicted: Record<string, number> | undefined): number {
+  if (!real || !predicted) return 0
+  let n = 0
+  for (const [teamId, pos] of Object.entries(real)) {
+    if (predicted[teamId] === pos) n++
+  }
+  return n
 }
 
 // Popup de desglose de puntos de Clasificación: de dónde salen los puntos de
-// un participante, por bloque de "Apuestas iniciales" + Apuestas flash, más
-// el bonus por puesto en la Liga fantasy (no son los puntos fantasy en sí,
-// sino puntos de premio según el puesto: 1º 25, 2º 21, 3º 17... -- ver
-// fantasyRankBonus). Estos son los únicos orígenes que suman al total de
-// esta clasificación general (vista public.leaderboard, migración 031).
+// un participante, por bloque de "Apuestas iniciales" (desplegables, con lo
+// que puso en cada uno) + Apuestas flash, más el bonus por puesto en la Liga
+// fantasy (no son los puntos fantasy en sí, sino puntos de premio según el
+// puesto: 1º 25, 2º 21, 3º 17... -- ver fantasyRankBonus). Estos son los
+// únicos orígenes que suman al total de esta clasificación general (vista
+// public.leaderboard, migración 031).
 export default function RankingPointsPopup({ userId, username, totalPoints, onClose }: Props) {
   const [items, setItems] = useState<CategoryRow[] | null>(null)
+  const [questions, setQuestions] = useState<SeasonQuestion[]>([])
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
+  const [pointsByQuestion, setPointsByQuestion] = useState<Record<string, number | null>>({})
+  const [exactMatches, setExactMatches] = useState(0)
+  const [zoneBonuses, setZoneBonuses] = useState<ZoneBonusRow[]>([])
+  const [expandedBlock, setExpandedBlock] = useState<number | null>(null)
 
   useEffect(() => {
     let active = true
     async function load() {
-      const { data: qs } = await supabase.from('season_questions').select('id, block, phase')
-      const { data: answers } = await supabase.from('season_answers').select('question_id, points').eq('user_id', userId)
+      const { data: qs } = await supabase.from('season_questions').select('*')
+      const { data: sa } = await supabase.from('season_answers').select('*').eq('user_id', userId)
+      const { data: res } = await supabase.from('season_results').select('*')
       const { data: fl } = await supabase
         .from('fantasy_leaderboard')
         .select('user_id, total_points')
         .eq('mode', 'abuelonchos')
         .order('total_points', { ascending: false })
 
-      const blockByQuestion = new Map<string, Pick<SeasonQuestion, 'block' | 'phase'>>()
-      for (const q of (qs as Pick<SeasonQuestion, 'id' | 'block' | 'phase'>[]) ?? []) {
-        blockByQuestion.set(q.id, { block: q.block, phase: q.phase })
+      const allQuestions = (qs as SeasonQuestion[]) ?? []
+      const myAnswers = (sa as SeasonAnswer[]) ?? []
+      const results = (res as SeasonResult[]) ?? []
+
+      const answerMap: Record<string, AnswerValue> = {}
+      const pointsMap: Record<string, number | null> = {}
+      for (const a of myAnswers) {
+        answerMap[a.question_id] = a.answer
+        pointsMap[a.question_id] = a.points
       }
 
       const sums: Record<string, number> = { block1: 0, block2: 0, block3: 0, block4: 0, flash: 0 }
-      for (const a of (answers as Pick<SeasonAnswer, 'question_id' | 'points'>[]) ?? []) {
+      const blockByQuestion = new Map(allQuestions.map((q) => [q.id, q]))
+      for (const a of myAnswers) {
         if (a.points == null) continue
         const q = blockByQuestion.get(a.question_id)
         if (!q) continue
@@ -54,6 +84,16 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
           sums[`block${q.block}`] += a.points
         }
       }
+
+      // Aciertos exactos y bonus de zona (Champions/Europa/Descenso) del
+      // Bloque 1: compara la predicción con el resultado real ya cargado
+      // (season_results), si existe -- si no, sale todo a 0.
+      const block1Question = allQuestions.find((q) => q.block === 1)
+      const resultByQuestion = new Map(results.map((r) => [r.question_id, r.result]))
+      const realPositions = block1Question ? (resultByQuestion.get(block1Question.id) as Record<string, number> | undefined) : undefined
+      const predictedPositions = block1Question ? (answerMap[block1Question.id] as Record<string, number> | undefined) : undefined
+      const exact = countExactMatches(realPositions, predictedPositions)
+      const zones = zoneBonusBreakdown(realPositions ?? {}, predictedPositions ?? {})
 
       // Puesto en la Liga fantasy (empates comparten puesto, "1224") y su
       // bonus correspondiente -- 0 si el usuario no tiene 11 puesto todavía.
@@ -65,14 +105,22 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
       const fantasyPoints = myRank != null ? fantasyRankBonus(myRank) : 0
 
       const rows: CategoryRow[] = [
-        { key: 'block1', label: BLOCK_LABELS[1], points: sums.block1 },
-        { key: 'block2', label: BLOCK_LABELS[2], points: sums.block2 },
-        { key: 'block3', label: BLOCK_LABELS[3], points: sums.block3 },
-        { key: 'block4', label: BLOCK_LABELS[4], points: sums.block4 },
+        { key: 'block1', label: BLOCK_LABELS[1], points: sums.block1, expandable: true },
+        { key: 'block2', label: BLOCK_LABELS[2], points: sums.block2, expandable: true },
+        { key: 'block3', label: BLOCK_LABELS[3], points: sums.block3, expandable: true },
+        { key: 'block4', label: BLOCK_LABELS[4], points: sums.block4, expandable: true },
         { key: 'flash', label: 'Apuestas flash', points: sums.flash },
         { key: 'fantasy', label: fantasyLabel, points: fantasyPoints },
       ]
-      if (active) setItems(rows)
+
+      if (active) {
+        setQuestions(allQuestions)
+        setAnswers(answerMap)
+        setPointsByQuestion(pointsMap)
+        setExactMatches(exact)
+        setZoneBonuses(zones)
+        setItems(rows)
+      }
     }
     load()
     return () => {
@@ -83,7 +131,7 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm overflow-hidden rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 shadow-xl"
+        className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 pb-3">
@@ -110,22 +158,72 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
             {items == null ? (
               <p className="px-4 py-8 text-center text-sm text-brand-200">Cargando…</p>
             ) : (
-              items.map((it) => (
-                <div
-                  key={it.key}
-                  className="grid grid-cols-[1fr_60px] items-center gap-2 border-t border-white/10 px-4 py-2.5 text-sm first:border-t-0"
-                >
-                  <span className="text-brand-50">{it.label}</span>
-                  <span
-                    className={`text-right font-semibold ${
-                      it.points < 0 ? 'text-red-400' : it.points > 0 ? 'text-green-400' : 'text-brand-300'
-                    }`}
-                  >
-                    {it.points > 0 ? '+' : ''}
-                    {it.points}
-                  </span>
-                </div>
-              ))
+              items.map((it) => {
+                const blockNum = it.key.startsWith('block') ? Number(it.key.replace('block', '')) : null
+                const isOpen = blockNum != null && expandedBlock === blockNum
+                const blockQuestions = blockNum != null ? questions.filter((q) => q.block === blockNum) : []
+                return (
+                  <div key={it.key} className="border-t border-white/10 first:border-t-0">
+                    <button
+                      type="button"
+                      disabled={!it.expandable}
+                      onClick={() => blockNum != null && setExpandedBlock((cur) => (cur === blockNum ? null : blockNum))}
+                      className={`grid w-full grid-cols-[1fr_60px] items-center gap-2 px-4 py-2.5 text-left text-sm ${
+                        it.expandable ? 'hover:bg-white/5' : ''
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 text-brand-50">
+                        {it.label}
+                        {it.expandable && (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className={`h-3 w-3 shrink-0 text-brand-300 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </span>
+                      <span
+                        className={`text-right font-semibold ${
+                          it.points < 0 ? 'text-red-400' : it.points > 0 ? 'text-green-400' : 'text-brand-300'
+                        }`}
+                      >
+                        {it.points > 0 ? '+' : ''}
+                        {it.points}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="bg-white/95 px-3 py-3">
+                        {blockNum === 1 && (
+                          <div className="mb-2 flex flex-col gap-1 text-xs">
+                            <p className="font-medium text-gray-500">
+                              Aciertos exactos:{' '}
+                              <span className="font-semibold text-gray-700">
+                                {exactMatches} / {blockQuestions[0]?.config.items?.length ?? 20}
+                              </span>
+                            </p>
+                            {zoneBonuses.map((z) => (
+                              <p key={z.key} className="flex items-center justify-between text-gray-500">
+                                <span>
+                                  {z.label} ({z.from}-{z.to}): <span className="font-semibold text-gray-700">{z.matched}/{z.size}</span>
+                                </span>
+                                <span className={`font-semibold ${z.bonus > 0 ? 'text-green-600' : 'text-gray-300'}`}>
+                                  {z.bonus > 0 ? '+' : ''}
+                                  {z.bonus}
+                                </span>
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        <BlockAnswers questions={blockQuestions} answers={answers} points={pointsByQuestion} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </div>
         </div>

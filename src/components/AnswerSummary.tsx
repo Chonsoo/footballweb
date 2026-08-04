@@ -15,14 +15,20 @@ const SILHOUETTE = '/badges/player-silhouette.png'
 export default function AnswerSummary({
   question,
   value,
+  currentResult,
 }: {
   question: SeasonQuestion
   value: AnswerValue | undefined | null
+  // Clasificación actual (Bloque 1, ver Información › Clasificación actual):
+  // si se pasa, cada equipo del grid lleva un ✓/✗ según si su posición
+  // predicha coincide con la posición actual de ese equipo. Opcional para no
+  // afectar a otros usos de AnswerSummary (Oráculo, asistente...).
+  currentResult?: Record<string, number>
 }) {
   if (value == null) return <p className="text-sm text-gray-400">Sin responder</p>
 
   if (question.answer_type === 'ranking') {
-    return <RankingSummary config={question.config} value={value as Record<string, number>} />
+    return <RankingSummary config={question.config} value={value as Record<string, number>} currentResult={currentResult} />
   }
 
   if (question.answer_type === 'tier_list') {
@@ -111,7 +117,15 @@ const ZONE_BG: Record<string, string> = {
   [MEDIA_TIER_ID]: 'bg-gray-50',
 }
 
-function RankingSummary({ config, value }: { config: QuestionConfig; value: Record<string, number> }) {
+function RankingSummary({
+  config,
+  value,
+  currentResult,
+}: {
+  config: QuestionConfig
+  value: Record<string, number>
+  currentResult?: Record<string, number>
+}) {
   const items = config.items ?? []
   const tiers = config.tiers ?? []
   const total = items.length
@@ -127,12 +141,25 @@ function RankingSummary({ config, value }: { config: QuestionConfig; value: Reco
     <div className="grid grid-cols-5 gap-1 sm:grid-cols-10">
       {ordered.map(({ item, pos }) => {
         const zone = zoneForPosition(pos, tiers, total)
+        // undefined = todavía no hay clasificación actual con la que comparar
+        // (o ese equipo no está en ella); null se descarta a propósito de
+        // "coincide"/"no coincide" cuando sí hay datos.
+        const matches = currentResult && item.id in currentResult ? currentResult[item.id] === pos : null
         return (
           <div
             key={item.id}
             title={`${pos}º ${item.name}`}
-            className={`flex flex-col items-center gap-0.5 rounded-md py-1 ${ZONE_BG[zone.id] ?? 'bg-gray-50'}`}
+            className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 ${ZONE_BG[zone.id] ?? 'bg-gray-50'}`}
           >
+            {matches != null && (
+              <span
+                className={`absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-bold text-white ${
+                  matches ? 'bg-green-600' : 'bg-red-500'
+                }`}
+              >
+                {matches ? '✓' : '✕'}
+              </span>
+            )}
             {item.badge ? (
               <img src={item.badge} alt="" className="h-5 w-5 object-contain" />
             ) : (

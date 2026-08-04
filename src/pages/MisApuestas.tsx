@@ -20,6 +20,7 @@ export default function MisApuestas() {
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({})
   const [points, setPoints] = useState<Record<string, number | null>>({})
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set())
+  const [currentResults, setCurrentResults] = useState<Record<string, AnswerValue>>({})
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<QuestionPhase>('initial')
   const [statusFilter, setStatusFilter] = useState<Set<FlashStatus>>(new Set())
@@ -31,17 +32,21 @@ export default function MisApuestas() {
       if (!user) return
       const { data: qs } = await supabase.from('season_questions').select('*').order('created_at', { ascending: true })
       const { data: as_ } = await supabase.from('season_answers').select('*').eq('user_id', user.id)
-      const { data: res } = await supabase.from('season_results').select('question_id')
+      const { data: res } = await supabase.from('season_results').select('*')
       const map: Record<string, AnswerValue> = {}
       const pointsMap: Record<string, number | null> = {}
       for (const a of (as_ as SeasonAnswer[]) ?? []) {
         map[a.question_id] = a.answer
         pointsMap[a.question_id] = a.points
       }
+      const resultRows = (res as { question_id: string; result: AnswerValue }[]) ?? []
+      const resultsMap: Record<string, AnswerValue> = {}
+      for (const r of resultRows) resultsMap[r.question_id] = r.result
       setQuestions((qs as SeasonQuestion[]) ?? [])
       setAnswers(map)
       setPoints(pointsMap)
-      setResolvedIds(new Set(((res as { question_id: string }[]) ?? []).map((r) => r.question_id)))
+      setResolvedIds(new Set(resultRows.map((r) => r.question_id)))
+      setCurrentResults(resultsMap)
       setLoading(false)
     }
     load()
@@ -86,7 +91,7 @@ export default function MisApuestas() {
             </div>
           )}
 
-          <BlockAnswers questions={initialQuestions} answers={answers} points={points} />
+          <BlockAnswers questions={initialQuestions} answers={answers} points={points} currentResults={currentResults} />
 
           <div className="flex flex-col gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-brand-600">Bloque 5 · El 11 de Abuelonchos</h2>

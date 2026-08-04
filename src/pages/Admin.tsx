@@ -660,8 +660,10 @@ function GradingPanel({
             </button>
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            Solo calcula el Bloque 1 base (posición exacta / margen de error). Los bonus por pleno de zona (Champions,
-            Europa League, Descenso…) hay que sumarlos a mano si aplican, revisando cada respuesta abajo antes de guardar.
+            Ya incluye el bonus por pleno de zona (Champions +3, Europa League +3, Descenso +5, sin importar el orden
+            interno). Esta clasificación también es la que ven los usuarios en Información › Clasificación actual, y
+            la que compara cada equipo (✓/✗) en Mis apuestas y Apuestas detalladas -- se puede volver a fijar cuantas
+            veces haga falta según avance la temporada.
           </p>
         </div>
       )}
