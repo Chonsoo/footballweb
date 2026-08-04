@@ -2,23 +2,25 @@ import { useEffect, useRef, useState } from 'react'
 import { usePlayers } from '../lib/usePlayers'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { playerMatchesSearch, type FantasyPlayer, type FantasyPosition } from '../lib/fantasyTypes'
+import { playerHasNationality, getNationalityInfo } from '../lib/nationalityFlags'
 
 const SILHOUETTE = '/badges/player-silhouette.png'
 
 const PANEL_MAX_HEIGHT = 288 // px, coincide con max-h-72
 
-// Avatar pequeño (foto o silueta) para cada fila del desplegable. Aparte
+// Avatar pequeño (solo foto real) para cada fila del desplegable. Aparte
 // (no inline en el map) para que el estado de "la foto no cargó" sea por
-// jugador y no se contamine entre filas.
+// jugador y no se contamine entre filas. Si no hay foto real no se pinta la
+// silueta genérica aquí — en una lista larga, repetir el mismo icono negro
+// en decenas de filas es ruido visual sin información; solo aporta cuando
+// hay una foto de verdad que mostrar. Se deja un hueco del mismo tamaño para
+// que el escudo y el nombre no bailen entre filas con y sin foto.
 function RowAvatar({ photoUrl }: { photoUrl: string | null }) {
   const [imgError, setImgError] = useState(false)
+  if (!photoUrl || imgError) return <div className="h-6 w-6 shrink-0" />
   return (
     <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-gray-200">
-      {photoUrl && !imgError ? (
-        <img src={photoUrl} alt="" className="h-full w-full object-cover" onError={() => setImgError(true)} />
-      ) : (
-        <img src={SILHOUETTE} alt="" className="h-full w-full scale-110 object-cover" />
-      )}
+      <img src={photoUrl} alt="" className="h-full w-full object-cover" onError={() => setImgError(true)} />
     </div>
   )
 }
@@ -32,12 +34,14 @@ export default function PlayerSelect({
   onChange,
   excludeTeamIds,
   position,
+  nationality,
   disabled,
 }: {
   value: string
   onChange: (name: string) => void
   excludeTeamIds?: string[]
   position?: FantasyPosition
+  nationality?: string
   disabled?: boolean
 }) {
   const { players, loading } = usePlayers()
@@ -50,6 +54,7 @@ export default function PlayerSelect({
 
   let pool = excludeTeamIds?.length ? players.filter((p) => !excludeTeamIds.includes(p.team_id ?? '')) : players
   if (position) pool = pool.filter((p) => p.player_position === position)
+  if (nationality) pool = pool.filter((p) => playerHasNationality(p.nationality, nationality))
   const selected = pool.find((p) => p.name === value)
 
   const filtered = search.trim() ? pool.filter((p) => playerMatchesSearch(p, search)) : pool
@@ -115,9 +120,15 @@ export default function PlayerSelect({
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-gray-800">{selected.name}</p>
-            <p className="text-xs text-gray-400">
-              {selected.player_position}
-              {selectedTeam ? ` · ${selectedTeam.name}` : ''}
+            <p className="flex items-center gap-1 text-xs text-gray-400">
+              <span>
+                {selected.player_position}
+                {selectedTeam ? ` · ${selectedTeam.name}` : ''}
+              </span>
+              {(() => {
+                const nat = getNationalityInfo(selected.nationality)
+                return nat ? <span title={nat.label}>{nat.flag}</span> : null
+              })()}
             </p>
           </div>
         </div>

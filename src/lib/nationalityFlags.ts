@@ -102,3 +102,18 @@ export function getNationalityInfo(nationality: string | null | undefined): { fl
   // a tener la API de laliga.com (p.ej. "Spain", "Congo, Democratic Republic").
   return NATIONALITY_INFO[nationality] ?? { flag: '🌍', label: nationality }
 }
+
+// Para filtrar buscadores de jugador por nacionalidad (p.ej. Trofeo Zarra,
+// solo españoles). Los datos nuevos guardan el código ISO-2 ("ES"), pero
+// filas más antiguas del importador manual pueden tener el nombre en inglés
+// ("Spain") — hay que reconocer ambos para no dejar fuera a nadie.
+const LEGACY_ENGLISH_NAMES_BY_ISO: Record<string, string[]> = {
+  ES: ['Spain'],
+}
+
+export function playerHasNationality(nationality: string | null | undefined, isoCode: string): boolean {
+  if (!nationality) return false
+  const code = isoCode.toUpperCase()
+  if (nationality.toUpperCase() === code) return true
+  return (LEGACY_ENGLISH_NAMES_BY_ISO[code] ?? []).includes(nationality)
+}

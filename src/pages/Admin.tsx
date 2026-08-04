@@ -349,6 +349,14 @@ function ConfigBuilder({
               <option value="MED">Solo centrocampistas</option>
               <option value="DEL">Solo delanteros</option>
             </select>
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={config.player_nationality === 'ES'}
+                onChange={(e) => onChange({ ...config, player_nationality: e.target.checked ? 'ES' : undefined })}
+              />
+              Solo jugadores españoles (p.ej. Trofeo Zarra)
+            </label>
           </>
         ) : (
           <OptionsBuilder
@@ -630,6 +638,7 @@ function GradingPanel({
               onChange={(name) => setResultDraft(name)}
               excludeTeamIds={question.config.exclude_team_ids}
               position={question.config.player_position}
+              nationality={question.config.player_nationality}
             />
           ) : question.answer_type === 'choice' ? (
             <select
