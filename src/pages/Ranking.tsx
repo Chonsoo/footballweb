@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getTeamColor } from '../lib/teamColors'
 import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
+import RankingPointsPopup from '../components/RankingPointsPopup'
 import type { LeaderboardRow } from '../lib/database.types'
 
 interface RowStyle {
@@ -46,7 +47,7 @@ function rowStyleFor(rank: number, tierFromLast: number, tierCount: number, isLa
     return {
       background: 'linear-gradient(to right, #fbe9b8, #fffdf6)',
       borderColor: '#e0b64a',
-      chip: { bg: 'bg-gold-100 text-gold-700', label: 'Campeón' },
+      chip: { bg: 'bg-gold-100 text-gold-600', label: 'Campeón' },
     }
   }
   if (rank === 2) {
@@ -70,6 +71,7 @@ export default function Ranking() {
   const { user } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [breakdownFor, setBreakdownFor] = useState<LeaderboardRow | null>(null)
 
   useEffect(() => {
     supabase
@@ -155,15 +157,29 @@ export default function Ranking() {
                   )}
                 </div>
 
-                <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setBreakdownFor(row)}
+                  title="Ver de dónde salen estos puntos"
+                  className="rounded-lg px-1 py-0.5 text-right transition-colors hover:bg-black/5"
+                >
                   <p className="text-lg font-bold text-gray-900">{row.total_points}</p>
                   <p className="text-[10px] uppercase tracking-wide text-gray-400">pts</p>
-                </div>
+                </button>
               </div>
               )
             })
           })()}
         </div>
+      )}
+
+      {breakdownFor && (
+        <RankingPointsPopup
+          userId={breakdownFor.user_id}
+          username={breakdownFor.username}
+          totalPoints={breakdownFor.total_points}
+          onClose={() => setBreakdownFor(null)}
+        />
       )}
     </div>
   )

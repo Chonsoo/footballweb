@@ -199,22 +199,10 @@ create policy "season_results: select all authenticated"
 -- El sistema de "quiniela de resultados" (matchdays/matches/match_bets) que
 -- esta vista sumaba junto a season_answers se eliminó por completo (migración
 -- 028) por no haberse llegado a usar nunca. favorite_team se añadió después
--- (migración 025).
-create or replace view public.leaderboard as
-select
-  p.id as user_id,
-  p.username,
-  coalesce(sa.total, 0) as total_points,
-  p.favorite_team
-from public.profiles p
-left join (
-  select user_id, sum(points) as total
-  from public.season_answers
-  where points is not null
-  group by user_id
-) sa on sa.user_id = p.id
-where p.email_confirmed = true
-order by total_points desc;
+-- (migración 025). La definición real vive más abajo (después de
+-- fantasy_leaderboard, migración 031) porque desde entonces también suma el
+-- bonus por puesto en la Liga fantasy, y esta vista necesita que
+-- fantasy_leaderboard ya exista.
 
 -- ---------- FUNCIONES RPC (acciones de administración) ----------
 
@@ -555,6 +543,30 @@ create trigger fantasy_apply_points_trg
 -- Solo cuenta puntos de jornadas marcadas como "jugadas" (fantasy_matchdays)
 -- para que el total cuadre con lo que se ve en la pestaña Fantasy del
 -- usuario (Resumen/Jornadas), que aplica el mismo filtro.
+--
+-- Jornadas del fantasy (independiente de "matchdays", que es de las
+-- quinielas de resultados). Solo sirve para marcar qué jornadas ya se han
+-- jugado -- fantasy_player_stats no tiene ese concepto, solo guarda
+-- matchday_num suelto -- así la visualización por jugador/equipo del
+-- fantasy sabe qué jornadas mostrar como cerradas. Va antes que
+-- fantasy_leaderboard porque esa vista ya la referencia.
+create table if not exists public.fantasy_matchdays (
+  number int primary key,
+  played boolean not null default false,
+  played_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.fantasy_matchdays enable row level security;
+
+create policy "fantasy_matchdays: select all authenticated"
+  on public.fantasy_matchdays for select to authenticated using (true);
+
+create policy "fantasy_matchdays: admin write"
+  on public.fantasy_matchdays for all to authenticated
+  using (public.is_admin(auth.uid()))
+  with check (public.is_admin(auth.uid()));
+
 create or replace view public.fantasy_leaderboard as
 select
   fl.mode,
@@ -573,28 +585,6 @@ left join public.fantasy_player_stats fps
 where p.email_confirmed = true
 group by fl.mode, fl.user_id, p.username
 order by fl.mode, total_points desc;
-
--- Jornadas del fantasy (independiente de "matchdays", que es de las
--- quinielas de resultados). Solo sirve para marcar qué jornadas ya se han
--- jugado -- fantasy_player_stats no tiene ese concepto, solo guarda
--- matchday_num suelto -- así la visualización por jugador/equipo del
--- fantasy sabe qué jornadas mostrar como cerradas.
-create table if not exists public.fantasy_matchdays (
-  number int primary key,
-  played boolean not null default false,
-  played_at timestamptz,
-  created_at timestamptz not null default now()
-);
-
-alter table public.fantasy_matchdays enable row level security;
-
-create policy "fantasy_matchdays: select all authenticated"
-  on public.fantasy_matchdays for select to authenticated using (true);
-
-create policy "fantasy_matchdays: admin write"
-  on public.fantasy_matchdays for all to authenticated
-  using (public.is_admin(auth.uid()))
-  with check (public.is_admin(auth.uid()));
 
 -- Clasificación fantasy de una jornada concreta (para el desplegable
 -- Total/Jn en la pestaña Fantasy > Liga fantasy). A diferencia de
@@ -617,6 +607,52 @@ left join public.fantasy_player_stats fps
 where p.email_confirmed = true and fm.played = true
 group by fl.mode, fl.user_id, p.username, fm.number
 order by fl.mode, fm.number, points desc;
+
+-- Clasificación general: puntos de season_answers (bloques 1-4 + apuestas
+-- flash) más un bonus por puesto en la Liga fantasy (no los puntos fantasy
+-- en sí, sino puntos de premio según el puesto: 1º 25, 2º 21, 3º 17, 4º 12,
+-- 5º 7, 6º 5, 7º 3, 8º 2, 9º 1, el resto 0). Empates comparten puesto
+-- ("1224") y el siguiente salta el hueco, vía rank() sobre fantasy_leaderboard.
+create or replace view public.leaderboard as
+with fantasy_ranked as (
+  select
+    user_id,
+    rank() over (order by total_points desc) as fantasy_rank
+  from public.fantasy_leaderboard
+  where mode = 'abuelonchos'
+),
+fantasy_bonus as (
+  select
+    user_id,
+    case fantasy_rank
+      when 1 then 25
+      when 2 then 21
+      when 3 then 17
+      when 4 then 12
+      when 5 then 7
+      when 6 then 5
+      when 7 then 3
+      when 8 then 2
+      when 9 then 1
+      else 0
+    end as bonus_points
+  from fantasy_ranked
+)
+select
+  p.id as user_id,
+  p.username,
+  coalesce(sa.total, 0) + coalesce(fb.bonus_points, 0) as total_points,
+  p.favorite_team
+from public.profiles p
+left join (
+  select user_id, sum(points) as total
+  from public.season_answers
+  where points is not null
+  group by user_id
+) sa on sa.user_id = p.id
+left join fantasy_bonus fb on fb.user_id = p.id
+where p.email_confirmed = true
+order by total_points desc;
 
 -- =========================================================
 -- Para convertirte en el primer admin, ejecuta esto tras
