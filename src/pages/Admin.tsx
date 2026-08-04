@@ -27,12 +27,12 @@ import type {
   SeasonResult,
 } from '../lib/database.types'
 
-type Tab = 'users' | 'create' | 'resolve' | 'fantasy' | 'fantasy-stats'
+type Tab = 'users' | 'flash' | 'initial' | 'fantasy' | 'fantasy-stats'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Usuarios' },
-  { id: 'create', label: 'Crear apuesta' },
-  { id: 'resolve', label: 'Resolver apuestas' },
+  { id: 'flash', label: 'Apuestas flash' },
+  { id: 'initial', label: 'Bloques iniciales' },
   { id: 'fantasy', label: 'Jugadores fantasy' },
   { id: 'fantasy-stats', label: 'Puntuación fantasy' },
 ]
@@ -63,11 +63,47 @@ export default function Admin() {
       </div>
 
       {tab === 'users' && <UsersSection />}
-      {tab === 'create' && <CreateQuestionSection />}
-      {tab === 'resolve' && <ResolveQuestionsSection />}
+      {tab === 'flash' && <PhaseAdminSection phase="weekly" />}
+      {tab === 'initial' && <PhaseAdminSection phase="initial" />}
       {tab === 'fantasy' && <FantasyPlayersSection />}
       {tab === 'fantasy-stats' && <FantasyStatsSection />}
     </div>
+  )
+}
+
+// ---------------- Apuestas flash / Bloques iniciales: crear + resolver, ya
+// filtrado por fase -- antes "Crear apuesta" y "Resolver apuestas" mezclaban
+// preguntas semanales (se crean y resuelven cada semana) con los bloques
+// iniciales (se fijan una vez al principio de temporada y solo se van
+// resolviendo), lo que hacía difícil ver de un vistazo el estado de cada uno.
+function PhaseAdminSection({ phase }: { phase: QuestionPhase }) {
+  const [subtab, setSubtab] = useState<'resolve' | 'create'>('resolve')
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="flex overflow-hidden rounded-lg border border-gray-200 text-sm">
+        <button
+          type="button"
+          onClick={() => setSubtab('resolve')}
+          className={`flex-1 px-3 py-2 font-medium transition-colors ${
+            subtab === 'resolve' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Resolver
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubtab('create')}
+          className={`flex-1 px-3 py-2 font-medium transition-colors ${
+            subtab === 'create' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Crear
+        </button>
+      </div>
+
+      {subtab === 'resolve' ? <ResolveQuestionsSection lockedPhase={phase} /> : <CreateQuestionSection lockedPhase={phase} />}
+    </section>
   )
 }
 
@@ -205,11 +241,11 @@ function UsersSection() {
 }
 
 // ---------------- Crear apuesta ----------------
-function CreateQuestionSection() {
+function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase }) {
   const [competition, setCompetition] = useState('liga')
   const [question, setQuestion] = useState('')
   const [answerType, setAnswerType] = useState<AnswerType>('text')
-  const [phase, setPhase] = useState<QuestionPhase>('weekly')
+  const [phase, setPhase] = useState<QuestionPhase>(lockedPhase ?? 'weekly')
   const [points, setPoints] = useState(1)
   const [closesAt, setClosesAt] = useState('')
   const [config, setConfig] = useState<QuestionConfig>({})
@@ -221,8 +257,9 @@ function CreateQuestionSection() {
       .from('season_questions')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(8)
-    setRecent((data as SeasonQuestion[]) ?? [])
+      .limit(20)
+    const all = (data as SeasonQuestion[]) ?? []
+    setRecent((lockedPhase ? all.filter((q) => q.phase === lockedPhase) : all).slice(0, 8))
   }
 
   useEffect(() => {
@@ -259,9 +296,17 @@ function CreateQuestionSection() {
   return (
     <section>
       <p className="mb-2 text-sm text-gray-500">
-        El resto de preguntas (texto, opción o predicción de resultado) se crean aquí. Márcalas como
-        <strong> Inicial</strong> si son fijas desde el principio, o <strong>Semana</strong> si las vas añadiendo
-        durante la temporada ligadas a un partido/jornada.
+        {lockedPhase === 'initial' ? (
+          <>Bloques iniciales: preguntas fijas desde el principio de temporada (Clasificación, premios, etc.).</>
+        ) : lockedPhase === 'weekly' ? (
+          <>Apuestas flash: preguntas que vas añadiendo durante la temporada ligadas a un partido/jornada.</>
+        ) : (
+          <>
+            El resto de preguntas (texto, opción o predicción de resultado) se crean aquí. Márcalas como
+            <strong> Inicial</strong> si son fijas desde el principio, o <strong>Semana</strong> si las vas añadiendo
+            durante la temporada ligadas a un partido/jornada.
+          </>
+        )}
       </p>
 
       <div className="mb-4 flex flex-col gap-3 rounded border border-gray-200 bg-white p-4">
@@ -271,14 +316,16 @@ function CreateQuestionSection() {
             <option value="champions">Champions</option>
             <option value="otros">Otros</option>
           </select>
-          <select
-            value={phase}
-            onChange={(e) => setPhase(e.target.value as QuestionPhase)}
-            className="rounded border border-gray-300 px-2 py-2 text-sm"
-          >
-            <option value="weekly">Semana</option>
-            <option value="initial">Inicial</option>
-          </select>
+          {!lockedPhase && (
+            <select
+              value={phase}
+              onChange={(e) => setPhase(e.target.value as QuestionPhase)}
+              className="rounded border border-gray-300 px-2 py-2 text-sm"
+            >
+              <option value="weekly">Semana</option>
+              <option value="initial">Inicial</option>
+            </select>
+          )}
           {phase === 'initial' && (
             <select
               value={block}
@@ -497,7 +544,7 @@ function OptionsBuilder({ options, onChange }: { options: string[]; onChange: (o
 }
 
 // ---------------- Resolver apuestas ----------------
-function ResolveQuestionsSection() {
+function ResolveQuestionsSection({ lockedPhase }: { lockedPhase?: QuestionPhase }) {
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [answers, setAnswers] = useState<(SeasonAnswer & { profile?: Profile })[]>([])
   const [results, setResults] = useState<SeasonResult[]>([])
@@ -519,22 +566,31 @@ function ResolveQuestionsSection() {
     load()
   }, [])
 
-  const visible = questions.filter((q) => filter === 'all' || q.phase === filter)
+  const visible = questions.filter((q) => (lockedPhase ? q.phase === lockedPhase : filter === 'all' || q.phase === filter))
+  const resolvedCount = visible.filter((q) => results.some((r) => r.question_id === q.id)).length
 
   return (
     <section>
-      <div className="mb-3 flex items-center gap-2 text-sm">
-        <span className="text-gray-500">Filtrar:</span>
-        {(['all', 'initial', 'weekly'] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full border px-3 py-1 ${filter === f ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 text-gray-600'}`}
-          >
-            {f === 'all' ? 'Todas' : f === 'initial' ? 'Iniciales' : 'Semana'}
-          </button>
-        ))}
-      </div>
+      {lockedPhase ? (
+        visible.length > 0 && (
+          <p className="mb-3 text-xs font-medium text-gray-500">
+            {resolvedCount} / {visible.length} resueltas
+          </p>
+        )
+      ) : (
+        <div className="mb-3 flex items-center gap-2 text-sm">
+          <span className="text-gray-500">Filtrar:</span>
+          {(['all', 'initial', 'weekly'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-full border px-3 py-1 ${filter === f ? 'border-brand-700 bg-brand-700 text-white' : 'border-gray-300 text-gray-600'}`}
+            >
+              {f === 'all' ? 'Todas' : f === 'initial' ? 'Iniciales' : 'Semana'}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         {visible.length === 0 && <p className="text-sm text-gray-400">No hay preguntas.</p>}
@@ -586,27 +642,61 @@ function GradingPanel({
   result?: SeasonResult
   onChanged: () => void
 }) {
-  const [resultDraft, setResultDraft] = useState<AnswerValue>(
-    result?.result ??
-      (question.answer_type === 'score_prediction' ? { home: 0, away: 0 } : question.answer_type === 'ranking' ? {} : '')
-  )
+  const emptyResult = (): AnswerValue =>
+    question.answer_type === 'score_prediction' ? { home: 0, away: 0 } : question.answer_type === 'ranking' ? {} : ''
+
+  const [resultDraft, setResultDraft] = useState<AnswerValue>(result?.result ?? emptyResult())
   const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+  const [laligaLoading, setLaligaLoading] = useState(false)
+
+  // Si el resultado guardado en el servidor cambia (p.ej. tras "Fijar
+  // resultado" y el recarga que dispara onChanged), sincroniza el borrador
+  // para que se vea reflejado -- si no, la rejilla se queda igual visualmente
+  // aunque el guardado haya funcionado y parece que "no ha hecho nada".
+  useEffect(() => {
+    setResultDraft(result?.result ?? emptyResult())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.resolved_at])
+
+  function rpcErrorMessage(err: unknown, fallback: string): string {
+    if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+      return (err as { message: string }).message
+    }
+    return err instanceof Error ? err.message : fallback
+  }
 
   async function saveResult() {
-    await supabase.rpc('set_season_result', { p_question_id: question.id, p_result: resultDraft })
+    setStatus(null)
+    const { error } = await supabase.rpc('set_season_result', { p_question_id: question.id, p_result: resultDraft })
+    if (error) {
+      setStatus({ type: 'error', text: `No se pudo fijar el resultado: ${rpcErrorMessage(error, 'error desconocido')}` })
+      return
+    }
+    setStatus({ type: 'ok', text: 'Resultado fijado ✓' })
     await onChanged()
   }
 
   async function autoApply() {
-    await supabase.rpc('apply_season_result_points', { p_question_id: question.id })
+    setStatus(null)
+    const { error } = await supabase.rpc('apply_season_result_points', { p_question_id: question.id })
+    if (error) {
+      setStatus({ type: 'error', text: `No se pudo auto-aplicar: ${rpcErrorMessage(error, 'error desconocido')}` })
+      return
+    }
+    setStatus({ type: 'ok', text: 'Puntos auto-aplicados ✓' })
     await onChanged()
   }
 
   async function saveAnswerPoints(answerId: string) {
     const raw = pointsDrafts[answerId]
     if (raw === undefined || raw === '') return
-    await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+    const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+    if (error) {
+      setStatus({ type: 'error', text: `No se pudo guardar: ${rpcErrorMessage(error, 'error desconocido')}` })
+      return
+    }
     await onChanged()
   }
 
@@ -619,13 +709,40 @@ function GradingPanel({
     setPointsDrafts(drafts)
   }
 
+  // Trae la clasificación real actual desde laliga.com (vía nuestro proxy en
+  // /api/laliga-standings) y rellena la rejilla de arriba para que el admin
+  // la revise y pulse "Fijar resultado" como siempre -- no guarda nada solo.
+  async function fetchStandingsFromLaliga() {
+    setStatus(null)
+    setLaligaLoading(true)
+    try {
+      const resp = await fetch('/api/laliga-standings')
+      const data = (await resp.json()) as { positions?: Record<string, number>; unmapped?: string[]; error?: string }
+      if (!resp.ok || !data.positions) throw new Error(data.error ?? `El proxy respondió ${resp.status}`)
+      setResultDraft(data.positions)
+      const extra = data.unmapped && data.unmapped.length > 0 ? ` (sin mapear: ${data.unmapped.join(', ')})` : ''
+      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — revisa y pulsa "Fijar resultado"` })
+    } catch (err) {
+      setStatus({ type: 'error', text: `No se pudo traer de LaLiga.com: ${err instanceof Error ? err.message : 'error desconocido'}` })
+    } finally {
+      setLaligaLoading(false)
+    }
+  }
+
   async function saveAllDrafts() {
     setSaving(true)
+    setStatus(null)
     const entries = Object.entries(pointsDrafts).filter(([, v]) => v !== '')
     for (const [answerId, raw] of entries) {
-      await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+      const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
+      if (error) {
+        setStatus({ type: 'error', text: `No se pudo guardar todo: ${rpcErrorMessage(error, 'error desconocido')}` })
+        setSaving(false)
+        return
+      }
     }
     setSaving(false)
+    setStatus({ type: 'ok', text: 'Todos los puntos guardados ✓' })
     await onChanged()
   }
 
@@ -640,6 +757,12 @@ function GradingPanel({
 
   return (
     <div className="flex flex-col gap-4">
+      {status && (
+        <p className={`rounded px-3 py-2 text-xs font-medium ${status.type === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          {status.text}
+        </p>
+      )}
+
       {question.answer_type === 'ranking' && (
         <div className="rounded bg-gray-50 p-3">
           <p className="mb-2 text-xs font-medium text-gray-500">
@@ -658,12 +781,20 @@ function GradingPanel({
             <button onClick={calculateRankingSuggestions} className="rounded bg-brand-700 px-3 py-1.5 text-sm text-white">
               Calcular puntos sugeridos
             </button>
+            <button
+              onClick={fetchStandingsFromLaliga}
+              disabled={laligaLoading}
+              className="rounded bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+            >
+              {laligaLoading ? 'Trayendo…' : 'Actualizar desde LaLiga.com'}
+            </button>
           </div>
           <p className="mt-2 text-xs text-gray-400">
             Ya incluye el bonus por pleno de zona (Champions +3, Europa League +3, Descenso +5, sin importar el orden
             interno). Esta clasificación también es la que ven los usuarios en Información › Clasificación actual, y
             la que compara cada equipo (✓/✗) en Mis apuestas y Apuestas detalladas -- se puede volver a fijar cuantas
-            veces haga falta según avance la temporada.
+            veces haga falta según avance la temporada. "Actualizar desde LaLiga.com" solo rellena la rejilla de
+            arriba con la clasificación real actual, no guarda nada por sí solo: revisa y pulsa "Fijar resultado".
           </p>
         </div>
       )}
