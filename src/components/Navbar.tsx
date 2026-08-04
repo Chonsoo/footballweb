@@ -164,37 +164,52 @@ export default function Navbar() {
             </svg>
           </button>
           {profileMenuOpen && (
-            <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded border border-gray-200 bg-white py-1 shadow-lg">
-              <p className="truncate border-b border-gray-100 px-3 py-2 text-xs text-gray-400">{profile?.username}</p>
-              <button
-                onClick={() => {
-                  setProfileMenuOpen(false)
-                  setEditOpen(true)
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Mis datos
-              </button>
-              {profile?.is_admin && (
+            <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded border border-gray-200 bg-white py-2 shadow-lg">
+              <p className="truncate px-3 pb-2 text-xs text-gray-400">{profile?.username}</p>
+              {/* Fila de 3 iconos en vez de botones apilados con texto --
+                  mis datos a la izquierda y cerrar sesión a la derecha, que
+                  siempre están; admin en medio, que es el que falta para un
+                  usuario normal (así el hueco vacío queda en medio, no en un
+                  extremo). */}
+              <div className="flex items-center justify-around border-t border-gray-100 pt-2">
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false)
-                    navigate('/admin')
+                    setEditOpen(true)
                   }}
-                  className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                  title="Mis datos"
+                  aria-label="Mis datos"
+                  className="rounded-full p-2 text-lg hover:bg-gray-100"
                 >
-                  Admin
+                  👤
                 </button>
-              )}
-              <button
-                onClick={() => {
-                  setProfileMenuOpen(false)
-                  signOut()
-                }}
-                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-50"
-              >
-                Cerrar sesión
-              </button>
+                {profile?.is_admin ? (
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      navigate('/admin')
+                    }}
+                    title="Admin"
+                    aria-label="Admin"
+                    className="rounded-full p-2 text-lg hover:bg-gray-100"
+                  >
+                    🛠️
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                    signOut()
+                  }}
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
+                  className="rounded-full p-2 text-lg hover:bg-red-50"
+                >
+                  🚪
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -204,71 +219,72 @@ export default function Navbar() {
 
       {open && (
         <div className="space-y-1 border-t border-gray-200 px-4 py-3 md:hidden">
-          {isAdminRoute ? (
-            <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
-              ← Volver a la app
+          <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
+            Inicio
+          </NavLink>
+          <NavLink to="/clasificacion" onClick={closeAll} className={mobileLinkClass}>
+            Clasificación
+          </NavLink>
+
+          <p className="px-3 pt-2 text-xs font-semibold uppercase text-gray-400">Apuestas</p>
+          {!initialClosed && (
+            <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
+              Apuestas iniciales
             </NavLink>
-          ) : (
-            <>
-              <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
-                Inicio
-              </NavLink>
-              <NavLink to="/clasificacion" onClick={closeAll} className={mobileLinkClass}>
-                Clasificación
-              </NavLink>
-
-              <p className="px-3 pt-2 text-xs font-semibold uppercase text-gray-400">Apuestas</p>
-              {!initialClosed && (
-                <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
-                  Apuestas iniciales
-                </NavLink>
-              )}
-              <NavLink to="/apuestas-semana" onClick={closeAll} className={mobileLinkClass}>
-                Apuestas flash
-              </NavLink>
-
-              <NavLink to="/oraculo" onClick={closeAll} className={mobileLinkClass}>
-                El oráculo
-              </NavLink>
-              <NavLink to="/mis-apuestas" onClick={closeAll} className={mobileLinkClass}>
-                Mis apuestas
-              </NavLink>
-              <NavLink to="/apuestas-detalladas" onClick={closeAll} className={mobileLinkClass}>
-                Apuestas detalladas
-              </NavLink>
-              <NavLink to="/informacion" onClick={closeAll} className={mobileLinkClass}>
-                Información
-              </NavLink>
-              <NavLink to="/reglamento" onClick={closeAll} className={mobileLinkClass}>
-                Reglamento oficial
-              </NavLink>
-            </>
           )}
+          <NavLink to="/apuestas-semana" onClick={closeAll} className={mobileLinkClass}>
+            Apuestas flash
+          </NavLink>
 
-          <div className="mt-2 flex flex-col gap-1 border-t border-gray-200 pt-3">
-            <p className="px-3 text-xs text-gray-400">{profile?.username}</p>
+          <NavLink to="/oraculo" onClick={closeAll} className={mobileLinkClass}>
+            El oráculo
+          </NavLink>
+          <NavLink to="/mis-apuestas" onClick={closeAll} className={mobileLinkClass}>
+            Mis apuestas
+          </NavLink>
+          <NavLink to="/apuestas-detalladas" onClick={closeAll} className={mobileLinkClass}>
+            Apuestas detalladas
+          </NavLink>
+          <NavLink to="/informacion" onClick={closeAll} className={mobileLinkClass}>
+            Información
+          </NavLink>
+          <NavLink to="/reglamento" onClick={closeAll} className={mobileLinkClass}>
+            Reglamento oficial
+          </NavLink>
+
+          {/* Fila de 3 iconos (mis datos / admin / cerrar sesión) en vez de
+              botones de texto apilados -- mis datos y cerrar sesión en los
+              extremos, que siempre están; admin en medio, que es el que le
+              falta a un usuario normal (hueco vacío en medio, no a un lado). */}
+          <div className="mt-2 flex items-center justify-around border-t border-gray-200 pt-3">
             <button
               onClick={() => {
                 closeAll()
                 setEditOpen(true)
               }}
-              className="block px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
+              title="Mis datos"
+              aria-label="Mis datos"
+              className="rounded-full p-2 text-xl hover:bg-gray-100"
             >
-              Mis datos
+              👤
             </button>
-            {profile?.is_admin && (
-              <NavLink to="/admin" onClick={closeAll} className={mobileLinkClass}>
-                Admin
+            {profile?.is_admin ? (
+              <NavLink to="/admin" onClick={closeAll} title="Admin" aria-label="Admin" className="rounded-full p-2 text-xl hover:bg-gray-100">
+                🛠️
               </NavLink>
+            ) : (
+              <span />
             )}
             <button
               onClick={() => {
                 closeAll()
                 signOut()
               }}
-              className="block px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-gray-100"
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+              className="rounded-full p-2 text-xl hover:bg-red-50"
             >
-              Cerrar sesión
+              🚪
             </button>
           </div>
         </div>

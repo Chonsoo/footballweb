@@ -43,13 +43,17 @@ export default function Admin() {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Panel de administración</h1>
 
-      <div className="flex flex-wrap gap-1 border-b border-gray-200">
+      {/* Mismo lenguaje visual que la tira de pestañas de la app (burbujas
+          redondeadas, deslizable) en vez de la barra con subrayado de antes —
+          así el panel tiene su propia navegación reconocible, sin depender
+          del navbar general. */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`rounded-t px-3 py-2 text-sm font-medium ${
-              tab === t.id ? 'border-b-2 border-brand-700 text-brand-700' : 'text-gray-500 hover:text-gray-700'
+            className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              tab === t.id ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {t.label}
@@ -1318,7 +1322,18 @@ function FantasyStatsSection() {
         {message && <p className="mt-2 text-xs text-red-600">{message}</p>}
       </div>
 
-      <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+      <div className="max-h-[70vh] overflow-auto rounded border border-gray-200 bg-white">
+        {/* El wrapper necesita ser el propio contenedor de scroll (con una
+            altura máxima real) para que el "sticky" de la cabecera funcione
+            de verdad. Antes solo tenía overflow-x-auto, pero por cómo
+            funciona overflow en CSS eso ya activa overflow-y:auto por
+            debajo aunque no se vea — y al no tener una altura acotada, el
+            "sticky" se quedaba pegado a un punto fijo dentro de la propia
+            tabla en vez de seguir el scroll de la página, que es justo el
+            solape raro que se veía. Con altura máxima + overflow-auto
+            explícitos, y "top-0" (relativo a este contenedor, no a la
+            página), se queda fijo arriba del todo mientras se hace scroll
+            dentro de la tabla. */}
         {loadingPlayers || loadingMatchday ? (
           <p className="p-4 text-sm text-gray-500">Cargando…</p>
         ) : players.length === 0 ? (
@@ -1334,16 +1349,16 @@ function FantasyStatsSection() {
                   abajo. Puesto en cada celda es el patrón que funciona bien
                   en todos lados. */}
               <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wide text-gray-400">
-                <th className="sticky top-16 z-10 bg-white px-3 py-2">Jugador</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">Min</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">Goles</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">Asist</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">🟨</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">🟥</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">En propia</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">Portería a 0</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2">Puntos</th>
-                <th className="sticky top-16 z-10 bg-white px-2 py-2"></th>
+                <th className="sticky top-0 z-10 bg-white px-3 py-2">Jugador</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">Min</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">Goles</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">Asist</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">🟨</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">🟥</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">En propia</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">Portería a 0</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2">Puntos</th>
+                <th className="sticky top-0 z-10 bg-white px-2 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
