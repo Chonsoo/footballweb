@@ -6,6 +6,7 @@ import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
 import RankingAnswer from '../components/RankingAnswer'
 import PlayerSelect from '../components/PlayerSelect'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import {
   FANTASY_POSITION_LABELS,
@@ -75,6 +76,9 @@ function UsersSection() {
   const { user: currentUser } = useAuth()
   const [users, setUsers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmToggle, setConfirmToggle] = useState<Profile | null>(null)
+  const [confirmRemove, setConfirmRemove] = useState<Profile | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   async function load() {
     const { data } = await supabase.from('profiles').select('*').order('username')
@@ -88,17 +92,61 @@ function UsersSection() {
 
   async function toggleAdmin(u: Profile) {
     await supabase.rpc('set_user_admin', { p_user_id: u.id, p_is_admin: !u.is_admin })
+    setConfirmToggle(null)
     await load()
   }
 
   async function removeUser(u: Profile) {
-    if (!confirm(`¿Borrar a ${u.username}? Se eliminan también todas sus apuestas. Esto no se puede deshacer.`)) return
+    setRemoveError(null)
     const { error } = await supabase.rpc('delete_user', { p_user_id: u.id })
     if (error) {
-      alert(error.message)
+      setRemoveError(error.message)
       return
     }
+    setConfirmRemove(null)
     await load()
+  }
+
+  // Yo mismo voy fijo arriba, sin ninguna acción disponible (ni cambiar mi
+  // propio rol ni borrarme) -- el resto debajo, en el orden de siempre.
+  const me = users.find((u) => u.id === currentUser?.id)
+  const others = users.filter((u) => u.id !== currentUser?.id)
+
+  function renderRow(u: Profile, isMe: boolean) {
+    return (
+      <tr key={u.id} className={`border-t border-gray-100 ${isMe ? 'bg-brand-50/40' : ''}`}>
+        <td className="px-4 py-2">
+          {u.username}
+          {isMe && <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-xs text-brand-700">Tú</span>}
+          {!u.email_confirmed && (
+            <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700">sin confirmar</span>
+          )}
+        </td>
+        <td className="px-4 py-2">{u.is_admin ? 'Admin' : 'User'}</td>
+        <td className="px-4 py-2 text-right">
+          {!isMe && (
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmToggle(u)}
+                title={u.is_admin ? 'Quitar admin' : 'Hacer admin'}
+                aria-label={u.is_admin ? 'Quitar admin' : 'Hacer admin'}
+                className="rounded p-1 text-base hover:bg-gray-100"
+              >
+                🔄
+              </button>
+              <button
+                onClick={() => setConfirmRemove(u)}
+                title="Borrar"
+                aria-label="Borrar"
+                className="rounded p-1 text-base hover:bg-red-50"
+              >
+                🗑️
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+    )
   }
 
   return (
@@ -111,38 +159,46 @@ function UsersSection() {
           <thead className="bg-gray-100 text-gray-600">
             <tr>
               <th className="px-4 py-2">Usuario</th>
-              <th className="px-4 py-2">Admin</th>
+              <th className="px-4 py-2">Rol</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t border-gray-100">
-                <td className="px-4 py-2">
-                  {u.username}
-                  {!u.email_confirmed && (
-                    <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700">
-                      sin confirmar
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-2">{u.is_admin ? 'Sí' : 'No'}</td>
-                <td className="px-4 py-2 text-right">
-                  <div className="flex items-center justify-end gap-3">
-                    <button onClick={() => toggleAdmin(u)} className="text-brand-700 hover:underline">
-                      {u.is_admin ? 'Quitar admin' : 'Hacer admin'}
-                    </button>
-                    {u.id !== currentUser?.id && (
-                      <button onClick={() => removeUser(u)} className="text-red-600 hover:underline">
-                        Borrar
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {me && renderRow(me, true)}
+            {others.map((u) => renderRow(u, false))}
           </tbody>
         </table>
+      )}
+
+      {confirmToggle && (
+        <ConfirmDialog
+          title="Cambiar rol"
+          message={
+            confirmToggle.is_admin
+              ? `¿Quitar el rol de admin a ${confirmToggle.username}?`
+              : `¿Hacer admin a ${confirmToggle.username}? Podrá gestionar usuarios, preguntas y puntuaciones.`
+          }
+          confirmLabel={confirmToggle.is_admin ? 'Quitar admin' : 'Hacer admin'}
+          onConfirm={() => toggleAdmin(confirmToggle)}
+          onCancel={() => setConfirmToggle(null)}
+        />
+      )}
+
+      {confirmRemove && (
+        <ConfirmDialog
+          title="Borrar usuario"
+          message={
+            removeError ??
+            `¿Borrar a ${confirmRemove.username}? Se eliminan también todas sus apuestas. Esto no se puede deshacer.`
+          }
+          confirmLabel="Borrar"
+          danger
+          onConfirm={() => removeUser(confirmRemove)}
+          onCancel={() => {
+            setConfirmRemove(null)
+            setRemoveError(null)
+          }}
+        />
       )}
     </section>
   )

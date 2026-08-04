@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import EditProfileModal from './EditProfileModal'
+import ConfirmDialog from './ConfirmDialog'
 import TabStrip from './TabStrip'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isInitialPhaseClosed } from '../lib/deadlines'
@@ -22,6 +23,7 @@ export default function Navbar() {
   const [betsOpen, setBetsOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
 
   const betsRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
@@ -201,7 +203,7 @@ export default function Navbar() {
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false)
-                    signOut()
+                    setConfirmSignOut(true)
                   }}
                   title="Cerrar sesión"
                   aria-label="Cerrar sesión"
@@ -226,7 +228,6 @@ export default function Navbar() {
             Clasificación
           </NavLink>
 
-          <p className="px-3 pt-2 text-xs font-semibold uppercase text-gray-400">Apuestas</p>
           {!initialClosed && (
             <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
               Apuestas iniciales
@@ -278,7 +279,7 @@ export default function Navbar() {
             <button
               onClick={() => {
                 closeAll()
-                signOut()
+                setConfirmSignOut(true)
               }}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
@@ -291,6 +292,20 @@ export default function Navbar() {
       )}
 
       {editOpen && <EditProfileModal onClose={() => setEditOpen(false)} />}
+
+      {confirmSignOut && (
+        <ConfirmDialog
+          title="Cerrar sesión"
+          message="¿Seguro que quieres cerrar sesión?"
+          confirmLabel="Cerrar sesión"
+          danger
+          onConfirm={() => {
+            setConfirmSignOut(false)
+            signOut()
+          }}
+          onCancel={() => setConfirmSignOut(false)}
+        />
+      )}
     </nav>
   )
 }
