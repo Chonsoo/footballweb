@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { computeRanks, distFromLastTier } from '../lib/ranking'
+import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
 import { isInitialPhaseClosed } from '../lib/deadlines'
 import type { LeaderboardRow } from '../lib/database.types'
 
@@ -99,7 +99,11 @@ export default function Home() {
   const myRow = myIndex >= 0 ? rows[myIndex] : null
   // Ranking 1224: si empatas con otro en puntos, mostráis el mismo puesto.
   const myRank = myIndex >= 0 ? computeRanks(rows)[myIndex] : null
-  const myIsLast = myRow != null && rows.length > 1 && distFromLastTier(myRow.total_points, rows) === 0
+  // Empate de últimos manda... salvo que sea un empate total (el primero
+  // empata con el último): en ese caso todos van "primeros" con medalla, no
+  // farolillo.
+  const myIsLast =
+    myRow != null && rows.length > 1 && distFromLastTier(myRow.total_points, rows) === 0 && uniqueTierCount(rows) > 1
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,7 +1,18 @@
 import AnswerSummary, { TeamBadgeLabel } from './AnswerSummary'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
+import { formatPoints } from '../lib/formatPoints'
 import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
+
+type PointsMap = Record<string, number | null | undefined>
+
+// Puntos ya ganados en una pregunta calificada — null/undefined significa
+// "todavía sin calificar", así que no se muestra nada hasta que un admin le
+// ponga puntos (aunque sean 0, ahí sí se ve "+0 pts").
+function PointsPill({ points }: { points: number | null | undefined }) {
+  if (points == null) return null
+  return <span className="shrink-0 text-[11px] font-semibold text-green-600">+{formatPoints(points)}</span>
+}
 
 function pairKey(a: string, b: string) {
   return [a, b].sort().join('|')
@@ -9,7 +20,15 @@ function pairKey(a: string, b: string) {
 
 // Bloque 3 (duelos Big Three): agrupa cada emparejamiento (ida + vuelta) en
 // una sola fila en vez de 6 tarjetas sueltas.
-function PairedResults({ questions, answers }: { questions: SeasonQuestion[]; answers: Record<string, AnswerValue | undefined> }) {
+function PairedResults({
+  questions,
+  answers,
+  points,
+}: {
+  questions: SeasonQuestion[]
+  answers: Record<string, AnswerValue | undefined>
+  points: PointsMap
+}) {
   const pairs = new Map<string, SeasonQuestion[]>()
   for (const q of questions) {
     const home = q.config.home_team
@@ -32,6 +51,7 @@ function PairedResults({ questions, answers }: { questions: SeasonQuestion[]; an
                 <TeamBadgeLabel name={leg.config.home_team} />
                 <span className="font-bold text-gray-800">{v ? `${v.home} - ${v.away}` : '—'}</span>
                 <TeamBadgeLabel name={leg.config.away_team} />
+                <PointsPill points={points[leg.id]} />
               </div>
             )
           })}
@@ -49,9 +69,11 @@ function PairedResults({ questions, answers }: { questions: SeasonQuestion[]; an
 export default function BlockAnswers({
   questions,
   answers,
+  points = {},
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
+  points?: PointsMap
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -72,6 +94,9 @@ export default function BlockAnswers({
             {b === 1 &&
               qs.map((q) => (
                 <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+                  <div className="mb-1 flex justify-end">
+                    <PointsPill points={points[q.id]} />
+                  </div>
                   <AnswerSummary question={q} value={answers[q.id]} />
                 </div>
               ))}
@@ -80,23 +105,29 @@ export default function BlockAnswers({
               <div className="grid grid-cols-2 gap-2">
                 {qs.map((q) => (
                   <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
-                    <p className="mb-1 truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
-                      {shortQuestionLabel(q)}
-                    </p>
+                    <div className="mb-1 flex items-center justify-between gap-1">
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
+                        {shortQuestionLabel(q)}
+                      </p>
+                      <PointsPill points={points[q.id]} />
+                    </div>
                     <AnswerSummary question={q} value={answers[q.id]} />
                   </div>
                 ))}
               </div>
             )}
 
-            {b === 3 && <PairedResults questions={qs} answers={answers} />}
+            {b === 3 && <PairedResults questions={qs} answers={answers} points={points} />}
 
             {b === 4 && (
               <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
                 {qs.map((q) => (
                   <div key={q.id} className="flex items-center justify-between gap-2 px-3 py-2">
                     <span className="min-w-0 flex-1 text-xs text-gray-600">{q.question}</span>
-                    <AnswerSummary question={q} value={answers[q.id]} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      <AnswerSummary question={q} value={answers[q.id]} />
+                      <PointsPill points={points[q.id]} />
+                    </div>
                   </div>
                 ))}
               </div>

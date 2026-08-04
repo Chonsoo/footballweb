@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getTeamColor } from '../lib/teamColors'
-import { computeRanks, distFromLastTier } from '../lib/ranking'
+import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
 import type { LeaderboardRow } from '../lib/database.types'
 
 interface RowStyle {
@@ -29,8 +29,11 @@ interface RowStyle {
 // Regla de precedencia: si hay empate, se muestra siempre el puesto más
 // alto compartido (p.ej. empate a 2º y 3º -> los dos segundos), EXCEPTO
 // cuando el empate es justo el de los últimos — a esos se les pone el
-// farolillo y el puesto final, y esto manda incluso si ese mismo grupo
-// también calcula como 1º (caso límite: todos empatados a la vez).
+// farolillo y el puesto final. Pero si el empate es total (el primero
+// empata con el último, un solo escalón de puntos en toda la tabla),
+// manda el empate de primero: todos van con medalla de campeón, sin
+// farolillo — por eso "isLastTier" ya viene calculado exigiendo que haya
+// más de un escalón de puntos.
 function rowStyleFor(rank: number, tierFromLast: number, tierCount: number, isLastTier: boolean): RowStyle {
   if (isLastTier) {
     return {
@@ -95,11 +98,11 @@ export default function Ranking() {
         <div className="flex flex-col gap-2">
           {(() => {
             const ranks = computeRanks(rows)
-            const tierCount = new Set(rows.map((r) => r.total_points)).size
+            const tierCount = uniqueTierCount(rows)
             return rows.map((row, i) => {
               const rank = ranks[i]
               const tierFromLast = distFromLastTier(row.total_points, rows)
-              const isLastTier = tierFromLast === 0 && rows.length > 1
+              const isLastTier = tierFromLast === 0 && rows.length > 1 && tierCount > 1
               const style = rowStyleFor(rank, tierFromLast, tierCount, isLastTier)
               const team = LALIGA_TEAMS_2026_27.find((t) => t.id === row.favorite_team)
               const teamColor = getTeamColor(row.favorite_team)

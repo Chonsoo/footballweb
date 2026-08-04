@@ -112,6 +112,17 @@ export interface FantasyPlayerStats {
   updated_at: string
 }
 
+// Marca qué jornadas del fantasy ya se han jugado (independiente de
+// fantasy_player_stats, que no tiene ese concepto — solo guarda filas
+// sueltas por matchday_num). Sirve para que la visualización por
+// jugador/equipo sepa qué jornadas mostrar como cerradas.
+export interface FantasyMatchday {
+  number: number
+  played: boolean
+  played_at: string | null
+  created_at: string
+}
+
 // Un hueco concreto de la plantilla en la UI (posición + índice, p.ej. DEF-2).
 export interface FantasySlot {
   position: FantasyPosition

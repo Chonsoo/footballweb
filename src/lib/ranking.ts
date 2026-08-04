@@ -26,3 +26,11 @@ export function distFromLastTier(points: number, rows: { total_points: number }[
   const uniqueAsc = [...new Set(rows.map((r) => r.total_points))].sort((a, b) => a - b)
   return uniqueAsc.indexOf(points)
 }
+
+// Cuántos escalones de puntos distintos hay en la tabla. Si solo hay uno
+// (todos exactamente empatados, del primero al último), no hay "farolillo"
+// que valga: empatar de primero manda sobre empatar de último, así que ese
+// caso se trata como empate a primero para todos, no como empate a último.
+export function uniqueTierCount(rows: { total_points: number }[]): number {
+  return new Set(rows.map((r) => r.total_points)).size
+}

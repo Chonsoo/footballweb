@@ -1,6 +1,7 @@
 import AnswerSummary from './AnswerSummary'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { getFlashStatus, FLASH_STATUS_LABELS, FLASH_STATUS_COLORS } from '../lib/flashStatus'
+import { formatPoints } from '../lib/formatPoints'
 import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
 
 interface Props {
@@ -31,7 +32,13 @@ export default function FlashAnswerCard({ question, value, points, resolved }: P
       ) : (
         <p className="text-sm text-gray-400">Sin responder / aún no visible</p>
       )}
-      {points != null && <p className="self-end text-[11px] font-semibold text-green-600">+{points} pts</p>}
+      {resolved ? (
+        <p className="self-end text-[11px] font-semibold text-green-600">
+          {points != null ? `+${formatPoints(points)}` : 'Sin puntos'}
+        </p>
+      ) : (
+        <p className="self-end text-[11px] font-medium text-gray-400">Vale {formatPoints(question.points)}</p>
+      )}
     </div>
   )
 }

@@ -6,7 +6,6 @@ import FlashAnswerCard from '../components/FlashAnswerCard'
 import FlashStatusFilter from '../components/FlashStatusFilter'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyPlayer } from '../lib/fantasyTypes'
-import { computeRanks, distFromLastTier } from '../lib/ranking'
 import { getFlashStatus, type FlashStatus } from '../lib/flashStatus'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
@@ -14,21 +13,6 @@ interface UserLineup {
   formation: FantasyFormation
   value: Record<string, string>
 }
-
-// Mismo lenguaje visual que la Clasificación (oro/plata/bronce arriba, y
-// farolillo si el empate es justo el de los últimos — manda incluso si ese
-// mismo grupo también calcula como 1º, caso límite de empate total) para
-// que la fila de cada participante no sea un bloque blanco plano — un
-// vistazo rápido ya dice quién va primero antes de tocar nada.
-function rowAccent(rank: number, isLastTier: boolean): { background: string; borderColor: string } {
-  if (isLastTier) return { background: '#fee2e2', borderColor: '#fca5a5' }
-  if (rank === 1) return { background: 'linear-gradient(to right, #fbe9b8, #ffffff)', borderColor: '#e0b64a' }
-  if (rank === 2) return { background: 'linear-gradient(to right, #e2e8f0, #ffffff)', borderColor: '#94a3b8' }
-  if (rank === 3) return { background: 'linear-gradient(to right, #e8c4a0, #ffffff)', borderColor: '#b97a4a' }
-  return { background: '#ffffff', borderColor: '#e5e7eb' }
-}
-
-const MEDALS = ['🥇', '🥈', '🥉']
 
 export default function ApuestasDetalladas() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
@@ -55,8 +39,9 @@ export default function ApuestasDetalladas() {
         .eq('active', true)
         .order('name')
       const { data: res } = await supabase.from('season_results').select('question_id')
-      const sortedLb = ((lb as LeaderboardRow[]) ?? []).sort((a, b) => b.total_points - a.total_points)
-      setRows(sortedLb)
+      // Orden alfabético — el orden por puntos es cosa de Clasificación, no
+      // de esta página (aquí no se muestra puesto ni podio).
+      setRows((lb as LeaderboardRow[]) ?? [])
       setQuestions((qs as SeasonQuestion[]) ?? [])
       setFantasyPlayers((fp as FantasyPlayer[]) ?? [])
       setResolvedIds(new Set(((res as { question_id: string }[]) ?? []).map((r) => r.question_id)))
@@ -136,16 +121,11 @@ export default function ApuestasDetalladas() {
 
       <div className="flex flex-col gap-2">
         {(() => {
-          const ranks = computeRanks(rows)
           return filtered.map((r) => {
-          const rowIndex = rows.findIndex((row) => row.user_id === r.user_id)
-          const rank = rowIndex >= 0 ? ranks[rowIndex] : filtered.indexOf(r) + 1
-          const isLastTier = rows.length > 1 && distFromLastTier(r.total_points, rows) === 0
           const isOpen = expanded === r.user_id
           const answers = answersByUser[r.user_id]
           const userPoints = pointsByUser[r.user_id]
           const team = LALIGA_TEAMS_2026_27.find((t) => t.id === r.favorite_team)
-          const accent = rowAccent(rank, isLastTier)
           const initialQs = questions.filter((q) => q.phase === 'initial')
           const weeklyQs = questions.filter((q) => q.phase === 'weekly')
           const visibleWeeklyQs =
@@ -156,25 +136,13 @@ export default function ApuestasDetalladas() {
           return (
             <div
               key={r.user_id}
-              className="overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md"
-              style={{ borderColor: accent.borderColor }}
+              className="overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md"
             >
               <button
                 onClick={() => toggle(r.user_id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left"
-                style={{ background: accent.background }}
+                className="flex w-full items-center gap-3 bg-white px-4 py-3 text-left"
               >
-                <span className="flex w-8 shrink-0 flex-col items-center justify-center leading-none text-gray-500">
-                  {isLastTier ? (
-                    <>
-                      <span className="text-sm">🏮</span>
-                      <span className="mt-0.5 text-[9px] font-bold">{rows.length}º</span>
-                    </>
-                  ) : (
-                    <span className="text-base font-bold">{rank <= 3 ? MEDALS[rank - 1] : rank}</span>
-                  )}
-                </span>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-50 ring-1 ring-gray-100">
                   {team?.badge ? <img src={team.badge} alt="" className="h-6 w-6 object-contain" /> : <span className="text-xs">🛡️</span>}
                 </span>
                 <span className="min-w-0 flex-1 truncate font-semibold text-gray-800">{r.username}</span>
@@ -197,7 +165,7 @@ export default function ApuestasDetalladas() {
                     <p className="text-sm text-gray-400">Cargando…</p>
                   ) : (
                     <>
-                      <BlockAnswers questions={initialQs} answers={answers ?? {}} />
+                      <BlockAnswers questions={initialQs} answers={answers ?? {}} points={userPoints ?? {}} />
 
                       <div>
                         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">El 11 de Abuelonchos</h3>

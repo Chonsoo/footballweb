@@ -2,6 +2,7 @@ import { QuestionInput } from './QuestionInput'
 import Countdown from './Countdown'
 import { formatAnswer } from '../lib/answerFormat'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
+import { formatPoints } from '../lib/formatPoints'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface Props {
@@ -30,39 +31,38 @@ export default function QuestionCard({
   showCountdown,
 }: Props) {
   const complete = isAnswerComplete(question, myAnswer?.answer)
-  const pointsBadge = (
-    <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-      {question.points} pts
-      {complete && (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4 text-green-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-label="Respondida"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-    </span>
+  const checkmark = complete && (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4 text-green-600"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-label="Respondida"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+    </svg>
   )
   return (
     <div className="rounded border border-gray-200 bg-white p-4">
       {/* En apuestas flash no mostramos la competición (de momento todas son
-          Liga) — en su lugar, puntuación arriba a la izquierda y el
-          contador de esta pregunta arriba a la derecha. En apuestas
-          iniciales se mantiene el formato de siempre (competición + puntos),
-          ya que ahí el contador único va arriba de toda la página. */}
+          Liga) — en su lugar, el contador de esta pregunta arriba a la
+          derecha, y los puntos que vale abajo a la derecha (mismo sitio que
+          en Mis apuestas / Apuestas detalladas). En apuestas iniciales se
+          mantiene el formato de siempre (competición + puntos arriba), ya
+          que ahí el contador único va arriba de toda la página. */}
       {showCountdown ? (
         <div className="mb-1 flex items-center justify-between gap-2">
-          {pointsBadge}
+          <span>{checkmark}</span>
           {!closed && question.closes_at && <Countdown deadline={new Date(question.closes_at)} />}
         </div>
       ) : (
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs uppercase text-gray-400">{question.competition}</span>
-          {pointsBadge}
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+            {formatPoints(question.points)}
+            {checkmark}
+          </span>
         </div>
       )}
       <p className="mb-3 font-medium">{question.question}</p>
@@ -80,12 +80,15 @@ export default function QuestionCard({
                 <span className="shrink-0">{a.profile?.username ?? '—'}</span>
                 <span className="text-right">
                   {formatAnswer(question, a.answer)}
-                  {a.points != null && <span className="ml-2 font-semibold text-green-600">+{a.points}</span>}
+                  {a.points != null && <span className="ml-2 font-semibold text-green-600">+{formatPoints(a.points)}</span>}
                 </span>
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {showCountdown && (
+        <p className="mt-2 text-right text-[11px] font-medium text-gray-400">Vale {formatPoints(question.points)}</p>
       )}
     </div>
   )

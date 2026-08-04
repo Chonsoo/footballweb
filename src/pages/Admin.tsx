@@ -7,7 +7,14 @@ import { scoreRankingAnswer } from '../lib/rankingScoring'
 import RankingAnswer from '../components/RankingAnswer'
 import PlayerSelect from '../components/PlayerSelect'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
-import { FANTASY_POSITION_LABELS, type FantasyPlayer, type FantasyPosition } from '../lib/fantasyTypes'
+import {
+  FANTASY_POSITION_LABELS,
+  type FantasyMatchday,
+  type FantasyPlayer,
+  type FantasyPlayerStats,
+  type FantasyPosition,
+} from '../lib/fantasyTypes'
+import { calculateFantasyPoints } from '../lib/fantasyScoring'
 import type {
   AnswerType,
   AnswerValue,
@@ -21,7 +28,7 @@ import type {
   SeasonResult,
 } from '../lib/database.types'
 
-type Tab = 'users' | 'create' | 'resolve' | 'matchdays' | 'fantasy'
+type Tab = 'users' | 'create' | 'resolve' | 'matchdays' | 'fantasy' | 'fantasy-stats'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Usuarios' },
@@ -29,6 +36,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'resolve', label: 'Resolver apuestas' },
   { id: 'matchdays', label: 'Jornadas y partidos' },
   { id: 'fantasy', label: 'Jugadores fantasy' },
+  { id: 'fantasy-stats', label: 'Puntuación fantasy' },
 ]
 
 export default function Admin() {
@@ -57,6 +65,7 @@ export default function Admin() {
       {tab === 'resolve' && <ResolveQuestionsSection />}
       {tab === 'matchdays' && <MatchdaysSection />}
       {tab === 'fantasy' && <FantasyPlayersSection />}
+      {tab === 'fantasy-stats' && <FantasyStatsSection />}
     </div>
   )
 }
@@ -1270,6 +1279,334 @@ function FantasyPlayersSection() {
               )
             })}
           </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ---------------- Puntuación fantasy (por jornada) ----------------
+
+interface FantasyStatRow {
+  minutes: number
+  goals: number
+  assists: number
+  yellow_cards: number
+  red_cards: number
+  own_goals: number
+  clean_sheet: boolean
+}
+
+const EMPTY_FANTASY_ROW: FantasyStatRow = {
+  minutes: 0,
+  goals: 0,
+  assists: 0,
+  yellow_cards: 0,
+  red_cards: 0,
+  own_goals: 0,
+  clean_sheet: false,
+}
+
+// Entrada manual de estadísticas por jornada. La lista de jugadores no es
+// "todos los elegibles para Abuelonchos" (esos son decenas por equipo, la
+// mayoría sin puntuar nunca) sino solo los que algún participante ha
+// puesto realmente en su 11 — se sacan de fantasy_lineup_players cruzando
+// con los lineups en modo 'abuelonchos'. Los puntos los calcula el trigger
+// de BD (fantasy_calculate_points) al guardar; aquí también se
+// previsualizan con la misma fórmula duplicada en src/lib/fantasyScoring.ts,
+// para ver el resultado antes de pulsar "Guardar".
+//
+// El botón de "traer resultados automáticamente" (API-Football) se deja
+// pendiente a propósito: hace falta decidir antes si hay cuenta/plan
+// contratado (el endpoint de estadísticas por partido no suele ser
+// gratuito) y cómo mapear cada partido a la jornada correcta. Hasta
+// entonces, esta vía manual es la fuente de verdad.
+function FantasyStatsSection() {
+  const [players, setPlayers] = useState<FantasyPlayer[]>([])
+  const [loadingPlayers, setLoadingPlayers] = useState(true)
+  const [matchdayNum, setMatchdayNum] = useState(1)
+  const [rows, setRows] = useState<Record<number, FantasyStatRow>>({})
+  const [savedPoints, setSavedPoints] = useState<Record<number, number>>({})
+  const [matchday, setMatchday] = useState<FantasyMatchday | null>(null)
+  const [loadingMatchday, setLoadingMatchday] = useState(false)
+  const [savingPlayerId, setSavingPlayerId] = useState<number | null>(null)
+  const [savingMatchday, setSavingMatchday] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadPlayers() {
+      setLoadingPlayers(true)
+      const { data: lineups } = await supabase.from('fantasy_lineups').select('id').eq('mode', 'abuelonchos')
+      const lineupIds = ((lineups as { id: string }[]) ?? []).map((l) => l.id)
+
+      let pickedIds = new Set<number>()
+      if (lineupIds.length > 0) {
+        const { data: picks } = await supabase
+          .from('fantasy_lineup_players')
+          .select('player_id')
+          .in('lineup_id', lineupIds)
+        pickedIds = new Set(((picks as { player_id: number }[]) ?? []).map((p) => p.player_id))
+      }
+
+      if (pickedIds.size === 0) {
+        setPlayers([])
+        setLoadingPlayers(false)
+        return
+      }
+
+      const { data } = await supabase
+        .from('fantasy_players')
+        .select('*')
+        .in('api_player_id', [...pickedIds])
+        .order('player_position')
+        .order('name')
+      setPlayers((data as FantasyPlayer[]) ?? [])
+      setLoadingPlayers(false)
+    }
+    loadPlayers()
+  }, [])
+
+  async function loadMatchday(num: number) {
+    setLoadingMatchday(true)
+    setMessage(null)
+    const [{ data: statsData }, { data: mdData }] = await Promise.all([
+      supabase.from('fantasy_player_stats').select('*').eq('matchday_num', num),
+      supabase.from('fantasy_matchdays').select('*').eq('number', num).maybeSingle(),
+    ])
+    const nextRows: Record<number, FantasyStatRow> = {}
+    const nextPoints: Record<number, number> = {}
+    for (const s of (statsData as FantasyPlayerStats[]) ?? []) {
+      nextRows[s.player_id] = {
+        minutes: s.minutes,
+        goals: s.goals,
+        assists: s.assists,
+        yellow_cards: s.yellow_cards,
+        red_cards: s.red_cards,
+        own_goals: s.own_goals,
+        clean_sheet: s.clean_sheet,
+      }
+      nextPoints[s.player_id] = s.points
+    }
+    setRows(nextRows)
+    setSavedPoints(nextPoints)
+    setMatchday((mdData as FantasyMatchday) ?? null)
+    setLoadingMatchday(false)
+  }
+
+  useEffect(() => {
+    loadMatchday(matchdayNum)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchdayNum])
+
+  function rowFor(playerId: number): FantasyStatRow {
+    return rows[playerId] ?? EMPTY_FANTASY_ROW
+  }
+
+  function updateRow(playerId: number, patch: Partial<FantasyStatRow>) {
+    setRows((r) => ({ ...r, [playerId]: { ...rowFor(playerId), ...patch } }))
+  }
+
+  async function saveRow(player: FantasyPlayer) {
+    setSavingPlayerId(player.api_player_id)
+    setMessage(null)
+    const row = rowFor(player.api_player_id)
+    const { data, error } = await supabase
+      .from('fantasy_player_stats')
+      .upsert(
+        {
+          matchday_num: matchdayNum,
+          player_id: player.api_player_id,
+          player_position: player.player_position,
+          ...row,
+        },
+        { onConflict: 'matchday_num,player_id' }
+      )
+      .select('points')
+      .single()
+    setSavingPlayerId(null)
+    if (error) {
+      setMessage(`Error guardando ${player.name}: ${error.message}`)
+      return
+    }
+    setSavedPoints((p) => ({ ...p, [player.api_player_id]: (data as { points: number }).points }))
+  }
+
+  async function toggleMatchdayPlayed() {
+    setSavingMatchday(true)
+    setMessage(null)
+    const nextPlayed = !(matchday?.played ?? false)
+    const { data, error } = await supabase
+      .from('fantasy_matchdays')
+      .upsert(
+        { number: matchdayNum, played: nextPlayed, played_at: nextPlayed ? new Date().toISOString() : null },
+        { onConflict: 'number' }
+      )
+      .select('*')
+      .single()
+    setSavingMatchday(false)
+    if (error) {
+      setMessage(`Error: ${error.message}`)
+      return
+    }
+    setMatchday(data as FantasyMatchday)
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <div className="rounded border border-gray-200 bg-white p-4">
+        <p className="mb-3 text-sm text-gray-500">
+          Puntuación del fantasy, jornada a jornada — solo aparecen los jugadores que algún participante ha puesto
+          realmente en su 11 (no todos los elegibles). Los puntos se calculan solos según minutos, goles,
+          asistencias, tarjetas, goles en propia y portería a cero.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            Jornada
+            <input
+              type="number"
+              min={1}
+              value={matchdayNum}
+              onChange={(e) => setMatchdayNum(Math.max(1, Number(e.target.value) || 1))}
+              className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={toggleMatchdayPlayed}
+            disabled={savingMatchday}
+            title={matchday?.played ? 'Vuelve a pulsar para desmarcarla' : undefined}
+            className={`rounded px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+              matchday?.played ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {savingMatchday ? 'Guardando…' : matchday?.played ? '✓ Jornada jugada (pulsa para desmarcar)' : 'Marcar jornada como jugada'}
+          </button>
+        </div>
+        {message && <p className="mt-2 text-xs text-red-600">{message}</p>}
+      </div>
+
+      <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+        {loadingPlayers || loadingMatchday ? (
+          <p className="p-4 text-sm text-gray-500">Cargando…</p>
+        ) : players.length === 0 ? (
+          <p className="p-4 text-sm text-gray-400">
+            Todavía nadie ha puesto su 11, así que no hay jugadores que puntuar aquí.
+          </p>
+        ) : (
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wide text-gray-400">
+                <th className="px-3 py-2">Jugador</th>
+                <th className="px-2 py-2">Min</th>
+                <th className="px-2 py-2">Goles</th>
+                <th className="px-2 py-2">Asist</th>
+                <th className="px-2 py-2">🟨</th>
+                <th className="px-2 py-2">🟥</th>
+                <th className="px-2 py-2">En propia</th>
+                <th className="px-2 py-2">Portería a 0</th>
+                <th className="px-2 py-2">Puntos</th>
+                <th className="px-2 py-2"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {players.map((p) => {
+                const row = rowFor(p.api_player_id)
+                const team = LALIGA_TEAMS_2026_27.find((t) => t.id === p.team_id)
+                const preview = calculateFantasyPoints({ player_position: p.player_position, ...row })
+                const saved = savedPoints[p.api_player_id]
+                const upToDate = saved != null && saved === preview
+                return (
+                  <tr key={p.api_player_id}>
+                    <td className="px-3 py-1.5">
+                      <span className="flex items-center gap-1.5">
+                        {team?.badge && <img src={team.badge} alt="" className="h-4 w-4 object-contain" />}
+                        <span className="font-medium text-gray-800">{p.name}</span>
+                        <span className="text-[10px] text-gray-400">{FANTASY_POSITION_LABELS[p.player_position]}</span>
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={120}
+                        value={row.minutes}
+                        onChange={(e) => updateRow(p.api_player_id, { minutes: Number(e.target.value) || 0 })}
+                        className="w-14 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        value={row.goals}
+                        onChange={(e) => updateRow(p.api_player_id, { goals: Number(e.target.value) || 0 })}
+                        className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        value={row.assists}
+                        onChange={(e) => updateRow(p.api_player_id, { assists: Number(e.target.value) || 0 })}
+                        className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={2}
+                        value={row.yellow_cards}
+                        onChange={(e) => updateRow(p.api_player_id, { yellow_cards: Number(e.target.value) || 0 })}
+                        className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        max={1}
+                        value={row.red_cards}
+                        onChange={(e) => updateRow(p.api_player_id, { red_cards: Number(e.target.value) || 0 })}
+                        className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <input
+                        type="number"
+                        min={0}
+                        value={row.own_goals}
+                        onChange={(e) => updateRow(p.api_player_id, { own_goals: Number(e.target.value) || 0 })}
+                        className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
+                      />
+                    </td>
+                    <td className="px-2 py-1.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={row.clean_sheet}
+                        onChange={(e) => updateRow(p.api_player_id, { clean_sheet: e.target.checked })}
+                      />
+                    </td>
+                    <td className={`px-2 py-1.5 text-center font-semibold ${upToDate ? 'text-gray-700' : 'text-amber-600'}`}>
+                      {preview}
+                      {!upToDate && <span title="Sin guardar todavía">*</span>}
+                    </td>
+                    <td className="px-2 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => saveRow(p)}
+                        disabled={savingPlayerId === p.api_player_id}
+                        className="rounded bg-brand-700 px-2 py-1 text-xs font-medium text-white disabled:opacity-50"
+                      >
+                        {savingPlayerId === p.api_player_id ? '…' : 'Guardar'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </section>

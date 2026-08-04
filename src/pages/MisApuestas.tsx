@@ -86,7 +86,7 @@ export default function MisApuestas() {
             </div>
           )}
 
-          <BlockAnswers questions={initialQuestions} answers={answers} />
+          <BlockAnswers questions={initialQuestions} answers={answers} points={points} />
 
           <div className="flex flex-col gap-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-brand-600">Bloque 5 · El 11 de Abuelonchos</h2>
