@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { usePlayers } from '../lib/usePlayers'
+import { findTeamBadge } from '../lib/teamBadge'
 import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type SeasonQuestion } from '../lib/database.types'
-import { zoneForPosition } from '../lib/rankingZones'
-import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, SegmentedBar, type ChartSlice } from '../components/OracleCharts'
+import { zoneForPosition, type ZoneInfo } from '../lib/rankingZones'
+import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, type ChartSlice } from '../components/OracleCharts'
 
 interface AnswerCountRow {
   answer_value: unknown
@@ -21,19 +23,21 @@ interface RankingCountRow {
   cnt: number
 }
 
-// Distribución completa (no solo la más votada) de las respuestas de una
-// pregunta "simple" (texto, elección, marcador) -- se decide donut o barras
-// según cuántas respuestas distintas haya, ver ANSWER_TYPE_ICON/renderSimple.
+// Distribución completa de una pregunta "simple" (elección, texto), ordenada
+// de más a menos votada.
 interface SimpleStat {
   rows: { label: string; pct: number }[]
   total: number
 }
 
-// Distribución de zona por equipo (Clasificación / tier list): un equipo
-// puede tener votos repartidos entre varias zonas, no solo la más votada.
-interface TeamZoneDist {
+// Solo la opción más votada por equipo -- Clasificación / tier list: aquí no
+// interesa el desglose completo, solo "a qué zona cree la mayoría que va cada
+// equipo y con qué margen".
+interface TeamTopZone {
   team_id: string
-  zones: ChartSlice[]
+  label: string
+  pct: number
+  color: string
 }
 
 const ZONE_HEX: Record<string, string> = {
@@ -48,21 +52,12 @@ const ANSWER_TYPE_ICON: Record<string, string> = {
   ranking: '🏆',
   tier_list: '📊',
   choice: '🗳️',
-  score_prediction: '⚽',
   text: '💬',
 }
 
-// Umbral para elegir donut (pocas respuestas distintas, se lee bien en tarta)
-// vs barras clasificadas (texto libre, buscador de jugador... con potencialmente
-// muchas respuestas distintas, donde una tarta con 15 porciones finas no se lee).
-const DONUT_MAX_SLICES = 6
 const BAR_TOP_N = 5
 
-function formatAnswerValue(q: SeasonQuestion, value: unknown): string {
-  if (q.answer_type === 'score_prediction') {
-    const v = value as { home: number; away: number }
-    return `${v.home} - ${v.away}`
-  }
+function formatAnswerValue(value: unknown): string {
   return String(value)
 }
 
@@ -75,73 +70,74 @@ function teamBadge(q: SeasonQuestion, teamId: string): string | undefined {
 }
 
 export default function Oraculo() {
+  const { players } = usePlayers()
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [simpleStats, setSimpleStats] = useState<Record<string, SimpleStat | null>>({})
-  const [zoneStats, setZoneStats] = useState<Record<string, TeamZoneDist[]>>({})
+  const [topZoneStats, setTopZoneStats] = useState<Record<string, TeamTopZone[]>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
       const { data: qs } = await supabase.from('season_questions').select('*').order('created_at', { ascending: true })
-      const list = (qs as SeasonQuestion[]) ?? []
+      // Los duelos de marcador (Big Three) no encajan bien en ningún gráfico
+      // de "respuesta más votada" -- se quedan fuera de El Oráculo.
+      const list = ((qs as SeasonQuestion[]) ?? []).filter((q) => q.answer_type !== 'score_prediction')
       setQuestions(list)
 
       const simple: Record<string, SimpleStat | null> = {}
-      const zones: Record<string, TeamZoneDist[]> = {}
+      const topZones: Record<string, TeamTopZone[]> = {}
 
       await Promise.all(
         list.map(async (q) => {
-          if (q.answer_type === 'tier_list') {
-            const { data } = await supabase.rpc('oracle_tier_counts', { p_question_id: q.id })
-            const rows = (data as TierCountRow[]) ?? []
-            const tierLabels = new Map((q.config.tiers ?? []).map((t) => [t.id, t.label]))
-            tierLabels.set(MEDIA_TIER_ID, MEDIA_TIER_LABEL)
-            const tierOrder = [...(q.config.tiers ?? []).map((t) => t.id), MEDIA_TIER_ID]
+          if (q.answer_type === 'tier_list' || q.answer_type === 'ranking') {
+            if (q.answer_type === 'tier_list') {
+              const { data } = await supabase.rpc('oracle_tier_counts', { p_question_id: q.id })
+              const rows = (data as TierCountRow[]) ?? []
+              const tierLabels = new Map((q.config.tiers ?? []).map((t) => [t.id, t.label]))
+              tierLabels.set(MEDIA_TIER_ID, MEDIA_TIER_LABEL)
+              const tierOrder = [...(q.config.tiers ?? []).map((t) => t.id), MEDIA_TIER_ID]
 
-            const byTeam = new Map<string, TierCountRow[]>()
-            for (const r of rows) {
-              if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, [])
-              byTeam.get(r.team_id)!.push(r)
-            }
-            zones[q.id] = [...byTeam.entries()].map(([teamId, teamRows]) => {
-              const total = teamRows.reduce((s, r) => s + Number(r.cnt), 0)
-              const slices = teamRows
-                .map((r) => ({
-                  label: tierLabels.get(r.tier_id) ?? r.tier_id,
-                  pct: total > 0 ? (Number(r.cnt) / total) * 100 : 0,
-                  color: CHART_PALETTE[tierOrder.indexOf(r.tier_id) % CHART_PALETTE.length] ?? '#9ca3af',
-                }))
-                .sort((a, b) => b.pct - a.pct)
-              return { team_id: teamId, zones: slices }
-            })
-          } else if (q.answer_type === 'ranking') {
-            const { data } = await supabase.rpc('oracle_ranking_counts', { p_question_id: q.id })
-            const rows = (data as RankingCountRow[]) ?? []
-            const questionTiers = q.config.tiers ?? []
-            const total = q.config.items?.length ?? 20
+              const byTeam = new Map<string, TierCountRow[]>()
+              for (const r of rows) {
+                if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, [])
+                byTeam.get(r.team_id)!.push(r)
+              }
+              topZones[q.id] = [...byTeam.entries()].map(([teamId, teamRows]) => {
+                const total = teamRows.reduce((s, r) => s + Number(r.cnt), 0)
+                const top = teamRows.reduce((a, b) => (Number(b.cnt) > Number(a.cnt) ? b : a))
+                return {
+                  team_id: teamId,
+                  label: tierLabels.get(top.tier_id) ?? top.tier_id,
+                  pct: total > 0 ? (Number(top.cnt) / total) * 100 : 0,
+                  color: CHART_PALETTE[tierOrder.indexOf(top.tier_id) % CHART_PALETTE.length] ?? '#9ca3af',
+                }
+              })
+            } else {
+              const { data } = await supabase.rpc('oracle_ranking_counts', { p_question_id: q.id })
+              const rows = (data as RankingCountRow[]) ?? []
+              const questionTiers = q.config.tiers ?? []
+              const total = q.config.items?.length ?? 20
 
-            // Reagrupa cada (equipo, posición, cnt) a (equipo, zona, cnt) usando la
-            // misma regla que la UI de respuesta.
-            const byTeam = new Map<string, Map<string, { label: string; cnt: number }>>()
-            for (const r of rows) {
-              const zone = zoneForPosition(Number(r.pos), questionTiers, total)
-              if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, new Map())
-              const zoneCounts = byTeam.get(r.team_id)!
-              const prev = zoneCounts.get(zone.id)
-              zoneCounts.set(zone.id, { label: zone.label, cnt: (prev?.cnt ?? 0) + Number(r.cnt) })
+              const byTeam = new Map<string, Map<string, { zone: ZoneInfo; cnt: number }>>()
+              for (const r of rows) {
+                const zone = zoneForPosition(Number(r.pos), questionTiers, total)
+                if (!byTeam.has(r.team_id)) byTeam.set(r.team_id, new Map())
+                const zoneCounts = byTeam.get(r.team_id)!
+                const prev = zoneCounts.get(zone.id)
+                zoneCounts.set(zone.id, { zone, cnt: (prev?.cnt ?? 0) + Number(r.cnt) })
+              }
+              topZones[q.id] = [...byTeam.entries()].map(([teamId, zoneCounts]) => {
+                const entries = [...zoneCounts.values()]
+                const totalVotes = entries.reduce((s, v) => s + v.cnt, 0)
+                const top = entries.reduce((a, b) => (b.cnt > a.cnt ? b : a))
+                return {
+                  team_id: teamId,
+                  label: top.zone.label,
+                  pct: totalVotes > 0 ? (top.cnt / totalVotes) * 100 : 0,
+                  color: ZONE_HEX[top.zone.id] ?? '#9ca3af',
+                }
+              })
             }
-            zones[q.id] = [...byTeam.entries()].map(([teamId, zoneCounts]) => {
-              const entries = [...zoneCounts.entries()]
-              const totalVotes = entries.reduce((s, [, v]) => s + v.cnt, 0)
-              const slices = entries
-                .map(([zoneId, v]) => ({
-                  label: v.label,
-                  pct: totalVotes > 0 ? (v.cnt / totalVotes) * 100 : 0,
-                  color: ZONE_HEX[zoneId] ?? '#9ca3af',
-                }))
-                .sort((a, b) => b.pct - a.pct)
-              return { team_id: teamId, zones: slices }
-            })
           } else {
             const { data } = await supabase.rpc('oracle_answer_counts', { p_question_id: q.id })
             const rows = (data as AnswerCountRow[]) ?? []
@@ -153,14 +149,14 @@ export default function Oraculo() {
             const sorted = [...rows].sort((a, b) => Number(b.cnt) - Number(a.cnt))
             simple[q.id] = {
               total,
-              rows: sorted.map((r) => ({ label: formatAnswerValue(q, r.answer_value), pct: (Number(r.cnt) / total) * 100 })),
+              rows: sorted.map((r) => ({ label: formatAnswerValue(r.answer_value), pct: (Number(r.cnt) / total) * 100 })),
             }
           }
         })
       )
 
       setSimpleStats(simple)
-      setZoneStats(zones)
+      setTopZoneStats(topZones)
       setLoading(false)
     }
     load()
@@ -184,7 +180,7 @@ export default function Oraculo() {
       {questions.map((q, i) => {
         const accent = CHART_PALETTE[i % CHART_PALETTE.length]
         const isZoneType = q.answer_type === 'tier_list' || q.answer_type === 'ranking'
-        const teamRows = zoneStats[q.id] ?? []
+        const teamRows = topZoneStats[q.id] ?? []
         const stat = simpleStats[q.id]
 
         return (
@@ -215,7 +211,6 @@ export default function Oraculo() {
                     <ul className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                       {teamRows.map((r) => {
                         const badge = teamBadge(q, r.team_id)
-                        const top = r.zones[0]
                         return (
                           <li key={r.team_id} className="flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-2 text-sm">
@@ -227,13 +222,13 @@ export default function Oraculo() {
                                 )}
                                 <span className="truncate">{teamName(q, r.team_id)}</span>
                               </span>
-                              {top && (
-                                <span className="shrink-0 text-gray-500">
-                                  {top.label} <span className="font-semibold text-gray-700">{Math.round(top.pct)}%</span>
-                                </span>
-                              )}
+                              <span className="shrink-0 text-gray-500">
+                                {r.label} <span className="font-semibold text-gray-700">{Math.round(r.pct)}%</span>
+                              </span>
                             </div>
-                            <SegmentedBar slices={r.zones} />
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                              <div className="h-full rounded-full" style={{ width: `${Math.round(r.pct)}%`, backgroundColor: r.color }} />
+                            </div>
                           </li>
                         )
                       })}
@@ -242,30 +237,49 @@ export default function Oraculo() {
                 )
               ) : stat ? (
                 (() => {
-                  const useDonut = stat.rows.length <= DONUT_MAX_SLICES
-                  let sliceRows = stat.rows
-                  if (!useDonut) {
-                    const top = stat.rows.slice(0, BAR_TOP_N)
-                    const restPct = stat.rows.slice(BAR_TOP_N).reduce((s, r) => s + r.pct, 0)
-                    sliceRows = restPct > 0 ? [...top, { label: 'Otros', pct: restPct }] : top
-                  }
-                  const slices: ChartSlice[] = sliceRows.map((r, idx) => ({
-                    label: r.label,
-                    pct: r.pct,
-                    color: CHART_PALETTE[idx % CHART_PALETTE.length],
-                  }))
-                  return (
-                    <div className="flex flex-col gap-2">
-                      {useDonut ? (
+                  // Equipo con opciones fijas y acotadas (Fiasco Europeo, Podio
+                  // Underdog): un donut con el % de cada equipo que sí recibió
+                  // algún voto se lee bien y tiene sentido, porque el universo de
+                  // respuestas posibles ya es pequeño de por sí.
+                  if (q.config.team_ids) {
+                    const slices: ChartSlice[] = stat.rows.map((r, idx) => ({
+                      label: r.label,
+                      pct: r.pct,
+                      color: CHART_PALETTE[idx % CHART_PALETTE.length],
+                      image: findTeamBadge(r.label),
+                    }))
+                    return (
+                      <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-4">
                           <DonutChart slices={slices} />
                           <div className="min-w-0 flex-1">
                             <ChartLegend slices={slices} />
                           </div>
                         </div>
-                      ) : (
-                        <RankedBars slices={slices} />
-                      )}
+                        <p className="text-[11px] text-gray-400">
+                          {stat.total} respuesta{stat.total === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  // Buscador de jugador (Pichichi, Zamora, Zarra...) o cualquier
+                  // otra elección de texto libre: universo de respuestas
+                  // potencialmente grande, así que barras con las 5 más
+                  // votadas en vez de una tarta con muchas porciones finas.
+                  const top = stat.rows.slice(0, BAR_TOP_N)
+                  const restPct = stat.rows.slice(BAR_TOP_N).reduce((s, r) => s + r.pct, 0)
+                  const rows = restPct > 0 ? [...top, { label: 'Otros', pct: restPct }] : top
+                  const slices: ChartSlice[] = rows.map((r, idx) => ({
+                    label: r.label,
+                    pct: r.pct,
+                    color: CHART_PALETTE[idx % CHART_PALETTE.length],
+                    image: q.config.player_choice ? players.find((p) => p.name === r.label)?.photo_url ?? undefined : undefined,
+                    imageRound: true,
+                  }))
+                  return (
+                    <div className="flex flex-col gap-2">
+                      <RankedBars slices={slices} />
                       <p className="text-[11px] text-gray-400">
                         {stat.total} respuesta{stat.total === 1 ? '' : 's'}
                       </p>

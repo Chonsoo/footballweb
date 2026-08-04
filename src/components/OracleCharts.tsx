@@ -8,9 +8,25 @@ export interface ChartSlice {
   label: string
   pct: number
   color: string
+  // Foto de jugador (redonda) o escudo de equipo (contain) opcional, para las
+  // barras/leyenda -- ver SliceAvatar.
+  image?: string
+  imageRound?: boolean
 }
 
 export const CHART_PALETTE = ['#2f8f4e', '#d9ad4a', '#3b82f6', '#f97316', '#a855f7', '#ef4444', '#06b6d4', '#ec4899']
+
+function SliceAvatar({ slice, size = 20 }: { slice: ChartSlice; size?: number }) {
+  if (!slice.image) return null
+  return (
+    <span
+      className={`inline-block shrink-0 overflow-hidden bg-gray-100 ${slice.imageRound ? 'rounded-full' : ''}`}
+      style={{ width: size, height: size }}
+    >
+      <img src={slice.image} alt="" className={`h-full w-full ${slice.imageRound ? 'object-cover' : 'object-contain'}`} />
+    </span>
+  )
+}
 
 // Truco clásico para un donut sin librería: un <circle> con stroke-dasharray
 // recorta el trazo a la longitud proporcional de cada porción, y
@@ -49,10 +65,11 @@ export function DonutChart({ slices, size = 88 }: { slices: ChartSlice[]; size?:
 
 export function ChartLegend({ slices }: { slices: ChartSlice[] }) {
   return (
-    <ul className="flex flex-col gap-1">
+    <ul className="flex flex-col gap-1.5">
       {slices.map((s) => (
         <li key={s.label} className="flex items-center gap-1.5 text-xs">
           <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+          <SliceAvatar slice={s} size={18} />
           <span className="min-w-0 flex-1 truncate text-gray-600">{s.label}</span>
           <span className="shrink-0 font-semibold text-gray-800">{Math.round(s.pct)}%</span>
         </li>
@@ -63,10 +80,11 @@ export function ChartLegend({ slices }: { slices: ChartSlice[] }) {
 
 export function RankedBars({ slices }: { slices: ChartSlice[] }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {slices.map((s) => (
         <div key={s.label} className="flex flex-col gap-0.5">
-          <div className="flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs">
+            <SliceAvatar slice={s} size={24} />
             <span className="min-w-0 flex-1 truncate font-medium text-gray-700">{s.label}</span>
             <span className="shrink-0 font-semibold" style={{ color: s.color }}>
               {Math.round(s.pct)}%
