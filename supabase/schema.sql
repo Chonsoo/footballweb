@@ -195,111 +195,18 @@ create policy "season_results: select all authenticated"
 
 -- Escritura solo vía función set_season_result (más abajo)
 
--- ---------- MATCHDAYS (jornadas) ----------
-create table if not exists public.matchdays (
-  id uuid primary key default gen_random_uuid(),
-  competition text not null,
-  number int not null,
-  deadline timestamptz not null,
-  created_at timestamptz not null default now(),
-  unique (competition, number)
-);
-
-alter table public.matchdays enable row level security;
-
-create policy "matchdays: select all authenticated"
-  on public.matchdays for select to authenticated using (true);
-
-create policy "matchdays: admin write"
-  on public.matchdays for all to authenticated
-  using (public.is_admin(auth.uid()))
-  with check (public.is_admin(auth.uid()));
-
--- ---------- MATCHES ----------
-create table if not exists public.matches (
-  id uuid primary key default gen_random_uuid(),
-  matchday_id uuid not null references public.matchdays (id) on delete cascade,
-  home_team text not null,
-  away_team text not null,
-  kickoff timestamptz not null,
-  home_score int,
-  away_score int,
-  status text not null default 'scheduled', -- scheduled | finished
-  created_at timestamptz not null default now()
-);
-
-alter table public.matches enable row level security;
-
-create policy "matches: select all authenticated"
-  on public.matches for select to authenticated using (true);
-
-create policy "matches: admin write"
-  on public.matches for all to authenticated
-  using (public.is_admin(auth.uid()))
-  with check (public.is_admin(auth.uid()));
-
--- ---------- MATCH BETS (predicciones por partido) ----------
-create table if not exists public.match_bets (
-  id uuid primary key default gen_random_uuid(),
-  match_id uuid not null references public.matches (id) on delete cascade,
-  user_id uuid not null references public.profiles (id) on delete cascade,
-  home_score_pred int not null,
-  away_score_pred int not null,
-  points int,
-  created_at timestamptz not null default now(),
-  unique (match_id, user_id)
-);
-
-alter table public.match_bets enable row level security;
-
-create policy "match_bets: select own or after deadline or admin"
-  on public.match_bets for select to authenticated
-  using (
-    user_id = auth.uid()
-    or public.is_admin(auth.uid())
-    or exists (
-      select 1 from public.matches m
-      join public.matchdays d on d.id = m.matchday_id
-      where m.id = match_id and now() > d.deadline
-    )
-  );
-
-create policy "match_bets: insert own before deadline"
-  on public.match_bets for insert to authenticated
-  with check (
-    user_id = auth.uid()
-    and exists (
-      select 1 from public.matches m
-      join public.matchdays d on d.id = m.matchday_id
-      where m.id = match_id and now() < d.deadline
-    )
-  );
-
-create policy "match_bets: update own before deadline"
-  on public.match_bets for update to authenticated
-  using (user_id = auth.uid())
-  with check (
-    user_id = auth.uid()
-    and exists (
-      select 1 from public.matches m
-      join public.matchdays d on d.id = m.matchday_id
-      where m.id = match_id and now() < d.deadline
-    )
-  );
-
 -- ---------- LEADERBOARD (vista de puntos totales) ----------
+-- El sistema de "quiniela de resultados" (matchdays/matches/match_bets) que
+-- esta vista sumaba junto a season_answers se eliminó por completo (migración
+-- 028) por no haberse llegado a usar nunca. favorite_team se añadió después
+-- (migración 025).
 create or replace view public.leaderboard as
 select
   p.id as user_id,
   p.username,
-  coalesce(mb.total, 0) + coalesce(sa.total, 0) as total_points
+  coalesce(sa.total, 0) as total_points,
+  p.favorite_team
 from public.profiles p
-left join (
-  select user_id, sum(points) as total
-  from public.match_bets
-  where points is not null
-  group by user_id
-) mb on mb.user_id = p.id
 left join (
   select user_id, sum(points) as total
   from public.season_answers
@@ -412,45 +319,6 @@ begin
   set points = case when answer = v_result then v_points else 0 end,
       graded_at = now()
   where question_id = p_question_id;
-end;
-$$;
-
--- Cerrar un partido con el resultado real y calcular puntos
-create or replace function public.settle_match(p_match_id uuid, p_home_score int, p_away_score int)
-returns void
-language plpgsql
-security definer set search_path = public
-as $$
-declare
-  v_outcome text;
-begin
-  if not public.is_admin(auth.uid()) then
-    raise exception 'not authorized';
-  end if;
-
-  update public.matches
-  set home_score = p_home_score, away_score = p_away_score, status = 'finished'
-  where id = p_match_id;
-
-  v_outcome := case
-    when p_home_score > p_away_score then 'home'
-    when p_home_score < p_away_score then 'away'
-    else 'draw'
-  end;
-
-  update public.match_bets
-  set points = case
-    when home_score_pred = p_home_score and away_score_pred = p_away_score then 3
-    when (
-      case
-        when home_score_pred > away_score_pred then 'home'
-        when home_score_pred < away_score_pred then 'away'
-        else 'draw'
-      end
-    ) = v_outcome then 1
-    else 0
-  end
-  where match_id = p_match_id;
 end;
 $$;
 

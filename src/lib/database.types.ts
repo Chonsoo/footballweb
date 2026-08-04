@@ -80,36 +80,6 @@ export interface SeasonResult {
   resolved_at: string
 }
 
-export interface Matchday {
-  id: string
-  competition: string
-  number: number
-  deadline: string
-  created_at: string
-}
-
-export interface Match {
-  id: string
-  matchday_id: string
-  home_team: string
-  away_team: string
-  kickoff: string
-  home_score: number | null
-  away_score: number | null
-  status: 'scheduled' | 'finished'
-  created_at: string
-}
-
-export interface MatchBet {
-  id: string
-  match_id: string
-  user_id: string
-  home_score_pred: number
-  away_score_pred: number
-  points: number | null
-  created_at: string
-}
-
 export interface LeaderboardRow {
   user_id: string
   username: string

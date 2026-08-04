@@ -18,8 +18,6 @@ import { calculateFantasyPoints } from '../lib/fantasyScoring'
 import type {
   AnswerType,
   AnswerValue,
-  Match,
-  Matchday,
   Profile,
   QuestionConfig,
   QuestionPhase,
@@ -28,13 +26,12 @@ import type {
   SeasonResult,
 } from '../lib/database.types'
 
-type Tab = 'users' | 'create' | 'resolve' | 'matchdays' | 'fantasy' | 'fantasy-stats'
+type Tab = 'users' | 'create' | 'resolve' | 'fantasy' | 'fantasy-stats'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'users', label: 'Usuarios' },
   { id: 'create', label: 'Crear apuesta' },
   { id: 'resolve', label: 'Resolver apuestas' },
-  { id: 'matchdays', label: 'Jornadas y partidos' },
   { id: 'fantasy', label: 'Jugadores fantasy' },
   { id: 'fantasy-stats', label: 'Puntuación fantasy' },
 ]
@@ -63,7 +60,6 @@ export default function Admin() {
       {tab === 'users' && <UsersSection />}
       {tab === 'create' && <CreateQuestionSection />}
       {tab === 'resolve' && <ResolveQuestionsSection />}
-      {tab === 'matchdays' && <MatchdaysSection />}
       {tab === 'fantasy' && <FantasyPlayersSection />}
       {tab === 'fantasy-stats' && <FantasyStatsSection />}
     </div>
@@ -717,170 +713,6 @@ function GradingPanel({
   )
 }
 
-// ---------------- Jornadas y partidos ----------------
-function MatchdaysSection() {
-  const [matchdays, setMatchdays] = useState<Matchday[]>([])
-  const [matches, setMatches] = useState<Match[]>([])
-  const [competition, setCompetition] = useState('liga')
-  const [number, setNumber] = useState(1)
-  const [deadline, setDeadline] = useState('')
-
-  const [selectedMatchday, setSelectedMatchday] = useState('')
-  const [homeTeam, setHomeTeam] = useState('')
-  const [awayTeam, setAwayTeam] = useState('')
-  const [kickoff, setKickoff] = useState('')
-  const [scoreDrafts, setScoreDrafts] = useState<Record<string, { home: string; away: string }>>({})
-
-  async function load() {
-    const { data: mds } = await supabase.from('matchdays').select('*').order('deadline', { ascending: false })
-    const { data: ms } = await supabase.from('matches').select('*').order('kickoff', { ascending: true })
-    setMatchdays((mds as Matchday[]) ?? [])
-    setMatches((ms as Match[]) ?? [])
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
-
-  async function addMatchday() {
-    if (!deadline) return
-    await supabase.from('matchdays').insert({
-      competition,
-      number,
-      deadline: new Date(deadline).toISOString(),
-    })
-    setNumber((n) => n + 1)
-    setDeadline('')
-    await load()
-  }
-
-  async function addMatch() {
-    if (!selectedMatchday || !homeTeam || !awayTeam || !kickoff) return
-    await supabase.from('matches').insert({
-      matchday_id: selectedMatchday,
-      home_team: homeTeam,
-      away_team: awayTeam,
-      kickoff: new Date(kickoff).toISOString(),
-    })
-    setHomeTeam('')
-    setAwayTeam('')
-    setKickoff('')
-    await load()
-  }
-
-  async function settleMatch(m: Match) {
-    const draft = scoreDrafts[m.id]
-    if (!draft || draft.home === '' || draft.away === '') return
-    await supabase.rpc('settle_match', {
-      p_match_id: m.id,
-      p_home_score: Number(draft.home),
-      p_away_score: Number(draft.away),
-    })
-    await load()
-  }
-
-  return (
-    <section>
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-white p-4">
-        <select value={competition} onChange={(e) => setCompetition(e.target.value)} className="rounded border border-gray-300 px-2 py-2 text-sm">
-          <option value="liga">Liga</option>
-          <option value="champions">Champions</option>
-        </select>
-        <input
-          type="number"
-          min={1}
-          value={number}
-          onChange={(e) => setNumber(Number(e.target.value))}
-          className="w-20 rounded border border-gray-300 px-2 py-2 text-sm"
-          placeholder="Jornada nº"
-        />
-        <input
-          type="datetime-local"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <button onClick={addMatchday} className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white">
-          Crear jornada
-        </button>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-white p-4">
-        <select
-          value={selectedMatchday}
-          onChange={(e) => setSelectedMatchday(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        >
-          <option value="">Elige jornada…</option>
-          {matchdays.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.competition} J{m.number}
-            </option>
-          ))}
-        </select>
-        <input
-          type="text"
-          placeholder="Local"
-          value={homeTeam}
-          onChange={(e) => setHomeTeam(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <input
-          type="text"
-          placeholder="Visitante"
-          value={awayTeam}
-          onChange={(e) => setAwayTeam(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <input
-          type="datetime-local"
-          value={kickoff}
-          onChange={(e) => setKickoff(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-2 text-sm"
-        />
-        <button onClick={addMatch} className="rounded bg-brand-700 px-3 py-2 text-sm font-medium text-white">
-          Añadir partido
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        {matches.map((m) => (
-          <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-200 bg-white p-3 text-sm">
-            <span>
-              {m.home_team} vs {m.away_team} · {m.status}
-              {m.status === 'finished' && ` (${m.home_score}-${m.away_score})`}
-            </span>
-            {m.status !== 'finished' && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  className="w-14 rounded border border-gray-300 px-2 py-1"
-                  onChange={(e) =>
-                    setScoreDrafts((d) => ({ ...d, [m.id]: { home: e.target.value, away: d[m.id]?.away ?? '' } }))
-                  }
-                />
-                <span>-</span>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-14 rounded border border-gray-300 px-2 py-1"
-                  onChange={(e) =>
-                    setScoreDrafts((d) => ({ ...d, [m.id]: { home: d[m.id]?.home ?? '', away: e.target.value } }))
-                  }
-                />
-                <button onClick={() => settleMatch(m)} className="text-brand-700 hover:underline">
-                  Cerrar partido
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 // ---------------- Jugadores fantasy (alta manual, sin API) ----------------
 // Formato: Nombre;POSICION;AAAA-MM-DD;id_equipo;nacionalidad;photo_url;nombre_completo
 // Los últimos 3 campos son opcionales — se puede dejar un hueco vacío entre
@@ -1496,17 +1328,22 @@ function FantasyStatsSection() {
         ) : (
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="sticky top-16 z-10 border-b border-gray-200 bg-white text-left text-[11px] uppercase tracking-wide text-gray-400">
-                <th className="px-3 py-2">Jugador</th>
-                <th className="px-2 py-2">Min</th>
-                <th className="px-2 py-2">Goles</th>
-                <th className="px-2 py-2">Asist</th>
-                <th className="px-2 py-2">🟨</th>
-                <th className="px-2 py-2">🟥</th>
-                <th className="px-2 py-2">En propia</th>
-                <th className="px-2 py-2">Portería a 0</th>
-                <th className="px-2 py-2">Puntos</th>
-                <th className="px-2 py-2"></th>
+              {/* El "sticky" va en cada <th>, no en la <tr> -- en varios
+                  navegadores (sobre todo móviles) sticky en una fila entera
+                  de tabla se renderiza mal y se solapa con las filas de
+                  abajo. Puesto en cada celda es el patrón que funciona bien
+                  en todos lados. */}
+              <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wide text-gray-400">
+                <th className="sticky top-16 z-10 bg-white px-3 py-2">Jugador</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">Min</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">Goles</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">Asist</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">🟨</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">🟥</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">En propia</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">Portería a 0</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2">Puntos</th>
+                <th className="sticky top-16 z-10 bg-white px-2 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

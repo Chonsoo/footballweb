@@ -8,8 +8,6 @@ import Ranking from './pages/Ranking'
 import Home from './pages/Home'
 import SeasonBets from './pages/SeasonBets'
 import WeeklyBets from './pages/WeeklyBets'
-import Matchdays from './pages/Matchdays'
-import MatchdayDetail from './pages/MatchdayDetail'
 import Admin from './pages/Admin'
 import Oraculo from './pages/Oraculo'
 import MisApuestas from './pages/MisApuestas'
@@ -110,26 +108,6 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <Reglamento />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jornadas"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Matchdays />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jornadas/:id"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <MatchdayDetail />
               </Layout>
             </ProtectedRoute>
           }
