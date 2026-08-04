@@ -52,10 +52,12 @@ export default function QuestionCard({
           mantiene el formato de siempre (competición + puntos arriba), ya
           que ahí el contador único va arriba de toda la página. */}
       {showCountdown ? (
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <span>{checkmark}</span>
-          {!closed && question.closes_at && <Countdown deadline={new Date(question.closes_at)} />}
-        </div>
+        !closed &&
+        question.closes_at && (
+          <div className="mb-1 flex items-center justify-end">
+            <Countdown deadline={new Date(question.closes_at)} />
+          </div>
+        )
       ) : (
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs uppercase text-gray-400">{question.competition}</span>

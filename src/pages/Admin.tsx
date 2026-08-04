@@ -1467,6 +1467,7 @@ function FantasyStatsSection() {
               min={1}
               value={matchdayNum}
               onChange={(e) => setMatchdayNum(Math.max(1, Number(e.target.value) || 1))}
+              onFocus={(e) => e.target.select()}
               className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
             />
           </label>
@@ -1495,7 +1496,7 @@ function FantasyStatsSection() {
         ) : (
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-[11px] uppercase tracking-wide text-gray-400">
+              <tr className="sticky top-16 z-10 border-b border-gray-200 bg-white text-left text-[11px] uppercase tracking-wide text-gray-400">
                 <th className="px-3 py-2">Jugador</th>
                 <th className="px-2 py-2">Min</th>
                 <th className="px-2 py-2">Goles</th>
@@ -1531,6 +1532,7 @@ function FantasyStatsSection() {
                         max={120}
                         value={row.minutes}
                         onChange={(e) => updateRow(p.api_player_id, { minutes: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-14 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
@@ -1540,6 +1542,7 @@ function FantasyStatsSection() {
                         min={0}
                         value={row.goals}
                         onChange={(e) => updateRow(p.api_player_id, { goals: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
@@ -1549,6 +1552,7 @@ function FantasyStatsSection() {
                         min={0}
                         value={row.assists}
                         onChange={(e) => updateRow(p.api_player_id, { assists: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
@@ -1559,6 +1563,7 @@ function FantasyStatsSection() {
                         max={2}
                         value={row.yellow_cards}
                         onChange={(e) => updateRow(p.api_player_id, { yellow_cards: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
@@ -1569,6 +1574,7 @@ function FantasyStatsSection() {
                         max={1}
                         value={row.red_cards}
                         onChange={(e) => updateRow(p.api_player_id, { red_cards: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
@@ -1578,6 +1584,7 @@ function FantasyStatsSection() {
                         min={0}
                         value={row.own_goals}
                         onChange={(e) => updateRow(p.api_player_id, { own_goals: Number(e.target.value) || 0 })}
+                        onFocus={(e) => e.target.select()}
                         className="w-12 rounded border border-gray-300 px-1.5 py-0.5"
                       />
                     </td>
