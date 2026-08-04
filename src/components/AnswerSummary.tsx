@@ -69,7 +69,9 @@ function TeamBadgeImg({ name }: { name: string | undefined }) {
   return <img src={badge} alt="" className="h-5 w-5 shrink-0 object-contain" onError={() => setErr(true)} />
 }
 
-function TeamBadgeLabel({ name }: { name: string | undefined }) {
+// Exportado: lo reutiliza "Mis apuestas" para juntar los 3 duelos Big Three
+// (ida y vuelta) en una sola fila compacta por emparejamiento.
+export function TeamBadgeLabel({ name }: { name: string | undefined }) {
   const badge = findTeamBadge(name)
   const [err, setErr] = useState(false)
   return (
