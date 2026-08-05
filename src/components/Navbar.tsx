@@ -9,11 +9,13 @@ import { isInitialPhaseClosed } from '../lib/deadlines'
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-    isActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'
+    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
   }`
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block px-3 py-2 text-base font-medium rounded ${isActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'}`
+  `block px-3 py-2 text-base font-medium rounded ${
+    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+  }`
 
 export default function Navbar() {
   const { profile, signOut } = useAuth()
@@ -53,10 +55,13 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-30 border-b border-brand-100 bg-white">
+    // Mismo lenguaje que el resto de la app ya: barra translúcida "de
+    // cristal" sobre el verde de marca (Layout), no una barra blanca sólida
+    // -- así el navbar no rompe la cohesión con el fondo de cada página.
+    <nav className="sticky top-0 z-30 border-b border-white/10 bg-brand-900/70 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 py-3">
         {isAdminRoute ? (
-          <NavLink to="/" className="hidden items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-brand-700 md:flex">
+          <NavLink to="/" className="hidden items-center gap-1.5 px-3 py-2 text-sm font-medium text-white/80 hover:text-white md:flex">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
@@ -76,7 +81,7 @@ export default function Navbar() {
                 type="button"
                 onClick={() => setBetsOpen((v) => !v)}
                 className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-                  betsActive ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-brand-50'
+                  betsActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 Apuestas
@@ -130,13 +135,13 @@ export default function Navbar() {
 
         <NavLink to="/" end className="flex min-w-0 items-center gap-2 md:hidden">
           {favoriteTeam?.badge && <img src={favoriteTeam.badge} alt="" className="h-7 w-7 shrink-0 object-contain" />}
-          <span className="truncate text-sm font-semibold text-brand-800">🏆 Porra Abueloncha 2026 LaLiga</span>
+          <span className="truncate text-sm font-semibold text-white">🏆 Porra Abueloncha 2026 LaLiga</span>
         </NavLink>
 
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex shrink-0 items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+          className="flex shrink-0 items-center justify-center rounded p-2 text-white/90 hover:bg-white/10 md:hidden"
           aria-label="Abrir menú"
           aria-expanded={open}
         >
@@ -153,7 +158,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => setProfileMenuOpen((v) => !v)}
-            className="flex items-center justify-center rounded-full p-1.5 text-gray-600 hover:bg-gray-100"
+            className="flex items-center justify-center rounded-full p-1.5 text-white/90 hover:bg-white/10"
             aria-label="Perfil"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,7 +225,7 @@ export default function Navbar() {
       {!isAdminRoute && <TabStrip />}
 
       {open && (
-        <div className="space-y-1 border-t border-gray-200 px-4 py-3 md:hidden">
+        <div className="space-y-1 border-t border-white/10 px-4 py-3 md:hidden">
           <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
             Inicio
           </NavLink>
@@ -257,7 +262,7 @@ export default function Navbar() {
               botones de texto apilados -- mis datos y cerrar sesión en los
               extremos, que siempre están; admin en medio, que es el que le
               falta a un usuario normal (hueco vacío en medio, no a un lado). */}
-          <div className="mt-2 flex items-center justify-around border-t border-gray-200 pt-3">
+          <div className="mt-2 flex items-center justify-around border-t border-white/10 pt-3">
             <button
               onClick={() => {
                 closeAll()
@@ -265,12 +270,12 @@ export default function Navbar() {
               }}
               title="Mis datos"
               aria-label="Mis datos"
-              className="rounded-full p-2 text-xl hover:bg-gray-100"
+              className="rounded-full p-2 text-xl hover:bg-white/10"
             >
               👤
             </button>
             {profile?.is_admin ? (
-              <NavLink to="/admin" onClick={closeAll} title="Admin" aria-label="Admin" className="rounded-full p-2 text-xl hover:bg-gray-100">
+              <NavLink to="/admin" onClick={closeAll} title="Admin" aria-label="Admin" className="rounded-full p-2 text-xl hover:bg-white/10">
                 🛠️
               </NavLink>
             ) : (
@@ -283,7 +288,7 @@ export default function Navbar() {
               }}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
-              className="rounded-full p-2 text-xl hover:bg-red-50"
+              className="rounded-full p-2 text-xl hover:bg-red-500/20"
             >
               🚪
             </button>

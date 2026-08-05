@@ -134,19 +134,13 @@ export default function Home() {
   return (
     // Ya no hace falta una caja verde propia para la cabecera -- el fondo
     // verde de marca ahora viene del propio Layout (misma app en todas
-    // partes), así que aquí solo flotan el escudo difuminado, el título y
-    // la cinta de jugadores directamente sobre ese verde, igual que en el
-    // login/onboarding (AuthShell).
+    // partes), así que aquí solo flotan el título y la cinta de jugadores
+    // directamente sobre ese verde, igual que en el login/onboarding
+    // (AuthShell). El escudo del equipo favorito NO se repite aquí -- ya lo
+    // pinta Layout como marca de agua fija de fondo en todas las páginas, y
+    // poner otro aquí encima daba un molesto efecto de "escudo duplicado".
     <div className="relative flex flex-col gap-6">
       <div className="relative overflow-hidden rounded-2xl">
-        {favoriteTeam?.badge && (
-          <img
-            src={favoriteTeam.badge}
-            alt=""
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[80%] w-[80%] max-h-56 max-w-56 -translate-x-1/2 -translate-y-1/2 object-contain opacity-20"
-          />
-        )}
-
         {teamPhotos.length > 0 && (
           <div className="relative z-10 mb-4">
             <PlayerAvatarMarquee photos={teamPhotos} direction="left" size="sm" />
@@ -154,7 +148,7 @@ export default function Home() {
         )}
 
         <div className="relative z-10 flex flex-col items-center gap-3 px-5 py-3 text-center text-white">
-          {!favoriteTeam?.badge && <span className="text-4xl">🏆</span>}
+          <span className="text-4xl">🏆</span>
           <h1 className="text-2xl font-extrabold tracking-tight text-gold-400 sm:text-3xl">PORRA ABUELONCHA</h1>
 
           <div className="flex w-full max-w-xs items-center justify-center gap-4 rounded-xl bg-white/[0.67] px-4 py-2.5 shadow-xl shadow-black/20 backdrop-blur-sm">

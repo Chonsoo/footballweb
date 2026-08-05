@@ -19,7 +19,7 @@ export default function TabStrip() {
 
   return (
     <div
-      className="flex gap-1.5 overflow-x-auto border-b border-brand-100 bg-white px-3 py-2 md:hidden"
+      className="flex gap-1.5 overflow-x-auto border-b border-white/10 bg-brand-900/40 px-3 py-2 backdrop-blur-md md:hidden"
       style={{ scrollbarWidth: 'none' }}
     >
       {tabs.map((tab, i) => (
@@ -30,7 +30,7 @@ export default function TabStrip() {
           end={tab.path === '/'}
           className={({ isActive }) =>
             `flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              isActive ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              isActive ? 'bg-white/25 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
             }`
           }
         >
