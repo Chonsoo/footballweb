@@ -27,7 +27,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         {/* Marca de LaLiga grande de fondo, centrada detrás del título y la
             tarjeta -- como es un SVG (sin caja de fondo), no tiene el
             problema del cuadrado gris/negro que daban los PNG anteriores. */}
-        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-64 w-64 -translate-x-1/2 -translate-y-6 opacity-15 sm:h-80 sm:w-80 sm:-translate-y-10" />
+        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-96 w-96 -translate-x-1/2 -translate-y-6 opacity-40 sm:h-[30rem] sm:w-[30rem] sm:-translate-y-10" />
 
         <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
