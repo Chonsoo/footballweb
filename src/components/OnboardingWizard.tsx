@@ -310,7 +310,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         <div className="flex items-center justify-between gap-4 text-sm">
           <button
             onClick={goNext}
-            className="text-left font-medium text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-700"
+            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left font-medium text-gray-600 shadow-sm hover:bg-gray-50"
           >
             {skipLabel}
           </button>

@@ -8,8 +8,8 @@ import { BLOCK_SCORING_HINTS } from '../lib/blocks'
 // "Apuestas iniciales", para que la explicación esté en los dos sitios.
 export default function BlockScoringHelp({ block, label }: { block: number; label?: string }) {
   const [open, setOpen] = useState(false)
-  const hint = BLOCK_SCORING_HINTS[block]
-  if (!hint) return null
+  const lines = BLOCK_SCORING_HINTS[block]
+  if (!lines || lines.length === 0) return null
 
   return (
     <>
@@ -38,7 +38,14 @@ export default function BlockScoringHelp({ block, label }: { block: number; labe
                 ✕
               </button>
             </div>
-            <p className="text-sm leading-relaxed text-gray-600">{hint}</p>
+            <ul className="flex flex-col gap-2 text-sm leading-relaxed text-gray-600">
+              {lines.map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-brand-500">•</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}

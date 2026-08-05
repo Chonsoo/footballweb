@@ -3,6 +3,7 @@ import Countdown from './Countdown'
 import { formatAnswer } from '../lib/answerFormat'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { formatPoints } from '../lib/formatPoints'
+import { shortQuestionLabel } from '../lib/questionLabel'
 import type { AnswerValue, Profile, SeasonAnswer, SeasonQuestion, SeasonResult } from '../lib/database.types'
 
 interface Props {
@@ -75,7 +76,14 @@ export default function QuestionCard({
           </span>
         </div>
       )}
-      <p className="mb-3 font-medium">{question.question}</p>
+      {/* Bloque 2 (premios individuales): el enunciado guardado suele ser
+          "Pichichi Absoluto: ¿quién será el máximo goleador...", pensado para
+          Apuestas detalladas donde no hay contexto alrededor. Aquí, con la
+          pregunta ya agrupada bajo el título "Bloque 2 · Premios
+          individuales" y el modal "Cómo puntúa" al lado, la explicación larga
+          sobra -- basta el nombre del premio (la parte antes de los dos
+          puntos), igual que ya se hacía en Mis apuestas/Detalladas. */}
+      <p className="mb-3 font-medium">{question.block === 2 ? shortQuestionLabel(question) : question.question}</p>
 
       {!closed ? (
         <QuestionInput question={question} value={myAnswer?.answer} saving={saving} onSave={onSave} />
