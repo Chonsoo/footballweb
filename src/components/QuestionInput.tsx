@@ -50,17 +50,12 @@ export function ScoreStepper({ value, onChange }: { value: number; onChange: (n:
       >
         −
       </button>
-      <input
-        type="text"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        value={value}
-        onChange={(e) => {
-          const digits = e.target.value.replace(/[^0-9]/g, '')
-          onChange(digits === '' ? 0 : Math.max(0, Number(digits)))
-        }}
-        className="w-6 shrink-0 border-x border-brand-200 bg-white py-1 text-center text-sm font-semibold text-gray-800"
-      />
+      {/* Antes era un <input> editable a mano -- solo debe cambiar con los
+          botones −/+, así que un <span> de solo lectura en vez de un campo
+          "pinchable" (nada de cursor de texto ni teclado al tocarlo). */}
+      <span className="flex w-6 shrink-0 select-none items-center justify-center border-x border-brand-200 bg-white py-1 text-center text-sm font-semibold text-gray-800">
+        {value}
+      </span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
