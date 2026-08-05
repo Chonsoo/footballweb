@@ -56,34 +56,38 @@
   animation: ranking-fab-label 3.5s ease forwards;
 }
 
-/* Anillo de escudos que orbita de fondo en Login/Registro (ver
-   AuthOrbitBackground.tsx). Truco de dos rotaciones opuestas y misma
-   duración: el anillo entero gira (ring), y cada escudo lleva dentro un
-   contra-giro a la misma velocidad (counter) que cancela justo el giro del
-   anillo -- así los escudos se desplazan en círculo pero se ven siempre
-   "de pie", sin dar vueltas sobre sí mismos. */
-@keyframes auth-orbit-spin {
+/* Cintas de escudos de Login/Registro (ver TeamMarquee.tsx). Cada cinta
+   pinta la lista de equipos DOS veces seguidas y se desplaza de 0% a -50%
+   (el ancho de una copia) -- al llegar al final, la segunda copia encaja
+   exactamente donde empezaba la primera, así que el bucle es perfecto y no
+   se nota el salto. La de "right" simplemente arranca ya desplazada al -50%
+   y va hacia el 0%, para que se mueva en el sentido contrario. */
+@keyframes auth-marquee-left {
   from {
-    transform: rotate(0deg);
+    transform: translateX(0);
   }
   to {
-    transform: rotate(360deg);
+    transform: translateX(-50%);
   }
 }
-@keyframes auth-orbit-counter-spin {
+@keyframes auth-marquee-right {
   from {
-    transform: rotate(0deg);
+    transform: translateX(-50%);
   }
   to {
-    transform: rotate(-360deg);
+    transform: translateX(0);
   }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .auth-orbit-ring {
-    animation: auth-orbit-spin 120s linear infinite;
-  }
-  .auth-orbit-counter {
-    animation: auth-orbit-counter-spin 120s linear infinite;
+.auth-marquee-left {
+  animation: auth-marquee-left 35s linear infinite;
+}
+.auth-marquee-right {
+  animation: auth-marquee-right 35s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-marquee-left,
+  .auth-marquee-right {
+    animation: none;
   }
 }
 
