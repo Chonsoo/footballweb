@@ -10,6 +10,7 @@ import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
+import type { FantasyPlayer } from '../lib/fantasyTypes'
 
 interface Step {
   key: string
@@ -25,7 +26,29 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const [showIntro, setShowIntro] = useState(true)
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [teamPlayers, setTeamPlayers] = useState<FantasyPlayer[]>([])
   const fantasy = useFantasyLineup()
+
+  // Fotos para la cinta del intro: TODOS los jugadores del equipo favorito
+  // (no solo los "abuelonchos" elegibles para el 11, que es un subconjunto
+  // mucho más pequeño -- fantasy.players ya viene filtrado a eligible_abuelonchos
+  // desde el hook, así que aquí se pide aparte sin ese filtro).
+  useEffect(() => {
+    async function loadTeamPlayers() {
+      const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+      if (!favoriteTeam) {
+        setTeamPlayers([])
+        return
+      }
+      const { data } = await supabase
+        .from('fantasy_players')
+        .select('*')
+        .eq('team_id', favoriteTeam.id)
+        .eq('active', true)
+      setTeamPlayers((data as FantasyPlayer[]) ?? [])
+    }
+    loadTeamPlayers()
+  }, [profile?.favorite_team])
 
   useEffect(() => {
     async function load() {
@@ -122,12 +145,11 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
 
   if (showIntro) {
     const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
-    // Solo jugadores REALES del equipo favorito (con foto de verdad) -- se
+    // Todos los jugadores del equipo favorito (no solo los "abuelonchos"
+    // elegibles para el 11), y solo los que tienen foto de verdad -- se
     // descartan los que no tienen photo_url para no repetir la silueta
     // genérica en bucle.
-    const teamPhotos = fantasy.players
-      .filter((p) => p.team_id === favoriteTeam?.id && p.photo_url)
-      .map((p) => p.photo_url as string)
+    const teamPhotos = teamPlayers.filter((p) => p.photo_url).map((p) => p.photo_url as string)
 
     return (
       <AuthShell
@@ -162,18 +184,21 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
             <h1 className="mb-2 text-2xl font-bold text-gray-900">
               ¡Bienvenido a la Porra de LaLiga 2026/27{profile?.username ? `, ${profile.username}` : ''}!
             </h1>
-            <p className="text-gray-500">
-              Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
-              individuales, los duelos entre grandes, algún que otro over/under y tu 11 de Abuelonchos. Todo
-              repartido en {totalSteps} bloques.
+            <p className="mt-2 text-sm text-gray-600">
+              Aquí vas a dejar tus pronósticos para toda la temporada: quién se lleva el título, quién baja a Segunda,
+              los premios individuales, los duelos entre grandes, algún que otro over/under y, cómo no, tu{' '}
+              <strong className="font-semibold text-gray-800">11 de Abuelonchos</strong>. Todo repartido en{' '}
+              <strong className="font-semibold text-gray-800">{totalSteps} bloques</strong>, para que no se te haga
+              bola.
             </p>
           </div>
-          <div className="text-sm text-gray-600">
-            <p className="mb-2">
-              No hace falta rellenarlo todo del tirón: cada respuesta se guarda sola en cuanto la marcas, y puedes
-              saltarte cualquier bloque y completarlo más adelante desde «Apuestas iniciales» en el menú.
+          <div className="flex flex-col gap-2 text-sm text-gray-600">
+            <p>
+              No hace falta rellenarlo todo del tirón: cada respuesta se guarda sola en cuanto la marcas, así que
+              puedes saltarte cualquier bloque y volver luego desde{' '}
+              <strong className="font-semibold text-gray-800">«Apuestas iniciales»</strong> en el menú.
             </p>
-            <p>Tómate el tiempo que necesites. ¡Que gane el mejor pronosticador!</p>
+            <p>Tómate el tiempo que necesites… pero no te duermas, que luego se cierra el plazo. ¡Que gane el mejor pronosticador! 🏆</p>
           </div>
           <button
             onClick={() => setShowIntro(false)}
