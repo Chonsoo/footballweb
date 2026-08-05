@@ -2154,7 +2154,12 @@ function FantasyStatsSection() {
           realmente en su 11 (no todos los elegibles). Los puntos se calculan solos según minutos, goles,
           asistencias, tarjetas, goles en propia y portería a cero.
         </p>
-        <div className="mb-3 flex flex-wrap gap-1">
+        {/* Todos los botones miden lo mismo (h-9 w-9 fijo) para que la
+            cuadrícula no se mueva al cambiar de jornada -- el "más grande"
+            de la seleccionada es solo un scale (transform), que no ocupa
+            espacio de más y no empuja al resto ni cambia cómo se reparten
+            las filas. */}
+        <div className="mb-3 flex flex-wrap gap-1.5">
           {Array.from({ length: TOTAL_MATCHDAYS }, (_, i) => i + 1).map((n) => {
             const isSelected = n === matchdayNum
             const isPlayed = playedMatchdays.has(n)
@@ -2164,12 +2169,11 @@ function FantasyStatsSection() {
                 type="button"
                 onClick={() => setMatchdayNum(n)}
                 title={isPlayed ? `Jornada ${n} · jugada` : `Jornada ${n}`}
-                className={`rounded font-semibold transition-all ${
-                  isSelected
-                    ? 'scale-110 px-2.5 py-1.5 text-sm text-white ' + (isPlayed ? 'bg-green-700' : 'bg-brand-700')
-                    : 'px-2 py-1 text-xs ' +
-                      (isPlayed ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200')
-                }`}
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded text-xs font-semibold transition-transform ${
+                  isSelected ? 'z-10 scale-125 text-white ' + (isPlayed ? 'bg-green-700' : 'bg-brand-700') : ''
+                } ${
+                  !isSelected && isPlayed ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''
+                } ${!isSelected && !isPlayed ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : ''}`}
               >
                 J{n}
               </button>
