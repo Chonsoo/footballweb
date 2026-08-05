@@ -144,19 +144,12 @@ create trigger protect_season_answer_points_trg
   before insert or update on public.season_answers
   for each row execute procedure public.protect_season_answer_points();
 
--- Solo ves las respuestas ajenas una vez cerrado el plazo (o si eres admin / es tuya)
-create policy "season_answers: select own or after deadline or admin"
+-- Cualquiera puede leer las respuestas de cualquiera (Fantasy, Apuestas
+-- detalladas, desglose de puntos... ya asumen poder mostrar esto) -- ver
+-- migración 036. Insertar/editar sigue restringido a lo propio (más abajo).
+create policy "season_answers: select all authenticated"
   on public.season_answers for select to authenticated
-  using (
-    user_id = auth.uid()
-    or public.is_admin(auth.uid())
-    or exists (
-      select 1 from public.season_questions q
-      where q.id = question_id
-        and q.closes_at is not null
-        and now() > q.closes_at
-    )
-  );
+  using (true);
 
 create policy "season_answers: insert own before deadline"
   on public.season_answers for insert to authenticated
@@ -459,9 +452,11 @@ create table if not exists public.fantasy_lineups (
 
 alter table public.fantasy_lineups enable row level security;
 
-create policy "fantasy_lineups: select own or admin or locked"
+-- Cualquiera puede leer el 11 de cualquiera, esté o no bloqueado -- ver
+-- migración 036.
+create policy "fantasy_lineups: select all authenticated"
   on public.fantasy_lineups for select to authenticated
-  using (user_id = auth.uid() or public.is_admin(auth.uid()) or locked = true);
+  using (true);
 
 create policy "fantasy_lineups: insert own"
   on public.fantasy_lineups for insert to authenticated
@@ -483,15 +478,10 @@ create table if not exists public.fantasy_lineup_players (
 
 alter table public.fantasy_lineup_players enable row level security;
 
-create policy "fantasy_lineup_players: select visible lineups"
+-- Cualquiera puede leer los jugadores del 11 de cualquiera -- ver migración 036.
+create policy "fantasy_lineup_players: select all authenticated"
   on public.fantasy_lineup_players for select to authenticated
-  using (
-    exists (
-      select 1 from public.fantasy_lineups fl
-      where fl.id = lineup_id
-        and (fl.user_id = auth.uid() or public.is_admin(auth.uid()) or fl.locked = true)
-    )
-  );
+  using (true);
 
 create policy "fantasy_lineup_players: write own while unlocked"
   on public.fantasy_lineup_players for all to authenticated
