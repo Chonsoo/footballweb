@@ -25,7 +25,7 @@ export default function TeamMarquee({ direction = 'left' }: { direction?: 'left'
   const animClass = direction === 'left' ? 'auth-marquee-left' : 'auth-marquee-right'
 
   return (
-    <div className="flex h-16 w-full items-center overflow-hidden sm:h-20">
+    <div className="relative z-20 flex h-16 w-full items-center overflow-hidden sm:h-20">
       {/* Ojo: el espaciado entre escudos va en mr-* de cada imagen, NO en un
           gap del contenedor. Con `gap` el hueco entre la última imagen de
           una copia y la primera de la siguiente solo se cuenta una vez en
