@@ -218,17 +218,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     : current!.questions.filter((q) => isAnswerComplete(q, answers[q.id]?.answer)).length
   const totalCount = isFantasyStep ? fantasy.slots.length : current!.questions.length
   const allAnswered = isFantasyStep ? fantasy.complete : answeredCount === totalCount
-  const someAnswered = answeredCount > 0
 
-  // Con una sola pregunta por bloque (p.ej. el Bloque 1, la clasificación) no
-  // tiene sentido distinguir "algunas respondidas" — solo hay una, completa o no.
-  const skipLabel = isFantasyStep
-    ? someAnswered
-      ? 'Omitir huecos sin rellenar de este bloque'
-      : 'Omitir este bloque'
-    : current!.questions.length > 1 && someAnswered
-      ? 'Omitir respuestas no contestadas de este bloque'
-      : 'Omitir este bloque'
+  // Un único texto fijo y corto para el botón, en vez de variar según si hay
+  // preguntas a medias -- las frases largas ("Omitir respuestas no
+  // contestadas de este bloque") no cabían junto a "Siguiente" en la misma
+  // fila.
+  const skipLabel = 'Omitir bloque'
 
   return (
     <AuthShell
@@ -307,22 +302,18 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           )}
         </div>
 
-        {/* En móvil, en columna y a ancho completo -- con el texto largo del
-            botón "Omitir" (varía según el bloque, a veces es una frase
-            larga) los dos botones en la misma fila con shrink-0 no cabían y
-            "Siguiente" quedaba cortado/tapado en el borde. En sm+ vuelven a
-            ir uno junto al otro. */}
-        <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-4 text-sm">
           <button
             onClick={goNext}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-center font-medium text-gray-600 shadow-sm hover:bg-gray-50 sm:w-auto sm:shrink-0 sm:text-left"
+            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left font-medium text-gray-600 shadow-sm hover:bg-gray-50"
           >
             {skipLabel}
           </button>
           <button
             onClick={goNext}
             disabled={!allAnswered}
-            className="w-full shrink-0 rounded-lg bg-brand-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:opacity-50 sm:w-auto">
+            className="shrink-0 rounded-lg bg-brand-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:opacity-50"
+          >
             Siguiente →
           </button>
         </div>
