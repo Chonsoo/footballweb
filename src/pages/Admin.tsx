@@ -1995,6 +1995,9 @@ const EMPTY_FANTASY_ROW: FantasyStatRow = {
 // contratado (el endpoint de estadísticas por partido no suele ser
 // gratuito) y cómo mapear cada partido a la jornada correcta. Hasta
 // entonces, esta vía manual es la fuente de verdad.
+// LaLiga a 20 equipos = 38 jornadas (2 vueltas de 19 rivales cada una).
+const TOTAL_MATCHDAYS = 38
+
 function FantasyStatsSection() {
   const [players, setPlayers] = useState<FantasyPlayer[]>([])
   const [loadingPlayers, setLoadingPlayers] = useState(true)
@@ -2006,6 +2009,18 @@ function FantasyStatsSection() {
   const [savingPlayerId, setSavingPlayerId] = useState<number | null>(null)
   const [savingMatchday, setSavingMatchday] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  // Qué jornadas están marcadas como jugadas -- para pintar en verde los
+  // botones J1..J38 de arriba, no solo la que está seleccionada ahora mismo.
+  const [playedMatchdays, setPlayedMatchdays] = useState<Set<number>>(new Set())
+
+  async function refreshPlayedMatchdays() {
+    const { data } = await supabase.from('fantasy_matchdays').select('number').eq('played', true)
+    setPlayedMatchdays(new Set(((data as { number: number }[]) ?? []).map((m) => m.number)))
+  }
+
+  useEffect(() => {
+    refreshPlayedMatchdays()
+  }, [])
 
   useEffect(() => {
     async function loadPlayers() {
@@ -2123,6 +2138,12 @@ function FantasyStatsSection() {
       return
     }
     setMatchday(data as FantasyMatchday)
+    setPlayedMatchdays((s) => {
+      const next = new Set(s)
+      if (nextPlayed) next.add(matchdayNum)
+      else next.delete(matchdayNum)
+      return next
+    })
   }
 
   return (
@@ -2133,18 +2154,29 @@ function FantasyStatsSection() {
           realmente en su 11 (no todos los elegibles). Los puntos se calculan solos según minutos, goles,
           asistencias, tarjetas, goles en propia y portería a cero.
         </p>
+        <div className="mb-3 flex flex-wrap gap-1">
+          {Array.from({ length: TOTAL_MATCHDAYS }, (_, i) => i + 1).map((n) => {
+            const isSelected = n === matchdayNum
+            const isPlayed = playedMatchdays.has(n)
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setMatchdayNum(n)}
+                title={isPlayed ? `Jornada ${n} · jugada` : `Jornada ${n}`}
+                className={`rounded font-semibold transition-all ${
+                  isSelected
+                    ? 'scale-110 px-2.5 py-1.5 text-sm text-white ' + (isPlayed ? 'bg-green-700' : 'bg-brand-700')
+                    : 'px-2 py-1 text-xs ' +
+                      (isPlayed ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200')
+                }`}
+              >
+                J{n}
+              </button>
+            )
+          })}
+        </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            Jornada
-            <input
-              type="number"
-              min={1}
-              value={matchdayNum}
-              onChange={(e) => setMatchdayNum(Math.max(1, Number(e.target.value) || 1))}
-              onFocus={(e) => e.target.select()}
-              className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
-            />
-          </label>
           <button
             type="button"
             onClick={toggleMatchdayPlayed}
