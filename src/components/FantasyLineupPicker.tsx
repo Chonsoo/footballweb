@@ -62,7 +62,7 @@ export default function FantasyLineupPicker({
   const [search, setSearch] = useState('')
   const [positionFilter, setPositionFilter] = useState<Set<FantasyPosition>>(new Set())
   const [view, setView] = useState<'pitch' | 'list'>('pitch')
-  const [poolView, setPoolView] = useState<'chips' | 'cards'>('chips')
+  const [poolView, setPoolView] = useState<'chips' | 'cards'>('cards')
   // Aviso breve cuando se intenta colocar un 4º jugador del Big Three -- se
   // limpia solo al cambiar de selección o pasado un momento.
   const [bigThreeWarning, setBigThreeWarning] = useState(false)
@@ -210,11 +210,14 @@ export default function FantasyLineupPicker({
             </div>
           )}
 
+          {/* Mismo color de acento (brand-700) que el resto de toggles de la
+              app en vez de verde/amarillo sueltos -- para que se sienta el
+              mismo tipo de control en todos lados. */}
           <div className="flex overflow-hidden rounded border border-gray-300 text-xs">
             <button
               type="button"
               onClick={() => setView('pitch')}
-              className={`px-2 py-1 font-medium ${view === 'pitch' ? 'bg-green-600 text-white' : 'bg-white text-gray-600'}`}
+              className={`px-2 py-1 font-medium ${view === 'pitch' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
             >
               Campo
             </button>
@@ -294,7 +297,10 @@ export default function FantasyLineupPicker({
               disabled={readOnly}
               // text-base (16px) en vez de text-xs: por debajo de 16px, iOS Safari
               // hace zoom automático de toda la página al enfocar el campo.
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-base sm:text-xs"
+              // bg-white explícito: sin esto se veía "de cristal" (transparente),
+              // dejando ver el fondo verde de detrás en vez de un campo opaco
+              // como el resto de inputs de la app.
+              className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-base sm:text-xs"
             />
             <div className="flex flex-wrap gap-1">
               {FANTASY_POSITIONS.map((pos) => {
@@ -334,25 +340,36 @@ export default function FantasyLineupPicker({
               <div className="flex overflow-hidden rounded border border-gray-300 text-[10px]">
                 <button
                   type="button"
+                  onClick={() => setPoolView('cards')}
+                  className={`px-1.5 py-0.5 font-medium ${poolView === 'cards' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
+                >
+                  Cartas
+                </button>
+                <button
+                  type="button"
                   onClick={() => setPoolView('chips')}
                   className={`px-1.5 py-0.5 font-medium ${poolView === 'chips' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600'}`}
                 >
                   Lista
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setPoolView('cards')}
-                  className={`px-1.5 py-0.5 font-medium ${poolView === 'cards' ? 'bg-yellow-700 text-white' : 'bg-white text-gray-600'}`}
-                >
-                  Cartas
-                </button>
               </div>
             </div>
+            {/* En modo Cartas, el fondo del banquillo pasa a blanco (igual
+                que el resto de la tarjeta que envuelve todo esto) en vez del
+                gris apagado con borde discontinuo -- ese estilo "borrador de
+                formulario" tenía sentido para la lista, pero quedaba raro
+                detrás de las cartas, que ya llevan su propio marco. */}
             <div
               onClick={handlePoolAreaClick}
-              className={`flex max-h-64 overflow-y-auto rounded border border-dashed p-2 transition-colors sm:max-h-[60vh] ${
-                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1'
-              } ${selected != null && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'}`}
+              className={`flex max-h-64 overflow-y-auto rounded border p-2 transition-colors sm:max-h-[60vh] ${
+                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border-dashed'
+              } ${
+                selected != null && !readOnly
+                  ? 'cursor-pointer border-brand-500 bg-brand-50'
+                  : poolView === 'cards'
+                    ? 'border-gray-200 bg-white'
+                    : 'border-gray-200 bg-gray-50'
+              }`}
             >
               {filtered.length === 0 && <span className="text-xs text-gray-300">Sin resultados</span>}
               {filtered.map((p) => {
