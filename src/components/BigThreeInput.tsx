@@ -39,15 +39,18 @@ function LegRow({
   const answered = isAnswerComplete(question, myAnswer?.answer)
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-sm">
+    // Misma fila para marcador + botón "Guardar" (como el ScorePredictionInput
+    // original de QuestionInput.tsx), en vez de separar el botón a su propia
+    // fila -- con las fotos de equipo sin nombre en móvil (TeamLabel oculta
+    // el texto por debajo de sm) la fila es corta y cabe todo junto sin
+    // problema.
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-2 text-sm sm:flex-nowrap">
         <TeamLabel name={question.config.home_team ?? 'Local'} align="right" />
         <ScoreStepper value={home} onChange={setHome} />
         <span className="shrink-0">-</span>
         <ScoreStepper value={away} onChange={setAway} />
         <TeamLabel name={question.config.away_team ?? 'Visitante'} />
-      </div>
-      <div className="flex justify-end">
         <button
           onClick={() => onSave({ home, away })}
           disabled={saving}
@@ -56,7 +59,7 @@ function LegRow({
           Guardar
         </button>
       </div>
-      {hasUnsaved && <p className="text-right text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
+      {hasUnsaved && <p className="text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
     </div>
   )
 }
