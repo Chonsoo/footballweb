@@ -4,7 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
 import { isInitialPhaseClosed } from '../lib/deadlines'
+import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
+import PlayerAvatarMarquee from '../components/PlayerAvatarMarquee'
 import type { LeaderboardRow } from '../lib/database.types'
+import type { FantasyPlayer } from '../lib/fantasyTypes'
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -79,6 +82,10 @@ export default function Home() {
   const { user, profile } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [teamPlayers, setTeamPlayers] = useState<FantasyPlayer[]>([])
+
+  const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+  const teamPhotos = teamPlayers.filter((p) => p.photo_url).map((p) => p.photo_url as string)
 
   useEffect(() => {
     supabase
@@ -95,6 +102,25 @@ export default function Home() {
       })
   }, [])
 
+  // Misma cinta de jugadores del equipo favorito que en el asistente de
+  // apuestas iniciales (OnboardingWizard), para que la portada tras el
+  // logueo no "parezca otra app" -- mismo fondo verde + escudo + jugadores.
+  useEffect(() => {
+    async function loadTeamPlayers() {
+      if (!favoriteTeam) {
+        setTeamPlayers([])
+        return
+      }
+      const { data } = await supabase
+        .from('fantasy_players')
+        .select('*')
+        .eq('team_id', favoriteTeam.id)
+        .eq('active', true)
+      setTeamPlayers((data as FantasyPlayer[]) ?? [])
+    }
+    loadTeamPlayers()
+  }, [favoriteTeam])
+
   const myIndex = user ? rows.findIndex((r) => r.user_id === user.id) : -1
   const myRow = myIndex >= 0 ? rows[myIndex] : null
   // Ranking 1224: si empatas con otro en puntos, mostráis el mismo puesto.
@@ -107,31 +133,42 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 px-5 py-8 text-white shadow-lg">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 2px, transparent 2px, transparent 40px)',
-          }}
-        />
-        <div className="relative flex flex-col items-center gap-2 text-center">
-          <span className="text-4xl">🏆</span>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 py-5 text-white shadow-lg">
+        {favoriteTeam?.badge ? (
+          <img
+            src={favoriteTeam.badge}
+            alt=""
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[80%] w-[80%] max-h-56 max-w-56 -translate-x-1/2 -translate-y-1/2 object-contain opacity-15"
+          />
+        ) : (
+          <div
+            className="pointer-events-none absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 2px, transparent 2px, transparent 40px)',
+            }}
+          />
+        )}
+
+        {teamPhotos.length > 0 && (
+          <div className="relative z-10 mb-4">
+            <PlayerAvatarMarquee photos={teamPhotos} direction="left" size="sm" />
+          </div>
+        )}
+
+        <div className="relative z-10 flex flex-col items-center gap-3 px-5 text-center">
+          {!favoriteTeam?.badge && <span className="text-4xl">🏆</span>}
           <h1 className="text-2xl font-extrabold tracking-tight text-gold-400 sm:text-3xl">PORRA ABUELONCHA</h1>
 
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Participantes</p>
-              <p className="text-xl font-bold">{loading ? '…' : rows.length}</p>
+          <div className="flex w-full max-w-xs items-center justify-center gap-4 rounded-xl bg-white/[0.67] px-4 py-2.5 shadow-inner backdrop-blur-sm">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">Participantes</p>
+              <p className="text-xl font-bold text-brand-950">{loading ? '…' : rows.length}</p>
             </div>
             {myRow && myRank != null && (
-              <div
-                className={`rounded-xl border px-4 py-2 backdrop-blur-sm ${
-                  myIsLast ? 'border-red-400/50 bg-red-500/10' : 'border-gold-400/40 bg-white/10'
-                }`}
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-100">Tu puesto</p>
-                <p className={`flex items-center justify-center gap-1.5 text-xl font-bold ${myIsLast ? 'text-red-200' : 'text-gold-400'}`}>
+              <div className="border-l border-brand-900/10 pl-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">Tu puesto</p>
+                <p className={`flex items-center justify-center gap-1.5 text-xl font-bold ${myIsLast ? 'text-red-600' : 'text-brand-800'}`}>
                   {myRank <= 3 && !myIsLast ? (
                     <span className="text-2xl leading-none">{MEDALS[myRank - 1]}</span>
                   ) : (
@@ -139,12 +176,18 @@ export default function Home() {
                       {myIsLast ? rows.length : myRank}º {myIsLast && <span className="text-2xl leading-none">🏮</span>}
                     </span>
                   )}
-                  <span className="text-sm font-medium text-brand-100">· {myRow.total_points} pts</span>
+                  <span className="text-sm font-medium text-brand-700">· {myRow.total_points} pts</span>
                 </p>
               </div>
             )}
           </div>
         </div>
+
+        {teamPhotos.length > 0 && (
+          <div className="relative z-10 mt-4">
+            <PlayerAvatarMarquee photos={teamPhotos} direction="right" size="sm" />
+          </div>
+        )}
       </div>
 
       {profile?.username && (
