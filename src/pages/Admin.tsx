@@ -275,7 +275,13 @@ function Block1Panel({
       <StatusBanner status={status} />
       <div className="rounded bg-gray-50 p-3">
         <p className="mb-2 text-xs font-medium text-gray-500">Clasificación real</p>
-        <RankingAnswer items={question.config.items ?? []} tiers={question.config.tiers ?? []} value={resultDraft} onChange={setResultDraft} />
+        <RankingAnswer
+          items={question.config.items ?? []}
+          tiers={question.config.tiers ?? []}
+          value={resultDraft}
+          onChange={setResultDraft}
+          compact
+        />
         <div className="mt-2 flex flex-wrap gap-2">
           <button
             onClick={fetchStandingsFromLaliga}

@@ -8,9 +8,15 @@ interface Props {
   value: Record<string, number>
   onChange: (next: Record<string, number>) => void
   readOnly?: boolean
+  // Rejilla de recuadros pequeños (como en Información/Mis apuestas) en vez
+  // de la lista alta de una fila por puesto -- pensado para Admin, donde
+  // solo hay que fijar la clasificación real y no conviene que ocupe tanto
+  // de alto. La lista sigue siendo la que usan los participantes al apostar
+  // (con 20 filas grandes es más fácil tocar bien en el móvil).
+  compact?: boolean
 }
 
-export default function RankingAnswer({ items, tiers, value, onChange, readOnly }: Props) {
+export default function RankingAnswer({ items, tiers, value, onChange, readOnly, compact }: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const total = items.length
 
@@ -54,6 +60,72 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly 
     delete next[selected]
     onChange(next)
     setSelected(null)
+  }
+
+  if (compact) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
+          {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
+            const occupant = teamAtPosition(position)
+            const zone = zoneForPosition(position, tiers, total)
+            return (
+              <div
+                key={position}
+                onClick={() => handlePositionClick(position)}
+                title={occupant ? `${position}º ${occupant.name}` : `${position}º`}
+                className={`relative flex flex-col items-center gap-0.5 rounded-md py-1.5 transition-colors ${zone.color} ${
+                  selected && !readOnly ? 'cursor-pointer ring-2 ring-brand-400 ring-offset-1' : ''
+                }`}
+              >
+                {occupant ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleTeamClick(occupant.id)
+                    }}
+                    className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                      selected === occupant.id ? 'ring-2 ring-brand-700' : ''
+                    }`}
+                  >
+                    {occupant.badge ? (
+                      <img src={occupant.badge} alt="" className="h-5 w-5 object-contain" />
+                    ) : (
+                      <span className="text-xs">🛡️</span>
+                    )}
+                  </button>
+                ) : (
+                  <span className="flex h-6 w-6 items-center justify-center text-xs text-gray-300">·</span>
+                )}
+                <span className="text-[9px] font-semibold text-gray-500">{position}º</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div>
+          <p className="mb-1 text-xs font-medium text-gray-500">Sin colocar ({unplaced.length})</p>
+          <div
+            onClick={handlePoolClick}
+            className={`flex max-h-32 flex-wrap gap-1.5 overflow-y-auto rounded border border-dashed p-2 transition-colors ${
+              selected && value[selected] != null && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'
+            }`}
+          >
+            {unplaced.length === 0 && <span className="text-xs text-gray-300">—</span>}
+            {unplaced.map((it) => (
+              <TeamChip key={it.id} item={it} selected={selected === it.id} onClick={() => handleTeamClick(it.id)} pool />
+            ))}
+          </div>
+        </div>
+
+        {!readOnly && (
+          <p className="text-xs text-gray-400">
+            {selected ? 'Ahora toca el puesto donde quieres colocarlo.' : 'Toca un equipo y luego su puesto.'}
+          </p>
+        )}
+      </div>
+    )
   }
 
   return (
