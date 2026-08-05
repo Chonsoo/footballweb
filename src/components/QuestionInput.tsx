@@ -35,14 +35,18 @@ function saveBtnClass(answered: boolean, hasUnsaved: boolean) {
 // teclear). Aquí se sanea la entrada a solo dígitos y se añaden botones +/-
 // para no depender del teclado numérico del navegador.
 export function ScoreStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  // Botones con el verde de marca (no gris neutro) para que combinen con el
+  // resto del rediseño, y el "−" deshabilitado (marcador ya en 0) con un
+  // gris claramente apagado en vez de solo bajar la opacidad sobre el mismo
+  // fondo -- así SÍ se nota la diferencia entre activo y deshabilitado.
   return (
-    <div className="flex shrink-0 items-stretch overflow-hidden rounded border border-gray-300">
+    <div className="flex shrink-0 items-stretch overflow-hidden rounded border border-brand-200">
       <button
         type="button"
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={value <= 0}
         aria-label="Restar"
-        className="w-5 shrink-0 bg-gray-50 text-sm leading-none text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+        className="w-5 shrink-0 bg-brand-50 text-sm font-bold leading-none text-brand-700 hover:bg-brand-100 disabled:bg-gray-100 disabled:text-gray-300"
       >
         −
       </button>
@@ -55,13 +59,13 @@ export function ScoreStepper({ value, onChange }: { value: number; onChange: (n:
           const digits = e.target.value.replace(/[^0-9]/g, '')
           onChange(digits === '' ? 0 : Math.max(0, Number(digits)))
         }}
-        className="w-6 shrink-0 border-x border-gray-300 py-1 text-center text-sm"
+        className="w-6 shrink-0 border-x border-brand-200 bg-white py-1 text-center text-sm font-semibold text-gray-800"
       />
       <button
         type="button"
         onClick={() => onChange(value + 1)}
         aria-label="Sumar"
-        className="w-5 shrink-0 bg-gray-50 text-sm leading-none text-gray-600 hover:bg-gray-100"
+        className="w-5 shrink-0 bg-brand-50 text-sm font-bold leading-none text-brand-700 hover:bg-brand-100"
       >
         +
       </button>
