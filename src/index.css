@@ -57,22 +57,23 @@
 }
 
 /* Cintas de escudos de Login/Registro (ver TeamMarquee.tsx). Cada cinta
-   pinta la lista de equipos DOS veces seguidas y se desplaza de 0% a -50%
-   (el ancho de una copia) -- al llegar al final, la segunda copia encaja
-   exactamente donde empezaba la primera, así que el bucle es perfecto y no
-   se nota el salto. La de "right" simplemente arranca ya desplazada al -50%
-   y va hacia el 0%, para que se mueva en el sentido contrario. */
+   pinta la lista de equipos CUATRO veces seguidas y se desplaza de 0% a
+   -25% (el ancho de UNA copia, ya que hay cuatro) -- al llegar ahí, la copia
+   siguiente encaja exactamente donde empezaba la primera, así que el bucle
+   es perfecto y no se nota el salto ni deja huecos en blanco en pantallas
+   anchas. La de "right" simplemente arranca ya desplazada al -25% y va hacia
+   el 0%, para que se mueva en el sentido contrario. */
 @keyframes auth-marquee-left {
   from {
     transform: translateX(0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translateX(-25%);
   }
 }
 @keyframes auth-marquee-right {
   from {
-    transform: translateX(-50%);
+    transform: translateX(-25%);
   }
   to {
     transform: translateX(0);
