@@ -10,12 +10,19 @@ import TeamMarquee from './TeamMarquee'
 // Las cintas van en su PROPIA fila de la columna (flex-col), no "detrás" de
 // la tarjeta -- así siempre son visibles desde el primer render, sin
 // importar cuánto ocupe la tarjeta ni dónde caiga encima.
+//
+// `justify-between` en el contenedor exterior (en vez de flex-1 + padding en
+// el bloque central) es lo que garantiza que el hueco entre la cinta de
+// arriba y el título sea EXACTAMENTE igual al hueco entre la tarjeta y la
+// cinta de abajo: con solo 3 hijos (cinta, contenido, cinta), justify-between
+// reparte el espacio sobrante en dos huecos iguales alrededor del del medio,
+// sin depender de paddings sumados aparte que puedan desequilibrarlo.
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
+    <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
       <TeamMarquee direction="left" />
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-4">
+      <div className="flex flex-col items-center gap-6 px-4">
         <div className="flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
           <h1 className="text-2xl font-bold text-white">Porra Abueloncha</h1>
