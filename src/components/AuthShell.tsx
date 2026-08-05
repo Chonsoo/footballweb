@@ -47,6 +47,14 @@ const DEFAULT_HEADER = (
 // cinta de abajo: con solo 3 hijos (cinta, contenido, cinta), justify-between
 // reparte el espacio sobrante en dos huecos iguales alrededor del del medio,
 // sin depender de paddings sumados aparte que puedan desequilibrarlo.
+//
+// El `gap-3` es la red de seguridad: si el contenido del medio es tan alto
+// que llena toda la pantalla (p.ej. el intro del asistente, con párrafos
+// largos), `justify-between` se queda sin espacio sobrante que repartir y
+// la cinta acaba pegada a la tarjeta sin ningún hueco. `gap` en un flex
+// container es un mínimo que se respeta SIEMPRE, incluso sin espacio
+// sobrante, así que garantiza un hueco mínimo entre cinta y tarjeta pase lo
+// que pase, y sigue siendo igual arriba que abajo.
 export default function AuthShell({
   children,
   backgroundMark = DEFAULT_MARK,
@@ -63,7 +71,7 @@ export default function AuthShell({
   marqueeBottom?: ReactNode
 }) {
   return (
-    <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
+    <div className="relative flex min-h-dvh flex-col justify-between gap-3 overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
       {marqueeTop}
 
       <div className="relative flex flex-col items-center gap-6 px-4">
