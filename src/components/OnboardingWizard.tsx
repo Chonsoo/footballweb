@@ -29,6 +29,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const [teamPlayers, setTeamPlayers] = useState<FantasyPlayer[]>([])
   const fantasy = useFantasyLineup()
 
+  // Se usan tanto en el intro como en las pantallas de cada bloque, para que
+  // todo el asistente (no solo la portada) comparta el mismo fondo verde +
+  // escudo + cinta de jugadores del equipo favorito.
+  const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+  const teamPhotos = teamPlayers.filter((p) => p.photo_url).map((p) => p.photo_url as string)
+
   // Fotos para la cinta del intro: TODOS los jugadores del equipo favorito
   // (no solo los "abuelonchos" elegibles para el 11, que es un subconjunto
   // mucho más pequeño -- fantasy.players ya viene filtrado a eligible_abuelonchos
@@ -144,13 +150,6 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   }
 
   if (showIntro) {
-    const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
-    // Todos los jugadores del equipo favorito (no solo los "abuelonchos"
-    // elegibles para el 11), y solo los que tienen foto de verdad -- se
-    // descartan los que no tienen photo_url para no repetir la silueta
-    // genérica en bucle.
-    const teamPhotos = teamPlayers.filter((p) => p.photo_url).map((p) => p.photo_url as string)
-
     return (
       <AuthShell
         maxWidth="max-w-lg"
@@ -230,73 +229,93 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
       : 'Omitir este bloque de preguntas'
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 px-4 py-10">
-      <div>
-        <p className="mb-1 text-sm text-gray-400">
-          Bloque {step + 1} de {totalSteps}
-        </p>
-        <div className="h-1.5 w-full rounded-full bg-gray-100">
-          <div
-            className="h-1.5 rounded-full bg-brand-700 transition-all"
-            style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+    <AuthShell
+      maxWidth="max-w-3xl"
+      header={null}
+      marqueeTop={teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="left" /> : undefined}
+      marqueeBottom={
+        teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="right" /> : undefined
+      }
+      backgroundMark={
+        favoriteTeam?.badge && (
+          <img
+            src={favoriteTeam.badge}
+            alt=""
+            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[min(46rem,98vw,88vh)] w-[min(46rem,98vw,88vh)] -translate-x-1/2 -translate-y-1/2 object-contain opacity-40 sm:h-[min(58rem,90vw,88vh)] sm:w-[min(58rem,90vw,88vh)]"
           />
+        )
+      }
+    >
+      <div className="flex flex-col gap-6">
+        <div>
+          <p className="mb-1 text-sm text-gray-500">
+            Bloque {step + 1} de {totalSteps}
+          </p>
+          <div className="h-1.5 w-full rounded-full bg-gray-200">
+            <div
+              className="h-1.5 rounded-full bg-brand-700 transition-all"
+              style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-lg font-bold text-gray-900">
+            {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}
+          </h2>
+          {isFantasyStep ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-600">
+                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Máximo 3 jugadores entre Real
+                Madrid, Atlético y Barcelona en total (da igual la mezcla). Cada jugador suma puntos jornada a
+                jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
+              </p>
+              {fantasy.loading ? (
+                <p className="text-sm text-gray-400">Cargando…</p>
+              ) : fantasy.players.length === 0 ? (
+                <p className="text-sm text-gray-400">
+                  Todavía no hay jugadores cargados. El admin puede añadirlos desde el panel (pestaña "Jugadores
+                  fantasy"). Puedes omitir este bloque y volver más adelante desde «Apuestas iniciales».
+                </p>
+              ) : (
+                <FantasyLineupPicker
+                  players={fantasy.players}
+                  formation={fantasy.formation}
+                  value={fantasy.value}
+                  onChange={fantasy.handleChange}
+                  onFormationChange={fantasy.handleFormationChange}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {current!.questions.map((q) => (
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  myAnswer={answers[q.id]}
+                  closed={false}
+                  saving={savingId === q.id}
+                  onSave={(value) => saveAnswer(q.id, value)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <button onClick={goNext} className="text-left text-gray-400 hover:underline">
+            {skipLabel}
+          </button>
+          <button
+            onClick={goNext}
+            disabled={!allAnswered}
+            className="shrink-0 rounded-lg bg-brand-700 px-4 py-2 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:opacity-50"
+          >
+            Siguiente →
+          </button>
         </div>
       </div>
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold">{isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}</h2>
-        {isFantasyStep ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-500">
-              Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Máximo 3 jugadores entre Real Madrid,
-              Atlético y Barcelona en total (da igual la mezcla). Cada jugador suma puntos jornada a jornada según su
-              rendimiento real. Se guarda automáticamente al colocar cada jugador.
-            </p>
-            {fantasy.loading ? (
-              <p className="text-sm text-gray-400">Cargando…</p>
-            ) : fantasy.players.length === 0 ? (
-              <p className="text-sm text-gray-400">
-                Todavía no hay jugadores cargados. El admin puede añadirlos desde el panel (pestaña "Jugadores
-                fantasy"). Puedes omitir este bloque y volver más adelante desde «Apuestas iniciales».
-              </p>
-            ) : (
-              <FantasyLineupPicker
-                players={fantasy.players}
-                formation={fantasy.formation}
-                value={fantasy.value}
-                onChange={fantasy.handleChange}
-                onFormationChange={fantasy.handleFormationChange}
-              />
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {current!.questions.map((q) => (
-              <QuestionCard
-                key={q.id}
-                question={q}
-                myAnswer={answers[q.id]}
-                closed={false}
-                saving={savingId === q.id}
-                onSave={(value) => saveAnswer(q.id, value)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-4 text-sm">
-        <button onClick={goNext} className="text-left text-gray-400 hover:underline">
-          {skipLabel}
-        </button>
-        <button
-          onClick={goNext}
-          disabled={!allAnswered}
-          className="shrink-0 rounded bg-brand-700 px-4 py-2 font-medium text-white disabled:opacity-50"
-        >
-          Siguiente →
-        </button>
-      </div>
-    </div>
+    </AuthShell>
   )
 }

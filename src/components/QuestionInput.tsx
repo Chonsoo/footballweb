@@ -123,6 +123,7 @@ export function QuestionDraftInput({
         tiers={question.config.tiers ?? []}
         value={current}
         onChange={onChange}
+        compact
       />
     )
   }
@@ -221,6 +222,7 @@ export function QuestionInput({
         tiers={question.config.tiers ?? []}
         value={current}
         onChange={(next) => onSave(next)}
+        compact
       />
     )
   }
