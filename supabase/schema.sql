@@ -301,6 +301,12 @@ $$;
 
 -- Aplicar puntos automáticamente a quien acertó el resultado exacto
 -- (para preguntas de texto/opción con una única respuesta correcta, típico de las de mitad de temporada)
+-- Para score_prediction (marcadores tipo duelos Big Three) se reparte en dos
+-- niveles que se SUMAN: 5 pts fijos por acertar el 1x2 (mismo signo
+-- local-visitante que el resultado real) + 7 pts extra si además el
+-- marcador es exacto (12 en total) -- fijos, sin depender de los "points"
+-- configurados en la pregunta. Deben coincidir con SCORE_PREDICTION_1X2_POINTS
+-- / SCORE_PREDICTION_EXACT_BONUS en src/lib/scorePrediction.ts.
 create or replace function public.apply_season_result_points(p_question_id uuid)
 returns void
 language plpgsql
@@ -309,22 +315,37 @@ as $$
 declare
   v_points int;
   v_result jsonb;
+  v_answer_type text;
+  v_result_sign int;
 begin
   if not public.is_admin(auth.uid()) then
     raise exception 'not authorized';
   end if;
 
-  select points into v_points from public.season_questions where id = p_question_id;
+  select points, answer_type into v_points, v_answer_type from public.season_questions where id = p_question_id;
   select result into v_result from public.season_results where question_id = p_question_id;
 
   if v_result is null then
     raise exception 'Fija primero el resultado real con set_season_result';
   end if;
 
-  update public.season_answers
-  set points = case when answer = v_result then v_points else 0 end,
+  if v_answer_type = 'score_prediction' then
+    v_result_sign := sign((v_result->>'home')::int - (v_result->>'away')::int);
+
+    update public.season_answers
+    set points = case
+        when answer = v_result then 12 -- 5 (1x2) + 7 (marcador exacto)
+        when sign((answer->>'home')::int - (answer->>'away')::int) = v_result_sign then 5
+        else 0
+      end,
       graded_at = now()
-  where question_id = p_question_id;
+    where question_id = p_question_id;
+  else
+    update public.season_answers
+    set points = case when answer = v_result then v_points else 0 end,
+        graded_at = now()
+    where question_id = p_question_id;
+  end if;
 end;
 $$;
 

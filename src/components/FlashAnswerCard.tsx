@@ -1,4 +1,5 @@
 import AnswerSummary from './AnswerSummary'
+import ScorePredictionBadge from './ScorePredictionBadge'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { getFlashStatus, FLASH_STATUS_LABELS, FLASH_STATUS_COLORS } from '../lib/flashStatus'
 import { formatPoints } from '../lib/formatPoints'
@@ -33,9 +34,15 @@ export default function FlashAnswerCard({ question, value, points, resolved }: P
         <p className="text-sm text-gray-400">Sin responder / aún no visible</p>
       )}
       {resolved ? (
-        <p className="self-end text-[11px] font-semibold text-green-600">
-          {points != null ? `+${formatPoints(points)}` : 'Sin puntos'}
-        </p>
+        question.answer_type === 'score_prediction' && points != null ? (
+          <span className="self-end">
+            <ScorePredictionBadge points={points} />
+          </span>
+        ) : (
+          <p className="self-end text-[11px] font-semibold text-green-600">
+            {points != null ? `+${formatPoints(points)}` : 'Sin puntos'}
+          </p>
+        )
       ) : (
         <p className="self-end text-[11px] font-medium text-gray-400">Vale {formatPoints(question.points)}</p>
       )}

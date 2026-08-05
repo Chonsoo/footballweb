@@ -5,6 +5,7 @@ import { formatAnswer } from '../lib/answerFormat'
 import { normalizeText } from '../lib/textNormalize'
 import { scoreRankingAnswer } from '../lib/rankingScoring'
 import { computeFiasco, computeUnderdogPodium, scoreUnderdogAnswer, type UnderdogPodium } from '../lib/underdogScoring'
+import { SCORE_PREDICTION_1X2_POINTS, SCORE_PREDICTION_EXACT_BONUS } from '../lib/scorePrediction'
 import RankingAnswer from '../components/RankingAnswer'
 import PlayerSelect from '../components/PlayerSelect'
 import TeamSelect from '../components/TeamSelect'
@@ -650,6 +651,12 @@ function Block3Panel({
                   {savingId === q.id ? 'Guardando…' : resolved ? 'Actualizar' : 'Guardar'}
                 </button>
               </div>
+              {/* Al guardar se puntúa solo automáticamente: no hace falta elegir
+                  el 1x2 aparte, se deduce del marcador. Puntos fijos (no
+                  dependen de "points" de la pregunta) -- ver apply_season_result_points. */}
+              <p className="text-[11px] text-gray-400">
+                ⚽ Solo 1x2: {SCORE_PREDICTION_1X2_POINTS} pts · 🎯 + marcador exacto: +{SCORE_PREDICTION_EXACT_BONUS} pts ({SCORE_PREDICTION_1X2_POINTS + SCORE_PREDICTION_EXACT_BONUS} en total)
+              </p>
               <StatusBanner status={statusById[q.id] ?? null} />
             </div>
           )

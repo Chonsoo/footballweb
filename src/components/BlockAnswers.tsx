@@ -1,5 +1,6 @@
 import AnswerSummary, { TeamBadgeLabel } from './AnswerSummary'
 import RankingAccuracySummary from './RankingAccuracySummary'
+import ScorePredictionBadge from './ScorePredictionBadge'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { formatPoints } from '../lib/formatPoints'
@@ -52,7 +53,7 @@ function PairedResults({
                 <TeamBadgeLabel name={leg.config.home_team} />
                 <span className="font-bold text-gray-800">{v ? `${v.home} - ${v.away}` : '—'}</span>
                 <TeamBadgeLabel name={leg.config.away_team} />
-                <PointsPill points={points[leg.id]} />
+                <ScorePredictionBadge points={points[leg.id]} />
               </div>
             )
           })}
