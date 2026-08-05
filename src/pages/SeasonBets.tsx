@@ -121,9 +121,16 @@ export default function SeasonBets() {
           que pusiste mejor entra en <strong>Mis apuestas</strong>.
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/[0.67] px-4 py-3 text-sm text-gray-600 shadow-md shadow-black/10 backdrop-blur-sm">
-          <span>
-            Puedes rellenar o actualizar tus respuestas hasta el <strong className="text-gray-800">{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
+        // Aviso informativo, no un bloque más -- por eso NO lleva el mismo
+        // estilo que las tarjetas de bloque de abajo (sin sombra "elevada",
+        // sin fondo blanco opaco, con icono propio): si se viera igual que
+        // ellas, parecía una tarjeta más pero sin flecha ni comportamiento
+        // de desplegable, y confundía.
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/15 bg-black/15 px-4 py-2.5 text-sm text-white/90 backdrop-blur-sm">
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden>📅</span>
+            Puedes rellenar o actualizar tus respuestas hasta el{' '}
+            <strong className="text-white">{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
           </span>
           <Countdown deadline={INITIAL_PHASE_DEADLINE} />
         </div>
