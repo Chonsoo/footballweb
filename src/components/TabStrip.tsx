@@ -29,8 +29,8 @@ export default function TabStrip() {
           to={tab.path}
           end={tab.path === '/'}
           className={({ isActive }) =>
-            `flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              isActive ? 'bg-white/25 text-white' : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
+            `flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              isActive ? 'bg-gold-500 text-brand-950 shadow-sm' : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'
             }`
           }
         >

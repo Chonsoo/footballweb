@@ -7,14 +7,18 @@ import TabStrip from './TabStrip'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isInitialPhaseClosed } from '../lib/deadlines'
 
+// Activo en dorado sólido (mismo acento que el resto de la app para "esto es
+// lo seleccionado" -- chips de jornada en Fantasy, pestañas de Admin) en vez
+// de un blanco al 20% de opacidad, que sobre la barra ya translúcida casi no
+// se distinguía del resto de pestañas.
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+  `px-3 py-2 text-sm font-semibold rounded whitespace-nowrap ${
+    isActive ? 'bg-gold-500 text-brand-950 shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'
   }`
 
 const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block px-3 py-2 text-base font-medium rounded ${
-    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+    isActive ? 'bg-gold-500 text-brand-950 shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'
   }`
 
 export default function Navbar() {
@@ -80,8 +84,8 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setBetsOpen((v) => !v)}
-                className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded whitespace-nowrap ${
-                  betsActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+                className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded whitespace-nowrap ${
+                  betsActive ? 'bg-gold-500 text-brand-950 shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 Apuestas

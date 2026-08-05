@@ -142,7 +142,7 @@ export default function Ranking() {
           Todavía no hay puntos.
         </div>
       ) : (
-        <div className="flex flex-col gap-2 rounded-2xl bg-white/[0.4] p-2.5 shadow-xl shadow-black/10 backdrop-blur-sm">
+        <div className="flex flex-col gap-2">
           {(() => {
             const ranks = computeRanks(rows)
             const tierCount = uniqueTierCount(rows)
