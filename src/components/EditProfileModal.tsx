@@ -29,8 +29,21 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+    // overflow-y-auto en el fondo + max-h/overflow en la tarjeta: antes, con
+    // el teclado táctil abierto o el visualViewport más bajo que el layout
+    // viewport (típico en móvil), "items-center" sin scroll dejaba la parte
+    // de arriba de la tarjeta (el título "Mis datos") por encima del área
+    // visible y sin forma de llegar a ella. Con esto la tarjeta nunca mide
+    // más que la pantalla, y si aun así hiciera falta, el fondo permite
+    // hacer scroll para verla entera.
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 px-4 py-8"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-full w-full max-w-sm overflow-y-auto rounded bg-white p-5 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="mb-4 text-lg font-semibold">Mis datos</h2>
 
         <label className="mb-1 block text-xs font-medium text-gray-500">Nombre de usuario</label>
