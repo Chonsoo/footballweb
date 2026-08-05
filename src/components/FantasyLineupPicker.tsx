@@ -296,7 +296,13 @@ export default function FantasyLineupPicker({
               // como el resto de inputs de la app.
               className="w-full rounded border border-gray-300 bg-white px-2 py-1.5 text-base sm:text-xs"
             />
-            <div className="flex flex-wrap gap-1">
+            {/* Los filtros de posición y el contador Big Three van en la
+                misma fila (el contador a la derecha, con ml-auto) en vez de
+                el contador en su propia fila debajo -- así ocupa menos alto.
+                Cada filtro lleva su color de posición desde el principio
+                (no solo al activarlo), y al activarlo se marca con un ring
+                encima en vez de cambiar de color de golpe. */}
+            <div className="flex flex-wrap items-center gap-1">
               {FANTASY_POSITIONS.map((pos) => {
                 const active = positionFilter.has(pos)
                 return (
@@ -305,25 +311,25 @@ export default function FantasyLineupPicker({
                     type="button"
                     onClick={() => togglePositionFilter(pos)}
                     disabled={readOnly}
-                    className={`rounded px-2 py-1 text-[10px] font-semibold transition-colors ${
-                      active ? POSITION_COLORS[pos] + ' ring-2 ring-offset-1 ring-brand-500' : 'bg-gray-100 text-gray-500'
+                    className={`rounded px-2 py-1 text-[10px] font-semibold transition-colors ${POSITION_COLORS[pos]} ${
+                      active ? 'ring-2 ring-offset-1 ring-brand-500' : ''
                     }`}
                   >
                     {pos}
                   </button>
                 )
               })}
+              {/* Máximo 3 jugadores entre los tres grandes (Real Madrid,
+                  Atlético y Barcelona) en total, sea la mezcla que sea --
+                  contador siempre visible, no solo un aviso al fallar. */}
+              <p
+                className={`ml-auto inline-flex w-fit shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                  bigThreeCount >= BIG_THREE_LIMIT ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                ⚡ Big Three: {bigThreeCount}/{BIG_THREE_LIMIT}
+              </p>
             </div>
-            {/* Máximo 3 jugadores entre los tres grandes (Real Madrid,
-                Atlético y Barcelona) en total, sea la mezcla que sea --
-                contador siempre visible, no solo un aviso al fallar. */}
-            <p
-              className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
-                bigThreeCount >= BIG_THREE_LIMIT ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              ⚡ Big Three: {bigThreeCount}/{BIG_THREE_LIMIT}
-            </p>
             {bigThreeWarning && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
                 Máximo {BIG_THREE_LIMIT} jugadores entre Real Madrid, Atlético y Barcelona en total (da igual la mezcla).
@@ -348,25 +354,16 @@ export default function FantasyLineupPicker({
                 </button>
               </div>
             </div>
-            {/* En modo Cartas, sin fondo ni borde propios -- se funde con el
-                fondo de detrás (la tarjeta/pantalla que envuelve todo esto),
-                en vez de una caja blanca u opaca aparte. El estilo gris con
-                borde discontinuo se queda solo para la Lista. */}
-            {/* Al tener un jugador seleccionado, antes se rellenaba todo el
-                banquillo de un verde pálido (bg-brand-50) además del borde --
-                en modo Cartas eso se veía como una gran caja blanquecina de
-                fondo. Ahora solo se marca con el borde, sin rellenar el fondo. */}
+            {/* Ni Cartas ni Lista llevan fondo/borde propios ya -- las dos se
+                funden con lo que haya detrás, en vez de la caja gris con
+                borde discontinuo que llevaba antes solo la Lista. Al tener
+                un jugador seleccionado, se marca con el borde (sin rellenar
+                el fondo). */}
             <div
               onClick={handlePoolAreaClick}
               className={`flex max-h-64 overflow-y-auto rounded border p-2 transition-colors sm:max-h-[60vh] ${
-                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border-dashed'
-              } ${
-                selected != null && !readOnly
-                  ? 'cursor-pointer border-brand-500'
-                  : poolView === 'cards'
-                    ? 'border-transparent'
-                    : 'border-gray-200 bg-gray-50'
-              }`}
+                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1'
+              } ${selected != null && !readOnly ? 'cursor-pointer border-brand-500' : 'border-transparent'}`}
             >
               {filtered.length === 0 && <span className="text-xs text-gray-300">Sin resultados</span>}
               {filtered.map((p) => {
@@ -391,7 +388,9 @@ export default function FantasyLineupPicker({
       </div>
 
       {!readOnly && !hideSidebar && (
-        <p className="text-xs text-gray-400">
+        // text-gray-600 (antes text-gray-400): sobre el fondo verde
+        // difuminado del asistente, el gris claro casi no se leía.
+        <p className="text-xs font-medium text-gray-600">
           {selectedPlayer
             ? `Ahora toca un hueco de ${FANTASY_POSITION_LABELS[selectedPlayer.player_position]} para colocarlo (los demás huecos se atenúan).`
             : 'Toca un jugador y luego el hueco donde quieres colocarlo.'}
