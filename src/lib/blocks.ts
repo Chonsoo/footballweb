@@ -40,7 +40,8 @@ export const BLOCK_SCORING_HINTS: Record<number, string[]> = {
   3: [
     '5 pts por acertar el 1x2 (quién gana o si es empate).',
     '+7 pts extra si además aciertas el marcador exacto.',
-    'Hasta 12 pts en total por duelo.',
+    'Hasta 12 pts en total por partido.',
+    'Ida y vuelta puntúan cada una por su cuenta: son 2 partidos independientes, no se suman ni se combinan entre sí.',
   ],
   4: [
     'Todo o nada: acierta si el resultado real queda por encima o por debajo de la línea marcada.',

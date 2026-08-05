@@ -26,13 +26,11 @@ function LegRow({
   myAnswer,
   saving,
   onSave,
-  label,
 }: {
   question: SeasonQuestion
   myAnswer?: SeasonAnswer
   saving: boolean
   onSave: (value: AnswerValue) => void
-  label: string
 }) {
   const stored = (myAnswer?.answer as { home: number; away: number } | undefined) ?? { home: 0, away: 0 }
   const [home, setHome] = useState(stored.home)
@@ -41,14 +39,8 @@ function LegRow({
   const answered = isAnswerComplete(question, myAnswer?.answer)
 
   return (
-    // El botón "Guardar" va SIEMPRE en su propia fila (no dentro de la fila
-    // del marcador con flex-wrap) -- así IDA y VUELTA quedan con la misma
-    // altura de fila a fila, en vez de que el botón salte de sitio según si
-    // la fila de arriba hace wrap o no (que dependía del ancho disponible y
-    // quedaba distinto entre una fila y otra).
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-sm">
-        {label && <span className="w-12 shrink-0 text-[11px] font-semibold uppercase text-gray-400">{label}</span>}
         <TeamLabel name={question.config.home_team ?? 'Local'} align="right" />
         <ScoreStepper value={home} onChange={setHome} />
         <span className="shrink-0">-</span>
@@ -98,14 +90,13 @@ export default function BigThreeInput({
             {legs[0]?.config.home_team} <span className="font-normal text-gray-400">vs</span> {legs[0]?.config.away_team}
           </p>
           <div className="flex flex-col gap-3">
-            {legs.map((leg, idx) => (
+            {legs.map((leg) => (
               <LegRow
                 key={leg.id}
                 question={leg}
                 myAnswer={answers[leg.id]}
                 saving={savingId === leg.id}
                 onSave={(value) => onSave(leg.id, value)}
-                label={legs.length > 1 ? (idx === 0 ? 'Ida' : 'Vuelta') : ''}
               />
             ))}
           </div>
