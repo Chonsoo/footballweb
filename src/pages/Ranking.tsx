@@ -72,6 +72,10 @@ export default function Ranking() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
   const [breakdownFor, setBreakdownFor] = useState<LeaderboardRow | null>(null)
+  // Fila que parpadea justo después de pulsar "Tu puesto" -- así se nota que
+  // el botón ha hecho algo incluso cuando la fila ya estaba a la vista y no
+  // hay scroll perceptible.
+  const [highlightId, setHighlightId] = useState<string | null>(null)
 
   useEffect(() => {
     supabase
@@ -90,6 +94,8 @@ export default function Ranking() {
   function scrollToMe() {
     if (!user) return
     document.getElementById(`ranking-row-${user.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setHighlightId(user.id)
+    setTimeout(() => setHighlightId(null), 1600)
   }
 
   return (
@@ -103,10 +109,16 @@ export default function Ranking() {
         <button
           type="button"
           onClick={scrollToMe}
-          title="Ir a tu fila"
-          className="fixed bottom-20 right-4 z-40 flex items-center gap-1.5 rounded-full bg-brand-700 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-black/20 hover:bg-brand-800 sm:bottom-6"
+          title="Ir a tu posición"
+          aria-label="Ir a tu posición"
+          className="fixed bottom-20 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white shadow-xl shadow-black/30 ring-4 ring-white transition-transform hover:scale-105 active:scale-95 sm:bottom-6"
         >
-          📍 Tu puesto
+          {/* Anillo que pulsa para que el botón llame la atención sin
+              depender de que el usuario sepa ya que existe. */}
+          <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-gray-900/40" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z" />
+          </svg>
         </button>
       )}
 
@@ -135,7 +147,9 @@ export default function Ranking() {
                   id={`ranking-row-${row.user_id}`}
                   onClick={() => setBreakdownFor(row)}
                   title="Ver de dónde salen estos puntos"
-                  className="relative flex w-full items-center gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-4 text-left shadow-sm transition-colors hover:brightness-95"
+                  className={`relative flex w-full items-center gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-4 text-left shadow-sm transition-all hover:brightness-95 ${
+                    highlightId === row.user_id ? 'ring-4 ring-gray-900/50' : ''
+                  }`}
                   style={{ background: style.background, borderColor: style.borderColor }}
                 >
                   {/* Marca "tú" con una franja verde a la izquierda, sin bordes raros */}
