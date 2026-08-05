@@ -17,13 +17,13 @@ export default function FantasyLineupBlock() {
   const closed = isInitialPhaseClosed()
 
   return (
-    <div className="rounded border border-gray-200 bg-white">
+    <div className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left font-medium ${
-          open ? 'rounded-t' : 'rounded'
-        } ${complete ? 'bg-green-50' : 'bg-white'}`}
+          complete ? 'bg-green-100/70' : ''
+        }`}
       >
         <span className="flex items-center gap-2">
           Bloque 5 · El 11 de Abuelonchos
@@ -47,7 +47,7 @@ export default function FantasyLineupBlock() {
         </span>
       </button>
       {open && (
-        <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">
+        <div className="flex flex-col gap-3 border-t border-white/40 p-3">
           {closed ? (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Tu once se queda tal cual estaba.

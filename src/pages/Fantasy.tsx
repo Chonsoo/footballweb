@@ -139,7 +139,7 @@ function MiEquipoView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey, scope, playedNumbers])
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
+  if (loading) return <p className="text-white/80">Cargando…</p>
 
   const pointsByPlayer = pointsByPlayerFromStats(rawStats)
   const total = Object.values(pointsByPlayer).reduce((a, b) => a + b, 0)
@@ -181,7 +181,7 @@ function MiEquipoView({
           Todavía no has completado tu 11 de Abuelonchos en Apuestas iniciales.
         </p>
       )}
-      <div className="overflow-hidden rounded-lg border border-gray-100">
+      <div className="overflow-hidden rounded-lg border border-white/20">
         <FantasyLineupPicker
           players={players}
           formation={formation}
@@ -193,7 +193,7 @@ function MiEquipoView({
           onPlayerSelect={(p) => onPlayerSelect(p, scope === 'total' ? undefined : scope)}
         />
       </div>
-      <p className="text-center text-xs text-gray-400">Toca un jugador para ver de dónde salen sus puntos.</p>
+      <p className="text-center text-xs text-white/70">Toca un jugador para ver de dónde salen sus puntos.</p>
     </div>
   )
 }
@@ -395,7 +395,7 @@ function LigaView({
       </div>
 
       {loadingRows ? (
-        <p className="text-gray-500">Cargando…</p>
+        <p className="text-white/80">Cargando…</p>
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((r, i) => {
@@ -449,11 +449,11 @@ function LigaView({
                   </span>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-gray-100 bg-white p-3">
+                  <div className="border-t border-white/40 bg-white/[0.67] p-3 backdrop-blur-sm">
                     {loadingUser === r.user_id ? (
                       <p className="text-sm text-gray-400">Cargando…</p>
                     ) : lineupByUser[r.user_id] ? (
-                      <div className="overflow-hidden rounded-lg border border-gray-100">
+                      <div className="overflow-hidden rounded-lg border border-white/20">
                         <FantasyLineupPicker
                           players={players}
                           formation={lineupByUser[r.user_id]!.formation}
@@ -473,7 +473,7 @@ function LigaView({
               </div>
             )
           })}
-          {rows.length === 0 && <p className="text-gray-400">Todavía no hay clasificación fantasy.</p>}
+          {rows.length === 0 && <p className="text-white/70">Todavía no hay clasificación fantasy.</p>}
         </div>
       )}
     </div>

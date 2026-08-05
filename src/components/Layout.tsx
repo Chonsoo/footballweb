@@ -55,10 +55,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-50">
+    // Mismo lenguaje visual que el login/onboarding (AuthShell): degradado
+    // verde de marca de fondo en TODA la app, no solo en las pantallas de
+    // bienvenida -- para que no "parezcan dos apps diferentes". El escudo
+    // del equipo favorito se ve grande y difuminado (antes casi invisible a
+    // opacity 0.06 sobre gris) porque ahora contrasta con el verde en vez de
+    // perderse sobre un fondo casi del mismo tono.
+    <div className="relative min-h-screen bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
       {profile?.favorite_team && (
         <div
-          className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat opacity-[0.06]"
+          className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat opacity-[0.12]"
           style={{ backgroundImage: `url(/badges/${profile.favorite_team}.png)`, backgroundSize: '60vh' }}
         />
       )}

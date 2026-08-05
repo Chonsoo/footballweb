@@ -15,11 +15,11 @@ export default function Reglamento() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">📜 Reglamento oficial</h1>
-        <p className="text-sm text-gray-500">Las normas, letra pequeña incluida.</p>
+        <h1 className="text-xl font-bold text-white">📜 Reglamento oficial</h1>
+        <p className="text-sm text-white/80">Las normas, letra pequeña incluida.</p>
       </div>
 
-      <section className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4">
+      <section className="flex flex-col gap-3 rounded-xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
         <h2 className="text-base font-bold text-gray-900">⚽ Fantasy: cómo cuenta para la clasificación general</h2>
         <p className="text-sm text-gray-600">
           El Fantasy (tu 11 de Abuelonchos) tiene su propia liga aparte, jornada a jornada — se ve en la pestaña
@@ -27,7 +27,7 @@ export default function Reglamento() {
           en vez de eso, tu <strong>puesto final</strong> en la liga Fantasy se convierte en un bonus de puntos que sí
           entra en la clasificación general, junto a los puntos del resto de bloques.
         </p>
-        <div className="overflow-hidden rounded-lg border border-gray-200">
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white/50">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
@@ -51,7 +51,7 @@ export default function Reglamento() {
         </p>
       </section>
 
-      <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-8 text-center backdrop-blur-sm">
         <span className="text-3xl">🚧</span>
         <p className="font-medium text-gray-600">El resto está en construcción</p>
         <p className="max-w-sm text-sm text-gray-400">

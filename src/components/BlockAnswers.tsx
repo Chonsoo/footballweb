@@ -75,7 +75,7 @@ function PairedResults({
   return (
     <div className="flex flex-col gap-2">
       {sortedPairs.map((legs, i) => (
-        <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+        <div key={i} className="flex flex-col gap-1.5 rounded-lg bg-white/[0.67] p-2.5 shadow-sm backdrop-blur-sm">
           <p className="truncate text-center text-[11px] font-semibold text-gray-400">
             {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-300">vs</span>{' '}
             {shortMatchTeamName(legs[0]?.config.away_team)}
@@ -173,7 +173,7 @@ export default function BlockAnswers({
                 const real = currentResults[q.id] as Record<string, number> | undefined
                 const predicted = answers[q.id] as Record<string, number> | undefined
                 return (
-                  <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+                  <div key={q.id} className="rounded-lg bg-white/[0.67] p-2.5 shadow-sm backdrop-blur-sm">
                     <div className="mb-1 flex justify-end">
                       <PointsPill points={points[q.id]} />
                     </div>
@@ -188,7 +188,7 @@ export default function BlockAnswers({
             {b === 2 && (
               <div className="grid grid-cols-2 gap-2">
                 {qs.map((q) => (
-                  <div key={q.id} className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+                  <div key={q.id} className="rounded-lg bg-white/[0.67] p-2 shadow-sm backdrop-blur-sm">
                     <div className="mb-1 flex items-center justify-between gap-1">
                       <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
                         {shortQuestionLabel(q)}
@@ -204,7 +204,7 @@ export default function BlockAnswers({
             {b === 3 && <PairedResults questions={qs} answers={answers} points={points} showDates={showDates} />}
 
             {b === 4 && (
-              <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white/[0.67] backdrop-blur-sm">
                 {qs.map((q) => (
                   <div key={q.id} className="flex items-center justify-between gap-2 px-3 py-2">
                     <span className="min-w-0 flex-1 text-xs text-gray-600">{q.question}</span>

@@ -19,7 +19,7 @@ interface Props {
 export default function FlashAnswerCard({ question, value, points, resolved }: Props) {
   const status = getFlashStatus(question, resolved)
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+    <div className="flex flex-col gap-1 rounded-lg bg-white/[0.67] p-2 shadow-sm backdrop-blur-sm">
       <div className="flex items-center justify-between gap-1">
         <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${FLASH_STATUS_COLORS[status]}`}>
           {FLASH_STATUS_LABELS[status]}

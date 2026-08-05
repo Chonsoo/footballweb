@@ -46,32 +46,40 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('users')
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Panel de administración</h1>
+    // Panel denso en formularios y tablas -- en vez de convertir cada
+    // control interno a "cristal" (arriesgado en un archivo tan grande y sin
+    // beneficio real para una pantalla de trabajo, no de bienvenida), todo
+    // el panel flota como UNA sola superficie casi opaca sobre el verde
+    // general de la app, para que no rompa la cohesión visual con el resto
+    // pero el contenido siga leyéndose exactamente igual que antes.
+    <div className="rounded-2xl bg-white/95 p-4 shadow-xl shadow-black/20 backdrop-blur-sm sm:p-6">
+      <div className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold">Panel de administración</h1>
 
-      {/* Mismo lenguaje visual que la tira de pestañas de la app (burbujas
-          redondeadas, deslizable) en vez de la barra con subrayado de antes —
-          así el panel tiene su propia navegación reconocible, sin depender
-          del navbar general. */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              tab === t.id ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {/* Mismo lenguaje visual que la tira de pestañas de la app (burbujas
+            redondeadas, deslizable) en vez de la barra con subrayado de antes —
+            así el panel tiene su propia navegación reconocible, sin depender
+            del navbar general. */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                tab === t.id ? 'bg-brand-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'users' && <UsersSection />}
+        {tab === 'flash' && <FlashAdminSection />}
+        {tab === 'initial' && <InitialBlocksSection />}
+        {tab === 'fantasy' && <FantasyPlayersSection />}
+        {tab === 'fantasy-stats' && <FantasyStatsSection />}
       </div>
-
-      {tab === 'users' && <UsersSection />}
-      {tab === 'flash' && <FlashAdminSection />}
-      {tab === 'initial' && <InitialBlocksSection />}
-      {tab === 'fantasy' && <FantasyPlayersSection />}
-      {tab === 'fantasy-stats' && <FantasyStatsSection />}
     </div>
   )
 }

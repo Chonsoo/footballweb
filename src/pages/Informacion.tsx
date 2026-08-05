@@ -70,18 +70,18 @@ export default function Informacion() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">ℹ️ Información</h1>
-        <p className="text-sm text-gray-500">Cómo funciona la porra.</p>
+        <h1 className="text-xl font-bold text-white">ℹ️ Información</h1>
+        <p className="text-sm text-white/80">Cómo funciona la porra.</p>
       </div>
 
-      <div className="flex overflow-hidden rounded-lg border border-gray-200 text-sm">
+      <div className="flex overflow-hidden rounded-lg bg-white/[0.4] text-sm backdrop-blur-sm">
         {SUBVIEWS.map(([key, label]) => (
           <button
             key={key}
             type="button"
             onClick={() => setSubview(key)}
             className={`flex-1 px-3 py-2 font-medium transition-colors ${
-              subview === key ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+              subview === key ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-white/40'
             }`}
           >
             {label}
@@ -90,14 +90,14 @@ export default function Informacion() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Cargando…</p>
+        <p className="text-white/80">Cargando…</p>
       ) : subview === 'clasificacion' ? (
         ordered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+          <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
             Todavía no se ha actualizado la clasificación actual.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
             {ordered.map(({ item, pos }) => {
               const zone = zoneForPosition(pos, tiers, total)
               return (
@@ -119,7 +119,7 @@ export default function Informacion() {
         )
       ) : subview === 'resultados' ? (
         otherBlocksQuestions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+          <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
             Todavía no hay preguntas aquí.
           </div>
         ) : (
@@ -127,7 +127,7 @@ export default function Informacion() {
         )
       ) : subview === 'flash' ? (
         flashQuestions.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+          <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
             Todavía no hay preguntas aquí.
           </div>
         ) : (
@@ -136,7 +136,7 @@ export default function Informacion() {
               const resolved = q.id in resultsMap
               const status = getFlashStatus(q, resolved)
               return (
-                <div key={q.id} className="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+                <div key={q.id} className="flex flex-col gap-1 rounded-lg bg-white/[0.67] p-2 shadow-sm backdrop-blur-sm">
                   <div className="flex items-center justify-between gap-1">
                     <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${FLASH_STATUS_COLORS[status]}`}>
                       {FLASH_STATUS_LABELS[status]}
@@ -152,7 +152,7 @@ export default function Informacion() {
           </div>
         )
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-8 text-center backdrop-blur-sm">
           <span className="text-3xl">🚧</span>
           <p className="font-medium text-gray-600">En construcción</p>
           <p className="max-w-sm text-sm text-gray-400">

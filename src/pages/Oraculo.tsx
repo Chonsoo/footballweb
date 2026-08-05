@@ -172,17 +172,17 @@ export default function Oraculo() {
     load()
   }, [])
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
+  if (loading) return <p className="text-white/80">Cargando…</p>
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-2xl bg-gradient-to-br from-brand-50 via-white to-gold-100 p-4">
+      <div className="rounded-2xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-gray-900">🔮 El oráculo</h1>
         <p className="text-sm text-gray-500">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
       </div>
 
       {questions.length === 0 && (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+        <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
           Todavía no hay preguntas.
         </div>
       )}
@@ -207,7 +207,7 @@ export default function Oraculo() {
             : (topZoneStats[q.id] ?? [])
 
         return (
-          <div key={q.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div key={q.id} className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
             <div className="h-1" style={{ backgroundColor: accent }} />
             <div className="p-4">
               <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-400">

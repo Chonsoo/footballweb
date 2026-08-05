@@ -39,14 +39,14 @@ const STAT_ROWS: StatRow[] = [
 export default function FantasyScoringRules() {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-white/80">
         Cada jugador de tu 11 suma o resta puntos jornada a jornada según lo que haga en el partido real. Cuanto más
         atrás juega, más vale un gol o una asistencia suya (es más raro), y menos vale una portería a cero cuanto más
         arriba juega.
       </p>
 
       {/* Lo que varía según la posición: tabla, para comparar de un vistazo. */}
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-lg bg-white/[0.8] shadow-md shadow-black/10 backdrop-blur-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -81,7 +81,7 @@ export default function FantasyScoringRules() {
       </div>
 
       {/* Lo que es igual para cualquier jugador, sea cual sea su posición. */}
-      <div className="rounded-lg border border-gray-200 bg-white p-3">
+      <div className="rounded-lg bg-white/[0.8] p-3 shadow-md shadow-black/10 backdrop-blur-sm">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Igual para todas las posiciones</p>
         <ul className="flex flex-col gap-1.5 text-sm text-gray-700">
           <li className="flex items-center justify-between">
@@ -111,7 +111,7 @@ export default function FantasyScoringRules() {
         </ul>
       </div>
 
-      <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+      <p className="rounded-lg bg-white/[0.67] px-3 py-2 text-xs text-gray-600 backdrop-blur-sm">
         Los puntos de cada jugador se suman y ese es el total de tu 11 esa jornada. Cómo se traduce tu puesto en la
         liga Fantasy a puntos en la clasificación general está en el Reglamento oficial.
       </p>

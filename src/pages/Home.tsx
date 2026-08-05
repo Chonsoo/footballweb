@@ -132,21 +132,18 @@ export default function Home() {
     myRow != null && rows.length > 1 && distFromLastTier(myRow.total_points, rows) === 0 && uniqueTierCount(rows) > 1
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 via-brand-700 to-brand-600 py-5 text-white shadow-lg">
-        {favoriteTeam?.badge ? (
+    // Ya no hace falta una caja verde propia para la cabecera -- el fondo
+    // verde de marca ahora viene del propio Layout (misma app en todas
+    // partes), así que aquí solo flotan el escudo difuminado, el título y
+    // la cinta de jugadores directamente sobre ese verde, igual que en el
+    // login/onboarding (AuthShell).
+    <div className="relative flex flex-col gap-6">
+      <div className="relative overflow-hidden rounded-2xl">
+        {favoriteTeam?.badge && (
           <img
             src={favoriteTeam.badge}
             alt=""
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[80%] w-[80%] max-h-56 max-w-56 -translate-x-1/2 -translate-y-1/2 object-contain opacity-15"
-          />
-        ) : (
-          <div
-            className="pointer-events-none absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(180deg, rgba(255,255,255,0.5) 0px, rgba(255,255,255,0.5) 2px, transparent 2px, transparent 40px)',
-            }}
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[80%] w-[80%] max-h-56 max-w-56 -translate-x-1/2 -translate-y-1/2 object-contain opacity-20"
           />
         )}
 
@@ -156,11 +153,11 @@ export default function Home() {
           </div>
         )}
 
-        <div className="relative z-10 flex flex-col items-center gap-3 px-5 text-center">
+        <div className="relative z-10 flex flex-col items-center gap-3 px-5 py-3 text-center text-white">
           {!favoriteTeam?.badge && <span className="text-4xl">🏆</span>}
           <h1 className="text-2xl font-extrabold tracking-tight text-gold-400 sm:text-3xl">PORRA ABUELONCHA</h1>
 
-          <div className="flex w-full max-w-xs items-center justify-center gap-4 rounded-xl bg-white/[0.67] px-4 py-2.5 shadow-inner backdrop-blur-sm">
+          <div className="flex w-full max-w-xs items-center justify-center gap-4 rounded-xl bg-white/[0.67] px-4 py-2.5 shadow-xl shadow-black/20 backdrop-blur-sm">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">Participantes</p>
               <p className="text-xl font-bold text-brand-950">{loading ? '…' : rows.length}</p>
@@ -191,8 +188,8 @@ export default function Home() {
       </div>
 
       {profile?.username && (
-        <p className="text-sm text-gray-500">
-          ¡Hola, <span className="font-medium text-gray-700">{profile.username}</span>! ¿Qué quieres mirar?
+        <p className="text-sm text-white/80">
+          ¡Hola, <span className="font-medium text-white">{profile.username}</span>! ¿Qué quieres mirar?
         </p>
       )}
 
@@ -201,22 +198,22 @@ export default function Home() {
           <Link
             key={card.to}
             to={card.to}
-            className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-transform active:scale-95 hover:-translate-y-0.5 hover:shadow-md"
+            className="flex flex-col gap-2 rounded-xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm transition-transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg"
           >
             <span className={`flex h-9 w-9 items-center justify-center rounded-lg text-lg ${card.accent}`}>{card.icon}</span>
-            <p className="text-sm font-semibold text-gray-800">{card.title}</p>
-            <p className="text-xs text-gray-400">{card.description}</p>
+            <p className="text-sm font-semibold text-brand-950">{card.title}</p>
+            <p className="text-xs text-brand-900/60">{card.description}</p>
           </Link>
         ))}
 
         {profile?.is_admin && (
           <Link
             to="/admin"
-            className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-transform active:scale-95 hover:-translate-y-0.5 hover:shadow-md"
+            className="flex flex-col gap-2 rounded-xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm transition-transform active:scale-95 hover:-translate-y-0.5 hover:shadow-lg"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-lg text-red-600">⚙️</span>
-            <p className="text-sm font-semibold text-gray-800">Admin</p>
-            <p className="text-xs text-gray-400">Panel de administración.</p>
+            <p className="text-sm font-semibold text-brand-950">Admin</p>
+            <p className="text-xs text-brand-900/60">Panel de administración.</p>
           </Link>
         )}
       </div>

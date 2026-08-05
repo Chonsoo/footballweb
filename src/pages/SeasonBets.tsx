@@ -78,7 +78,7 @@ export default function SeasonBets() {
     )
   }
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
+  if (loading) return <p className="text-white/80">Cargando…</p>
 
   const byBlock = new Map<number, QuestionWithAnswers[]>()
   const noBlock: QuestionWithAnswers[] = []
@@ -113,15 +113,15 @@ export default function SeasonBets() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Apuestas iniciales</h1>
+      <h1 className="text-xl font-semibold text-white">Apuestas iniciales</h1>
 
       {closed ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-200/50 bg-amber-50/90 px-4 py-3 text-sm text-amber-800 backdrop-blur-sm">
           El plazo se cerró el {INITIAL_PHASE_DEADLINE_LABEL}. Esto ya no se puede editar, para ver el resumen de lo
           que pusiste mejor entra en <strong>Mis apuestas</strong>.
         </div>
       ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-600 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/[0.67] px-4 py-3 text-sm text-gray-600 shadow-md shadow-black/10 backdrop-blur-sm">
           <span>
             Puedes rellenar o actualizar tus respuestas hasta el <strong className="text-gray-800">{INITIAL_PHASE_DEADLINE_LABEL}</strong>.
           </span>
@@ -130,7 +130,7 @@ export default function SeasonBets() {
       )}
 
       {questions.length === 0 && (
-        <p className="text-gray-400">Todavía no hay preguntas. El admin puede crearlas desde el panel.</p>
+        <p className="text-white/70">Todavía no hay preguntas. El admin puede crearlas desde el panel.</p>
       )}
 
       {BLOCKS.map((b) => {
@@ -143,13 +143,13 @@ export default function SeasonBets() {
         const isOpen = openBlock === b
 
         return (
-          <div key={b} className="rounded border border-gray-200 bg-white">
+          <div key={b} className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => setOpenBlock(isOpen ? null : b)}
               className={`flex w-full items-center justify-between gap-2 px-4 py-3 text-left font-medium ${
-                isOpen ? 'rounded-t' : 'rounded'
-              } ${allAnswered ? 'bg-green-50' : 'bg-white'}`}
+                allAnswered ? 'bg-green-100/70' : ''
+              }`}
             >
               <span className="flex items-center gap-2">
                 {BLOCK_LABELS[b] ?? `Bloque ${b}`}
@@ -179,7 +179,7 @@ export default function SeasonBets() {
               </span>
             </button>
             {isOpen && (
-              <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">
+              <div className="flex flex-col gap-3 border-t border-white/40 p-3">
                 <div>
                   <BlockScoringHelp block={b} label={BLOCK_LABELS[b]} />
                 </div>
@@ -204,7 +204,7 @@ export default function SeasonBets() {
       <FantasyLineupBlock />
 
       {noBlock.length > 0 && (
-        <div className="rounded border border-gray-200 bg-white p-3">
+        <div className="rounded-xl bg-white/[0.67] p-3 shadow-md shadow-black/10 backdrop-blur-sm">
           <p className="mb-2 text-xs font-medium text-gray-500">Otras preguntas</p>
           <div className="flex flex-col gap-3">{noBlock.map(renderCard)}</div>
         </div>

@@ -88,7 +88,7 @@ export default function BigThreeInput({
   return (
     <div className="flex flex-col gap-3">
       {[...pairs.values()].map((legs, i) => (
-        <div key={i} className="rounded-lg border border-gray-200 bg-white p-4">
+        <div key={i} className="rounded-lg bg-white/[0.67] p-4 shadow-sm backdrop-blur-sm">
           <p className="mb-3 text-center font-semibold text-gray-800">
             {legs[0]?.config.home_team} <span className="font-normal text-gray-400">vs</span> {legs[0]?.config.away_team}
           </p>

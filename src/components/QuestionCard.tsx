@@ -51,7 +51,7 @@ export default function QuestionCard({
     </svg>
   )
   return (
-    <div className="rounded border border-gray-200 bg-white p-4">
+    <div className="rounded-lg bg-white/[0.67] p-4 shadow-sm backdrop-blur-sm">
       {/* En apuestas flash no mostramos la competición (de momento todas son
           Liga) — en su lugar, el contador de esta pregunta arriba a la
           derecha, y los puntos que vale abajo a la derecha (mismo sitio que

@@ -87,7 +87,7 @@ export default function Ranking() {
       })
   }, [])
 
-  if (loading) return <p className="text-gray-500">Cargando clasificación…</p>
+  if (loading) return <p className="text-white/80">Cargando clasificación…</p>
 
   const hasMyRow = !!user && rows.some((r) => r.user_id === user.id)
 
@@ -105,8 +105,8 @@ export default function Ranking() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">🏆 Clasificación</h1>
-        <p className="text-sm text-gray-500">Quién manda y quién paga la primera ronda.</p>
+        <h1 className="text-xl font-bold text-white">🏆 Clasificación</h1>
+        <p className="text-sm text-white/80">Quién manda y quién paga la primera ronda.</p>
       </div>
 
       {hasMyRow && (
@@ -138,11 +138,11 @@ export default function Ranking() {
       )}
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+        <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
           Todavía no hay puntos.
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 rounded-2xl bg-white/[0.4] p-2.5 shadow-xl shadow-black/10 backdrop-blur-sm">
           {(() => {
             const ranks = computeRanks(rows)
             const tierCount = uniqueTierCount(rows)

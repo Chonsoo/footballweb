@@ -74,7 +74,7 @@ export default function PhaseBetsList({ phase, title, emptyText }: { phase: Ques
     )
   }
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
+  if (loading) return <p className="text-white/80">Cargando…</p>
 
   // Una vez se cierra una pregunta, desaparece de aquí — a partir de ahí solo
   // se ve el resultado en "Mis apuestas" (y en "Apuestas detalladas" para
@@ -83,8 +83,8 @@ export default function PhaseBetsList({ phase, title, emptyText }: { phase: Ques
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">{title}</h1>
-      {openQuestions.length === 0 && <p className="text-gray-400">{emptyText}</p>}
+      <h1 className="text-xl font-semibold text-white">{title}</h1>
+      {openQuestions.length === 0 && <p className="text-white/70">{emptyText}</p>}
       {openQuestions.map((q) => {
         const myAnswer = q.answers.find((a) => a.user_id === user?.id)
         return (

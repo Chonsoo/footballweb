@@ -52,7 +52,7 @@ export default function MisApuestas() {
     load()
   }, [user])
 
-  if (loading) return <p className="text-gray-500">Cargando…</p>
+  if (loading) return <p className="text-white/80">Cargando…</p>
 
   const initialQuestions = questions.filter((q) => q.phase === 'initial')
   const weeklyQuestions = questions.filter((q) => q.phase === 'weekly')
@@ -64,18 +64,18 @@ export default function MisApuestas() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">✅ Mis apuestas</h1>
-        <p className="text-sm text-gray-500">Repasa lo que has puesto tú.</p>
+        <h1 className="text-xl font-bold text-white">✅ Mis apuestas</h1>
+        <p className="text-sm text-white/80">Repasa lo que has puesto tú.</p>
       </div>
 
-      <div className="flex overflow-hidden rounded-lg border border-gray-200 text-sm">
+      <div className="flex overflow-hidden rounded-lg bg-white/[0.4] text-sm backdrop-blur-sm">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             className={`flex-1 px-3 py-2 font-medium transition-colors ${
-              tab === t.id ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+              tab === t.id ? 'bg-brand-700 text-white' : 'text-gray-700 hover:bg-white/40'
             }`}
           >
             {t.label}
@@ -86,7 +86,7 @@ export default function MisApuestas() {
       {tab === 'initial' ? (
         <div className="flex flex-col gap-5">
           {initialQuestions.length === 0 && (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+            <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
               Todavía no hay preguntas aquí.
             </div>
           )}
@@ -94,8 +94,8 @@ export default function MisApuestas() {
           <BlockAnswers questions={initialQuestions} answers={answers} points={points} currentResults={currentResults} />
 
           <div className="flex flex-col gap-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-brand-600">Bloque 5 · El 11 de Abuelonchos</h2>
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-brand-100">Bloque 5 · El 11 de Abuelonchos</h2>
+            <div className="rounded-xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
               {lineup.loading ? (
                 <p className="text-sm text-gray-400">Cargando…</p>
               ) : lineup.filled === 0 ? (
@@ -116,14 +116,14 @@ export default function MisApuestas() {
       ) : (
         <>
           {weeklyQuestions.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
+            <div className="rounded-xl border border-dashed border-white/30 bg-white/[0.67] p-6 text-center text-brand-900/60 backdrop-blur-sm">
               Todavía no hay preguntas aquí.
             </div>
           ) : (
             <>
               <FlashStatusFilter value={statusFilter} onChange={setStatusFilter} />
               {visibleWeeklyQuestions.length === 0 ? (
-                <p className="text-sm text-gray-400">Ninguna pregunta con ese estado.</p>
+                <p className="text-sm text-white/70">Ninguna pregunta con ese estado.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {visibleWeeklyQuestions.map((q) => (
