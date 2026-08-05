@@ -61,8 +61,14 @@
    -25% (el ancho de UNA copia, ya que hay cuatro) -- al llegar ahí, la copia
    siguiente encaja exactamente donde empezaba la primera, así que el bucle
    es perfecto y no se nota el salto ni deja huecos en blanco en pantallas
-   anchas. La de "right" simplemente arranca ya desplazada al -25% y va hacia
-   el 0%, para que se mueva en el sentido contrario. */
+   anchas.
+
+   Solo existe la keyframe "left": el sentido "right" NO usa una segunda
+   animación que arranque ya desplazada (eso dejaba el primer escudo visible
+   cortado nada más cargar la página, porque ese desplazamiento inicial no
+   coincide con el borde de ningún escudo) -- en su lugar, TeamMarquee
+   voltea el carril entero con scale-x(-1) y reutiliza esta misma animación,
+   así el sentido "right" también arranca limpio. */
 @keyframes auth-marquee-left {
   from {
     transform: translateX(0);
@@ -71,23 +77,11 @@
     transform: translateX(-25%);
   }
 }
-@keyframes auth-marquee-right {
-  from {
-    transform: translateX(-25%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
 .auth-marquee-left {
   animation: auth-marquee-left 90s linear infinite;
 }
-.auth-marquee-right {
-  animation: auth-marquee-right 90s linear infinite;
-}
 @media (prefers-reduced-motion: reduce) {
-  .auth-marquee-left,
-  .auth-marquee-right {
+  .auth-marquee-left {
     animation: none;
   }
 }

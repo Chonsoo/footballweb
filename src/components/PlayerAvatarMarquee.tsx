@@ -51,30 +51,48 @@ export default function PlayerAvatarMarquee({
   const target = size === 'sm' ? 70 : 40
   const copies = Math.max(8, Math.ceil(target / photos.length))
   const travelPercent = 100 / copies
-  const animName = direction === 'left' ? 'player-marquee-left' : 'player-marquee-right'
   const { band, img } = SIZES[size]
 
   const repeated: string[] = []
   for (let c = 0; c < copies; c++) repeated.push(...photos)
 
+  // Truco del espejo para el sentido "right": en vez de una segunda animación
+  // que arranca YA desplazada (translateX(-travelPercent%) desde el primer
+  // frame), lo que dejaba la primera foto visible cortada nada más cargar
+  // -- aquí se reutiliza EXACTAMENTE la misma animación "left" (que siempre
+  // arranca en translateX(0), con la primera foto entera y bien encajada) y
+  // simplemente se voltea todo el carril con scale-x(-1). Visualmente eso
+  // invierte el sentido del movimiento (lo que se ve moverse a la izquierda
+  // pasa a verse moverse a la derecha), y cada foto lleva un scale-x(-1) de
+  // vuelta para no salir espejada.
+  //
+  // Dos nodos separados a propósito: el volteo estático (scale-x) va en un
+  // nodo, y la animación (translateX) en OTRO nodo dentro -- un transform
+  // animado y uno estático nunca pueden convivir en el mismo nodo, la
+  // animación se comería al estático en cuanto arrancase.
+  const mirror = direction === 'right'
+
   return (
     <div className={`flex items-center overflow-hidden ${band}`}>
-      <div
-        className="flex w-max shrink-0 items-center"
-        style={{ animation: `${animName} ${COPY_TRANSIT_SECONDS}s linear infinite` }}
-      >
-        {repeated.map((photo, i) => (
-          <img
-            key={i}
-            src={photo}
-            alt=""
-            className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${img}`}
-          />
-        ))}
+      <div className={mirror ? '[transform:scaleX(-1)]' : ''}>
+        <div
+          className="flex w-max shrink-0 items-center"
+          style={{ animation: `player-marquee-left ${COPY_TRANSIT_SECONDS}s linear infinite` }}
+        >
+          {repeated.map((photo, i) => (
+            <img
+              key={i}
+              src={photo}
+              alt=""
+              className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${
+                mirror ? '[transform:scaleX(-1)]' : ''
+              } ${img}`}
+            />
+          ))}
+        </div>
       </div>
       <style>{`
         @keyframes player-marquee-left { from { transform: translateX(0); } to { transform: translateX(-${travelPercent}%); } }
-        @keyframes player-marquee-right { from { transform: translateX(-${travelPercent}%); } to { transform: translateX(0); } }
       `}</style>
     </div>
   )

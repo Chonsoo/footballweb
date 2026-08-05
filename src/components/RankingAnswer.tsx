@@ -82,7 +82,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
           ))}
         </div>
 
-        <div className="grid grid-cols-5 gap-1 sm:grid-cols-10">
+        <div className="grid grid-cols-5 gap-0.5 sm:grid-cols-10">
           {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
             const occupant = teamAtPosition(position)
             const zone = zoneForPosition(position, tiers, total)
@@ -91,7 +91,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                 key={position}
                 onClick={() => handlePositionClick(position)}
                 title={occupant ? `${position}º ${occupant.name}` : `${position}º`}
-                className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 transition-colors ${zone.color} ${
+                className={`relative flex flex-col items-center gap-0 rounded-md py-0.5 transition-colors ${zone.color} ${
                   selected && !readOnly ? 'cursor-pointer ring-2 ring-brand-400 ring-offset-1' : ''
                 }`}
               >
@@ -107,7 +107,13 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                     }`}
                   >
                     {occupant.badge ? (
-                      <img src={occupant.badge} alt="" className="h-6 w-6 object-contain" />
+                      // La imagen va un poco más grande que el propio círculo
+                      // (h-7 en vez de h-6) -- como el círculo no recorta
+                      // (no lleva overflow-hidden) y el escudo es un PNG
+                      // transparente, sobresale un pelín sin verse cortado,
+                      // y así se aprovecha mejor el hueco en blanco que
+                      // suele quedar alrededor del escudo dentro de su caja.
+                      <img src={occupant.badge} alt="" className="h-7 w-7 object-contain" />
                     ) : (
                       <span className="text-xs">🛡️</span>
                     )}
