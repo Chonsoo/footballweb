@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import QuestionCard from './QuestionCard'
 import FantasyLineupPicker from './FantasyLineupPicker'
 import AuthShell from './AuthShell'
+import PlayerAvatarMarquee from './PlayerAvatarMarquee'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
@@ -121,10 +122,21 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
 
   if (showIntro) {
     const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
+    // Solo jugadores REALES del equipo favorito (con foto de verdad) -- se
+    // descartan los que no tienen photo_url para no repetir la silueta
+    // genérica en bucle.
+    const teamPhotos = fantasy.players
+      .filter((p) => p.team_id === favoriteTeam?.id && p.photo_url)
+      .map((p) => p.photo_url as string)
+
     return (
       <AuthShell
         maxWidth="max-w-lg"
         header={null}
+        marqueeTop={teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="left" /> : undefined}
+        marqueeBottom={
+          teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="right" /> : undefined
+        }
         backgroundMark={
           favoriteTeam?.badge && (
             // Los escudos de equipo (a diferencia del símbolo de LaLiga, que
@@ -132,32 +144,31 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
             // dentro del propio PNG -- a igual tamaño de caja se ven mucho
             // más pequeños. Para que el escudo en sí se perciba del mismo
             // tamaño que el logo de LaLiga en las otras pantallas, la caja
-            // va aprox. un 45% más grande. Y se sube bastante (-translate-y)
-            // para que quede concentrado detrás del escudo pequeño + título
-            // de arriba, sin meterse por detrás del párrafo de texto.
+            // va aprox. un 45% más grande. Centrado en altura (top-1/2 +
+            // -translate-y-1/2) en vez de pegado arriba, a petición.
             <img
               src={favoriteTeam.badge}
               alt=""
-              className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(46rem,98vw,88vh)] w-[min(46rem,98vw,88vh)] -translate-x-1/2 -translate-y-24 object-contain opacity-40 sm:h-[min(58rem,90vw,88vh)] sm:w-[min(58rem,90vw,88vh)] sm:-translate-y-36"
+              className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[min(46rem,98vw,88vh)] w-[min(46rem,98vw,88vh)] -translate-x-1/2 -translate-y-1/2 object-contain opacity-40 sm:h-[min(58rem,90vw,88vh)] sm:w-[min(58rem,90vw,88vh)]"
             />
           )
         }
       >
-        <div className="flex flex-col gap-6">
-          <div className="text-center">
+        <div className="flex flex-col gap-6 text-center">
+          <div>
             {favoriteTeam?.badge && (
               <img src={favoriteTeam.badge} alt="" className="mx-auto mb-3 h-16 w-16 object-contain" />
             )}
             <h1 className="mb-2 text-2xl font-bold text-gray-900">
               ¡Bienvenido a la Porra de LaLiga 2026/27{profile?.username ? `, ${profile.username}` : ''}!
             </h1>
-            <p className="text-left text-gray-500">
+            <p className="text-gray-500">
               Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
               individuales, los duelos entre grandes, algún que otro over/under y tu 11 de Abuelonchos. Todo
               repartido en {totalSteps} bloques.
             </p>
           </div>
-          <div className="text-left text-sm text-gray-600">
+          <div className="text-sm text-gray-600">
             <p className="mb-2">
               No hace falta rellenarlo todo del tirón: cada respuesta se guarda sola en cuanto la marcas, y puedes
               saltarte cualquier bloque y completarlo más adelante desde «Apuestas iniciales» en el menú.

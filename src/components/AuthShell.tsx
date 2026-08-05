@@ -52,15 +52,19 @@ export default function AuthShell({
   backgroundMark = DEFAULT_MARK,
   header = DEFAULT_HEADER,
   maxWidth = 'max-w-sm',
+  marqueeTop = <TeamMarquee direction="left" />,
+  marqueeBottom = <TeamMarquee direction="right" />,
 }: {
   children: ReactNode
   backgroundMark?: ReactNode
   header?: ReactNode
   maxWidth?: string
+  marqueeTop?: ReactNode
+  marqueeBottom?: ReactNode
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
-      <TeamMarquee direction="left" />
+      {marqueeTop}
 
       <div className="relative flex flex-col items-center gap-6 px-4">
         {backgroundMark}
@@ -74,7 +78,7 @@ export default function AuthShell({
         </div>
       </div>
 
-      <TeamMarquee direction="right" />
+      {marqueeBottom}
     </div>
   )
 }
