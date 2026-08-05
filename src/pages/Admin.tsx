@@ -598,6 +598,8 @@ function Block3Panel({
   const [savingId, setSavingId] = useState<string | null>(null)
   const [statusById, setStatusById] = useState<Record<string, Status>>({})
   const [savingDateId, setSavingDateId] = useState<string | null>(null)
+  const [clearingId, setClearingId] = useState<string | null>(null)
+  const [confirmClearId, setConfirmClearId] = useState<string | null>(null)
 
   useEffect(() => {
     const init: Record<string, { home: number; away: number }> = {}
@@ -643,6 +645,22 @@ function Block3Panel({
     await onChanged()
   }
 
+  // Igual que el "Limpiar resultado" del Bloque 4, pero por duelo -- aquí
+  // cada uno se juega en una fecha distinta, así que no tiene sentido
+  // limpiar los 6 a la vez.
+  async function clearOne(q: SeasonQuestion) {
+    setConfirmClearId(null)
+    setClearingId(q.id)
+    const { error } = await supabase.rpc('clear_season_result', { p_question_id: q.id })
+    setClearingId(null)
+    if (error) {
+      setStatusById((s) => ({ ...s, [q.id]: { type: 'error', text: `No se pudo limpiar: ${error.message}` } }))
+      return
+    }
+    setStatusById((s) => ({ ...s, [q.id]: { type: 'ok', text: 'Resultado limpiado ✓' } }))
+    await onChanged()
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 rounded bg-gray-50 p-3">
@@ -665,6 +683,17 @@ function Block3Panel({
                   {savingId === q.id ? 'Guardando…' : resolved ? 'Actualizar' : 'Guardar'}
                 </button>
               </div>
+              {resolved && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setConfirmClearId(q.id)}
+                    disabled={clearingId === q.id}
+                    className="shrink-0 rounded border border-red-300 px-3 py-1 text-xs text-red-600 disabled:opacity-50"
+                  >
+                    {clearingId === q.id ? 'Limpiando…' : 'Limpiar resultado'}
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-xs text-gray-500">
                 <label htmlFor={`match-date-${q.id}`}>Fecha del partido:</label>
                 <input
@@ -693,6 +722,20 @@ function Block3Panel({
       {questions.map((q) => (
         <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
       ))}
+
+      {confirmClearId && (
+        <ConfirmDialog
+          title="Limpiar resultado"
+          message="¿Borrar el resultado fijado de este duelo? Nadie aparecerá como acertante hasta que se vuelva a guardar."
+          confirmLabel="Limpiar"
+          danger
+          onConfirm={() => {
+            const q = questions.find((qq) => qq.id === confirmClearId)
+            if (q) clearOne(q)
+          }}
+          onCancel={() => setConfirmClearId(null)}
+        />
+      )}
     </div>
   )
 }
