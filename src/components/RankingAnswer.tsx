@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { MEDIA_TIER_ID, type TierDef, type TierItem } from '../lib/database.types'
-import { zoneForPosition } from '../lib/rankingZones'
+import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type TierDef, type TierItem } from '../lib/database.types'
+import { zoneForPosition, ZONE_COLORS } from '../lib/rankingZones'
 
 interface Props {
   items: TierItem[]
@@ -63,9 +63,26 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
   }
 
   if (compact) {
+    // Leyenda de colores: una vez por zona especial definida en `tiers`
+    // (Campeón/Champions/Europa League/Descenso, según venga configurado),
+    // más "Media tabla" al final para el resto de casillas sin zona.
+    const legendZones = [
+      ...tiers.map((t) => ({ id: t.id, label: t.label, color: ZONE_COLORS[t.id] ?? 'bg-gray-200' })),
+      { id: MEDIA_TIER_ID, label: MEDIA_TIER_LABEL, color: 'bg-white border border-gray-200' },
+    ]
+
     return (
       <div className="flex flex-col gap-2">
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
+          {legendZones.map((zone) => (
+            <span key={zone.id} className="flex items-center gap-1 text-[10px] text-gray-500">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-sm ${zone.color}`} />
+              {zone.label}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-5 gap-1 sm:grid-cols-10">
           {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
             const occupant = teamAtPosition(position)
             const zone = zoneForPosition(position, tiers, total)
@@ -74,7 +91,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                 key={position}
                 onClick={() => handlePositionClick(position)}
                 title={occupant ? `${position}º ${occupant.name}` : `${position}º`}
-                className={`relative flex flex-col items-center gap-0.5 rounded-md py-1.5 transition-colors ${zone.color} ${
+                className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 transition-colors ${zone.color} ${
                   selected && !readOnly ? 'cursor-pointer ring-2 ring-brand-400 ring-offset-1' : ''
                 }`}
               >
@@ -90,7 +107,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                     }`}
                   >
                     {occupant.badge ? (
-                      <img src={occupant.badge} alt="" className="h-5 w-5 object-contain" />
+                      <img src={occupant.badge} alt="" className="h-6 w-6 object-contain" />
                     ) : (
                       <span className="text-xs">🛡️</span>
                     )}

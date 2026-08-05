@@ -5,9 +5,10 @@ import QuestionCard from './QuestionCard'
 import FantasyLineupPicker from './FantasyLineupPicker'
 import AuthShell from './AuthShell'
 import PlayerAvatarMarquee from './PlayerAvatarMarquee'
+import BlockScoringHelp from './BlockScoringHelp'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
-import { BLOCKS, BLOCK_LABELS, BLOCK_SCORING_HINTS } from '../lib/blocks'
+import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 import type { FantasyPlayer } from '../lib/fantasyTypes'
@@ -264,18 +265,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         </div>
 
         <div>
-          <h2
-            className={`text-lg font-bold text-gray-900 ${
-              !isFantasyStep && current!.block != null && BLOCK_SCORING_HINTS[current!.block] ? 'mb-1' : 'mb-3'
-            }`}
-          >
-            {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}
-          </h2>
-          {!isFantasyStep && current!.block != null && BLOCK_SCORING_HINTS[current!.block] && (
-            <p className="mb-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800">
-              💡 {BLOCK_SCORING_HINTS[current!.block]}
-            </p>
-          )}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-gray-900">
+              {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}
+            </h2>
+            {!isFantasyStep && current!.block != null && <BlockScoringHelp block={current!.block} label={current!.label} />}
+          </div>
           {isFantasyStep ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-gray-600">

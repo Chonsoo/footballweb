@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
 import FantasyLineupBlock from '../components/FantasyLineupBlock'
 import Countdown from '../components/Countdown'
+import BlockScoringHelp from '../components/BlockScoringHelp'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { isInitialPhaseClosed, INITIAL_PHASE_DEADLINE, INITIAL_PHASE_DEADLINE_LABEL } from '../lib/deadlines'
@@ -176,7 +177,12 @@ export default function SeasonBets() {
               </span>
             </button>
             {isOpen && (
-              <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">{blockQuestions.map(renderCard)}</div>
+              <div className="flex flex-col gap-3 rounded-b border-t border-gray-100 p-3">
+                <div>
+                  <BlockScoringHelp block={b} label={BLOCK_LABELS[b]} />
+                </div>
+                {blockQuestions.map(renderCard)}
+              </div>
             )}
           </div>
         )

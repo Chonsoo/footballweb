@@ -7,7 +7,9 @@ export interface ZoneInfo {
 }
 
 // Colores por id de tier "especial". El resto (media tabla) no lleva color.
-const ZONE_COLORS: Record<string, string> = {
+// Exportado para poder pintar una leyenda de colores encima de la tabla
+// (ver RankingAnswer.tsx), no solo para colorear cada fila/casilla.
+export const ZONE_COLORS: Record<string, string> = {
   campeon: 'bg-red-300',
   champions: 'bg-orange-300',
   europa: 'bg-yellow-300',
