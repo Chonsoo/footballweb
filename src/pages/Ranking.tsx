@@ -94,21 +94,21 @@ export default function Ranking() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">🏆 Clasificación</h1>
-          <p className="text-sm text-gray-500">Quién manda y quién paga la primera ronda.</p>
-        </div>
-        {hasMyRow && (
-          <button
-            type="button"
-            onClick={scrollToMe}
-            className="shrink-0 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800"
-          >
-            📍 Tu puesto
-          </button>
-        )}
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">🏆 Clasificación</h1>
+        <p className="text-sm text-gray-500">Quién manda y quién paga la primera ronda.</p>
       </div>
+
+      {hasMyRow && (
+        <button
+          type="button"
+          onClick={scrollToMe}
+          title="Ir a tu fila"
+          className="fixed bottom-20 right-4 z-40 flex items-center gap-1.5 rounded-full bg-brand-700 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-black/20 hover:bg-brand-800 sm:bottom-6"
+        >
+          📍 Tu puesto
+        </button>
+      )}
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-400">
