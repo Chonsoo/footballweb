@@ -47,4 +47,13 @@ export const BLOCK_SCORING_HINTS: Record<number, string[]> = {
     'Todo o nada: acierta si el resultado real queda por encima o por debajo de la línea marcada.',
     'Aciertas: te llevas los puntos de la pregunta. Fallas: no sumas nada.',
   ],
+  // Bloque 5 (El 11 de Abuelonchos): no es una pregunta de apuestas iniciales
+  // como los demás, así que aquí "Cómo funciona" explica las reglas de
+  // armar el 11, no un sistema de puntos con aciertos/fallos.
+  5: [
+    'Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996).',
+    'Máximo 3 jugadores en total entre Real Madrid, Atlético y Barcelona (da igual la mezcla).',
+    'Cada jugador suma puntos jornada a jornada según su rendimiento real en el campo.',
+    'Se guarda automáticamente en cuanto colocas cada jugador, sin botón "Guardar".',
+  ],
 }

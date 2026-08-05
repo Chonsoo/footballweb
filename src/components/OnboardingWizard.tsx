@@ -260,15 +260,14 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
             <h2 className="text-lg font-bold text-gray-900">
               {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}
             </h2>
-            {!isFantasyStep && current!.block != null && <BlockScoringHelp block={current!.block} label={current!.label} />}
+            {isFantasyStep ? (
+              <BlockScoringHelp block={5} label="El 11 de Abuelonchos" buttonLabel="🛈 Cómo funciona" />
+            ) : (
+              current!.block != null && <BlockScoringHelp block={current!.block} label={current!.label} />
+            )}
           </div>
           {isFantasyStep ? (
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-gray-600">
-                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Máximo 3 jugadores entre Real
-                Madrid, Atlético y Barcelona en total (da igual la mezcla). Cada jugador suma puntos jornada a
-                jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
-              </p>
               {fantasy.loading ? (
                 <p className="text-sm text-gray-400">Cargando…</p>
               ) : fantasy.players.length === 0 ? (

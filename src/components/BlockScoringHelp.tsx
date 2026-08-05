@@ -6,7 +6,18 @@ import { BLOCK_SCORING_HINTS } from '../lib/blocks'
 // pregunta) -- se abre solo si el jugador quiere leerlo, como cualquier
 // ayuda contextual. Se usa tanto en el asistente de bienvenida como en
 // "Apuestas iniciales", para que la explicación esté en los dos sitios.
-export default function BlockScoringHelp({ block, label }: { block: number; label?: string }) {
+export default function BlockScoringHelp({
+  block,
+  label,
+  buttonLabel = '💡 Cómo puntúa',
+}: {
+  block: number
+  label?: string
+  // El Bloque 5 (El 11 de Abuelonchos) no puntúa como los demás -- ahí no
+  // tiene sentido "Cómo puntúa", así que el botón admite un texto distinto
+  // ("Cómo funciona") reutilizando el mismo modal.
+  buttonLabel?: string
+}) {
   const [open, setOpen] = useState(false)
   const lines = BLOCK_SCORING_HINTS[block]
   if (!lines || lines.length === 0) return null
@@ -18,7 +29,7 @@ export default function BlockScoringHelp({ block, label }: { block: number; labe
         onClick={() => setOpen(true)}
         className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800 hover:bg-brand-100"
       >
-        💡 Cómo puntúa
+        {buttonLabel}
       </button>
 
       {open && (
