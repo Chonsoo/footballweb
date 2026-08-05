@@ -8,7 +8,7 @@ import AuthOrbitBackground from './AuthOrbitBackground'
 // Navbar, Fantasy, etc.).
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 px-4 py-10">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 px-4 py-10">
       <AuthOrbitBackground />
 
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
