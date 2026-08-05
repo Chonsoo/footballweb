@@ -7,7 +7,7 @@ import AuthShell from './AuthShell'
 import PlayerAvatarMarquee from './PlayerAvatarMarquee'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
-import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
+import { BLOCKS, BLOCK_LABELS, BLOCK_SCORING_HINTS } from '../lib/blocks'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import type { AnswerValue, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 import type { FantasyPlayer } from '../lib/fantasyTypes'
@@ -16,6 +16,7 @@ interface Step {
   key: string
   label: string
   questions: SeasonQuestion[]
+  block: number | null
 }
 
 export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
@@ -99,9 +100,9 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     const result: Step[] = []
     for (const b of BLOCKS) {
       const qs = byBlock.get(b) ?? []
-      if (qs.length > 0) result.push({ key: `block-${b}`, label: BLOCK_LABELS[b] ?? `Bloque ${b}`, questions: qs })
+      if (qs.length > 0) result.push({ key: `block-${b}`, label: BLOCK_LABELS[b] ?? `Bloque ${b}`, questions: qs, block: b })
     }
-    if (noBlock.length > 0) result.push({ key: 'no-block', label: 'Otras preguntas', questions: noBlock })
+    if (noBlock.length > 0) result.push({ key: 'no-block', label: 'Otras preguntas', questions: noBlock, block: null })
     return result
   }, [questions])
 
@@ -226,7 +227,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
       : 'Omitir este bloque'
     : current!.questions.length > 1 && someAnswered
       ? 'Omitir respuestas no contestadas de este bloque'
-      : 'Omitir este bloque de preguntas'
+      : 'Omitir este bloque'
 
   return (
     <AuthShell
@@ -245,6 +246,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           />
         )
       }
+      cardClassName="max-h-[82vh] overflow-y-auto"
     >
       <div className="flex flex-col gap-6">
         <div>
@@ -260,9 +262,18 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         </div>
 
         <div>
-          <h2 className="mb-3 text-lg font-bold text-gray-900">
+          <h2
+            className={`text-lg font-bold text-gray-900 ${
+              !isFantasyStep && current!.block != null && BLOCK_SCORING_HINTS[current!.block] ? 'mb-1' : 'mb-3'
+            }`}
+          >
             {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}
           </h2>
+          {!isFantasyStep && current!.block != null && BLOCK_SCORING_HINTS[current!.block] && (
+            <p className="mb-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800">
+              💡 {BLOCK_SCORING_HINTS[current!.block]}
+            </p>
+          )}
           {isFantasyStep ? (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-gray-600">

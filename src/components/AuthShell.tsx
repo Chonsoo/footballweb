@@ -62,6 +62,12 @@ export default function AuthShell({
   maxWidth = 'max-w-sm',
   marqueeTop = <TeamMarquee direction="left" />,
   marqueeBottom = <TeamMarquee direction="right" />,
+  // Para pantallas con contenido variable/largo (p.ej. cada bloque del
+  // asistente): limita la altura de la TARJETA y deja que sea ella la que
+  // haga scroll interno, en vez de la página entera -- así la cabecera +
+  // cintas de arriba/abajo siempre caben en pantalla sin cortarse, aunque
+  // el contenido de dentro sea más largo que el hueco disponible.
+  cardClassName = '',
 }: {
   children: ReactNode
   backgroundMark?: ReactNode
@@ -69,6 +75,7 @@ export default function AuthShell({
   maxWidth?: string
   marqueeTop?: ReactNode
   marqueeBottom?: ReactNode
+  cardClassName?: string
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col justify-between gap-3 overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
@@ -80,7 +87,7 @@ export default function AuthShell({
         {header}
 
         <div
-          className={`relative z-10 w-full ${maxWidth} rounded-2xl bg-white/[0.67] p-6 shadow-2xl shadow-black/30 backdrop-blur-sm`}
+          className={`relative z-10 w-full ${maxWidth} rounded-2xl bg-white/[0.67] p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ${cardClassName}`}
         >
           {children}
         </div>

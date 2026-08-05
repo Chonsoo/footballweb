@@ -40,7 +40,7 @@ export default function PlayerAvatarMarquee({
   for (let c = 0; c < copies; c++) repeated.push(...photos)
 
   return (
-    <div className="flex h-16 w-full items-center overflow-hidden sm:h-20">
+    <div className="flex h-11 w-full items-center overflow-hidden sm:h-14">
       <div
         className="flex w-max shrink-0 items-center"
         style={{ animation: `${animName} ${COPY_TRANSIT_SECONDS}s linear infinite` }}
@@ -50,7 +50,7 @@ export default function PlayerAvatarMarquee({
             key={i}
             src={photo}
             alt=""
-            className="mr-6 h-14 w-14 shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 sm:mr-8 sm:h-[4.5rem] sm:w-[4.5rem]"
+            className="mr-4 h-9 w-9 shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 sm:mr-5 sm:h-11 sm:w-11"
           />
         ))}
       </div>
