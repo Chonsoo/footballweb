@@ -23,16 +23,22 @@ import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 export default function TeamMarquee({ direction = 'left' }: { direction?: 'left' | 'right' }) {
   const teams = LALIGA_TEAMS_2026_27
 
-  // Truco del espejo para el sentido "right" (igual que en
-  // PlayerAvatarMarquee): usar la animación "auth-marquee-right" (que
-  // arranca ya desplazada un -25% desde el primer frame) dejaba el primer
-  // escudo visible cortado nada más cargar la página, porque ese desplazamiento
-  // inicial no coincide con el borde de ningún escudo. Reutilizando SIEMPRE
-  // "auth-marquee-left" (arranca en translateX(0), primer escudo entero) y
-  // volteando el carril entero con scale-x(-1) se consigue el mismo efecto
-  // visual de "moverse hacia la derecha" sin ese corte inicial -- cada
-  // escudo lleva un scale-x(-1) de vuelta para no salir espejado.
-  const mirror = direction === 'right'
+  // Sentido "right": misma animación "auth-marquee-left" pero reproducida al
+  // revés (animation-direction: reverse), en vez del truco del espejo
+  // (scale-x en un nodo aparte) que se usaba antes -- ese truco daba
+  // problemas en móvil (la cinta podía fallar/desaparecer a media
+  // reproducción, probablemente por Safari perdiendo la capa compuesta con
+  // dos transforms anidados). Al reproducir la MISMA animación al revés no
+  // hace falta volteo ni contra-volteo por escudo: el carril y las imágenes
+  // son exactamente los mismos nodos para los dos sentidos.
+  //
+  // ¿Por qué no se nota el salto? La animación va de 0% a -25% (el ancho de
+  // UNA copia, hay 4 copias iguales seguidas), así que -25% es visualmente
+  // IDÉNTICO a 0% (una copia entera más a la izquierda del mismo patrón que
+  // se repite). Reproducirla al revés simplemente empieza en -25% y termina
+  // en 0%, y el salto de -25%->0% en cada vuelta cae justo en un borde de
+  // copia -- nunca a mitad de un escudo.
+  const reverse = direction === 'right'
 
   return (
     <div className="relative z-20 flex h-16 w-full items-center overflow-hidden sm:h-20">
@@ -45,24 +51,18 @@ export default function TeamMarquee({ direction = 'left' }: { direction?: 'left'
           mr-* en cada imagen (incluida la última de cada copia) el hueco
           queda "dentro" de cada copia, así que las copias iguales miden
           justo el múltiplo exacto y el punto de bucle cae siempre bien. */}
-      {/* Dos nodos separados a propósito: el de fuera lleva el volteo
-          ESTÁTICO (scale-x) y el de dentro la animación (translateX). Un
-          transform animado y uno estático NUNCA pueden ir en el MISMO nodo
-          -- el de la animación pisaría/borraría al estático en cuanto
-          arrancase (ya nos pasó antes con el anillo giratorio del login). */}
-      <div className={mirror ? '[transform:scaleX(-1)]' : ''}>
-        <div className="flex w-max shrink-0 items-center auth-marquee-left">
-          {[...teams, ...teams, ...teams, ...teams].map((team, i) => (
-            <img
-              key={`${team.id}-${i}`}
-              src={team.badge}
-              alt=""
-              className={`mr-3 h-14 w-14 shrink-0 object-contain opacity-80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:mr-4 sm:h-[4.5rem] sm:w-[4.5rem] ${
-                mirror ? '[transform:scaleX(-1)]' : ''
-              }`}
-            />
-          ))}
-        </div>
+      <div
+        className="flex w-max shrink-0 items-center auth-marquee-left"
+        style={{ animationDirection: reverse ? 'reverse' : 'normal' }}
+      >
+        {[...teams, ...teams, ...teams, ...teams].map((team, i) => (
+          <img
+            key={`${team.id}-${i}`}
+            src={team.badge}
+            alt=""
+            className="mr-3 h-14 w-14 shrink-0 object-contain opacity-80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:mr-4 sm:h-[4.5rem] sm:w-[4.5rem]"
+          />
+        ))}
       </div>
     </div>
   )

@@ -63,24 +63,20 @@
    es perfecto y no se nota el salto ni deja huecos en blanco en pantallas
    anchas.
 
-   Solo existe la keyframe "left": el sentido "right" NO usa una segunda
-   animación que arranque ya desplazada (eso dejaba el primer escudo visible
-   cortado nada más cargar la página, porque ese desplazamiento inicial no
-   coincide con el borde de ningún escudo) -- en su lugar, TeamMarquee
-   voltea el carril entero con scale-x(-1) y reutiliza esta misma animación,
-   así el sentido "right" también arranca limpio. */
+   Solo existe esta keyframe "left": el sentido "right" reproduce la MISMA
+   animación con animation-direction: reverse (ver el estilo inline en
+   TeamMarquee.tsx), no una segunda keyframe ni un volteo con scale-x --
+   ese enfoque (probado antes) daba problemas en móvil. */
 @keyframes auth-marquee-left {
   from {
-    transform: translateX(0) translateZ(0);
+    transform: translateX(0);
   }
   to {
-    transform: translateX(-25%) translateZ(0);
+    transform: translateX(-25%);
   }
 }
 .auth-marquee-left {
   animation: auth-marquee-left 90s linear infinite;
-  will-change: transform;
-  -webkit-backface-visibility: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-marquee-left {

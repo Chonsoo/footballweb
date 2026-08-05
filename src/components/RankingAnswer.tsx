@@ -98,7 +98,14 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                 onClick={() => handlePositionClick(position)}
                 title={occupant ? `${position}º ${occupant.name}` : `${position}º`}
                 className={`relative flex flex-col items-center gap-0 rounded-md py-px transition-colors ${zone.color} ${
-                  selected && !readOnly ? 'cursor-pointer ring-2 ring-brand-400 ring-offset-1' : ''
+                  // ring-inset (en vez de un ring normal + ring-offset): con la
+                  // rejilla tan apretada (gap-0.5), un ring "de fuera" con
+                  // offset se sale de la propia celda y se junta con el de la
+                  // celda de al lado, dando ese efecto de bordes verdes
+                  // amontonados/mezclados en las 20 casillas a la vez. Con
+                  // ring-inset el borde queda SIEMPRE dentro de la celda, así
+                  // que nunca invade a la vecina por poco espacio que haya.
+                  selected && !readOnly ? 'cursor-pointer ring-2 ring-inset ring-brand-500' : ''
                 }`}
               >
                 {occupant ? (
