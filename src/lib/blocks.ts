@@ -28,9 +28,14 @@ export const BLOCK_SCORING_HINTS: Record<number, string[]> = {
     'Bonus por acertar toda una zona (aunque el orden interno no sea exacto): +3 Champions (1º-4º), +3 Europa League (5º-6º), +5 Descenso (18º-20º).',
   ],
   2: [
-    'Cada premio (Pichichi, Zamora, etc.) puntúa todo o nada.',
-    'Aciertas exacto quién se lo lleva: te llevas los puntos de la pregunta.',
-    'Fallas: no sumas nada en esa pregunta.',
+    'Pichichi Absoluto: quién marcará más goles en LaLiga esta temporada.',
+    'Trofeo Zamora: qué portero encajará menos goles.',
+    'Trofeo Zarra: máximo goleador español.',
+    'Máximo Asistente: quién dará más asistencias (pases de gol).',
+    'Pichichi "Clase Media": máximo goleador sin contar jugadores del Real Madrid, Barcelona o Atlético.',
+    'El Fiasco Europeo: de los equipos con competición europea la temporada pasada, cuál acabará peor esta liga.',
+    'Podio Underdog: un equipo revelación (sin competición europea previa) que crees que acabará arriba.',
+    'Todos puntúan todo o nada (aciertas exacto o no sumas nada), menos Podio Underdog: ahí se compara tu equipo elegido con el de todos los demás participantes, y puntúa según qué tan bien quede en la clasificación real.',
   ],
   3: [
     '5 pts por acertar el 1x2 (quién gana o si es empate).',

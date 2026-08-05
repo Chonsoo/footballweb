@@ -22,12 +22,19 @@ export default function BlockScoringHelp({ block, label }: { block: number; labe
       </button>
 
       {open && (
+        // items-start + overflow-y-auto en el fondo (no items-center): con
+        // textos largos (bloque 2, 8 líneas) el modal podía ser más alto que
+        // la pantalla y quedaba cortado sin forma de hacer scroll -- así,
+        // si no cabe entero, se puede desplazar todo el fondo hacia abajo.
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
           onClick={() => setOpen(false)}
         >
-          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between gap-2">
+          <div
+            className="flex max-h-[85vh] w-full max-w-sm flex-col rounded-xl bg-white shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 p-4">
               <h3 className="font-semibold text-gray-900">{label ?? 'Cómo puntúa este bloque'}</h3>
               <button
                 type="button"
@@ -38,7 +45,7 @@ export default function BlockScoringHelp({ block, label }: { block: number; labe
                 ✕
               </button>
             </div>
-            <ul className="flex flex-col gap-2 text-sm leading-relaxed text-gray-600">
+            <ul className="flex flex-col gap-2 overflow-y-auto p-4 text-sm leading-relaxed text-gray-600">
               {lines.map((line, i) => (
                 <li key={i} className="flex gap-2">
                   <span className="text-brand-500">•</span>

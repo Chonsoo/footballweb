@@ -65,9 +65,7 @@ export default function QuestionCard({
             <Countdown deadline={new Date(question.closes_at)} />
           </div>
         )
-      ) : hideMeta ? (
-        checkmark && <div className="mb-1 flex justify-end">{checkmark}</div>
-      ) : (
+      ) : !hideMeta ? (
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs uppercase text-gray-400">{question.competition}</span>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
@@ -75,15 +73,22 @@ export default function QuestionCard({
             {checkmark}
           </span>
         </div>
-      )}
+      ) : null}
       {/* Bloque 2 (premios individuales): el enunciado guardado suele ser
           "Pichichi Absoluto: ¿quién será el máximo goleador...", pensado para
           Apuestas detalladas donde no hay contexto alrededor. Aquí, con la
           pregunta ya agrupada bajo el título "Bloque 2 · Premios
           individuales" y el modal "Cómo puntúa" al lado, la explicación larga
           sobra -- basta el nombre del premio (la parte antes de los dos
-          puntos), igual que ya se hacía en Mis apuestas/Detalladas. */}
-      <p className="mb-3 font-medium">{question.block === 2 ? shortQuestionLabel(question) : question.question}</p>
+          puntos), igual que ya se hacía en Mis apuestas/Detalladas.
+
+          El tic de "respondida" (solo en hideMeta) va JUNTO al título, a su
+          misma altura -- antes iba en una línea suelta encima, que quedaba
+          descolgada del título en vez de asociada a él. */}
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="font-medium">{question.block === 2 ? shortQuestionLabel(question) : question.question}</p>
+        {hideMeta && checkmark}
+      </div>
 
       {!closed ? (
         <QuestionInput question={question} value={myAnswer?.answer} saving={saving} onSave={onSave} />
