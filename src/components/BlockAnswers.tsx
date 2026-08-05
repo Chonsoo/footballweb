@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import AnswerSummary, { TeamBadgeLabel } from './AnswerSummary'
 import RankingAccuracySummary from './RankingAccuracySummary'
 import ScorePredictionBadge from './ScorePredictionBadge'
@@ -44,17 +45,22 @@ function PairedResults({
   return (
     <div className="flex flex-col gap-2">
       {[...pairs.values()].map((legs, i) => (
-        <div key={i} className="flex flex-wrap items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
-          {legs.map((leg, j) => {
+        // Grid (no flex-wrap) para que el marcador de ida y el de vuelta
+        // queden en la misma columna, uno debajo del otro -- con flex
+        // envolvía la vuelta a una línea suelta que no alineaba con nada.
+        <div
+          key={i}
+          className="grid grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm"
+        >
+          {legs.map((leg) => {
             const v = answers[leg.id] as { home: number; away: number } | undefined
             return (
-              <div key={leg.id} className="flex items-center gap-2 text-sm">
-                {j > 0 && <span className="text-gray-300">·</span>}
-                <TeamBadgeLabel name={leg.config.home_team} />
-                <span className="font-bold text-gray-800">{v ? `${v.home} - ${v.away}` : '—'}</span>
+              <Fragment key={leg.id}>
+                <TeamBadgeLabel name={leg.config.home_team} align="right" />
+                <span className="text-center text-sm font-bold text-gray-800">{v ? `${v.home} - ${v.away}` : '—'}</span>
                 <TeamBadgeLabel name={leg.config.away_team} />
                 <ScorePredictionBadge points={points[leg.id]} />
-              </div>
+              </Fragment>
             )
           })}
         </div>

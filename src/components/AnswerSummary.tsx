@@ -106,15 +106,27 @@ function TeamBadgeImg({ name }: { name: string | undefined }) {
   return <img src={badge} alt="" className="h-5 w-5 shrink-0 object-contain" onError={() => setErr(true)} />
 }
 
+// Nombres largos que ocupan demasiado en la fila compacta de un partido
+// (solo aquí -- en el resto de la app, p.ej. Bloque 1/2, se sigue viendo el
+// nombre completo).
+const SHORT_MATCH_TEAM_NAME: Record<string, string> = {
+  'Atlético de Madrid': 'At. Madrid',
+}
+
 // Exportado: lo reutiliza "Mis apuestas" para juntar los 3 duelos Big Three
 // (ida y vuelta) en una sola fila compacta por emparejamiento.
-export function TeamBadgeLabel({ name }: { name: string | undefined }) {
+export function TeamBadgeLabel({ name, align = 'left' }: { name: string | undefined; align?: 'left' | 'right' }) {
   const badge = findTeamBadge(name)
   const [err, setErr] = useState(false)
+  const shortName = name ? (SHORT_MATCH_TEAM_NAME[name] ?? name) : name
   return (
-    <span className="flex items-center gap-1 text-xs text-gray-500">
-      {badge && !err && <img src={badge} alt="" className="h-4 w-4 object-contain" onError={() => setErr(true)} />}
-      {name}
+    <span
+      className={`flex min-w-0 items-center gap-1 text-xs text-gray-500 ${
+        align === 'right' ? 'flex-row-reverse justify-end text-right' : ''
+      }`}
+    >
+      {badge && !err && <img src={badge} alt="" className="h-4 w-4 shrink-0 object-contain" onError={() => setErr(true)} />}
+      <span className="truncate">{shortName}</span>
     </span>
   )
 }

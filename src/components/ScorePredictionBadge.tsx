@@ -1,4 +1,5 @@
 import { scorePredictionBonuses, SCORE_PREDICTION_1X2_POINTS, SCORE_PREDICTION_EXACT_BONUS } from '../lib/scorePrediction'
+import { formatPoints } from '../lib/formatPoints'
 
 // Dos pastillas compactas para el resultado de un marcador (duelos Big
 // Three y apuestas flash de tipo score_prediction), en vez de un "+X pts"
@@ -9,8 +10,10 @@ export default function ScorePredictionBadge({ points }: { points: number | null
   const bonuses = scorePredictionBonuses(points)
   if (!bonuses) return null
 
+  // Mismo estilo que el "+0 pts" del resto de bloques (PointsPill), en vez
+  // de un gris aparte que desentonaba.
   if (!bonuses.sign) {
-    return <span className="shrink-0 text-[11px] font-semibold text-gray-400">+0</span>
+    return <span className="shrink-0 text-[11px] font-semibold text-green-600">+{formatPoints(0)}</span>
   }
 
   return (
