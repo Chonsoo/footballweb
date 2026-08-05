@@ -82,7 +82,13 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
           ))}
         </div>
 
-        <div className="grid grid-cols-5 gap-0.5 sm:grid-cols-10">
+        {/* Ojo: el tamaño real de cada celda en móvil lo marca el número de
+            COLUMNAS, no el padding/gap (con 5 columnas, cada celda mide
+            ancho-de-pantalla/5, un cuadro enorme pasase lo que pasase con el
+            padding). Por eso ahora son 10 columnas también en móvil -- el
+            cambio que de verdad hacía falta para que la rejilla se vea
+            pequeña, en vez de seguir afinando espaciados que apenas se notan. */}
+        <div className="grid grid-cols-10 gap-0.5">
           {Array.from({ length: total }, (_, i) => i + 1).map((position) => {
             const occupant = teamAtPosition(position)
             const zone = zoneForPosition(position, tiers, total)
@@ -91,7 +97,7 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                 key={position}
                 onClick={() => handlePositionClick(position)}
                 title={occupant ? `${position}º ${occupant.name}` : `${position}º`}
-                className={`relative flex flex-col items-center gap-0 rounded-md py-0.5 transition-colors ${zone.color} ${
+                className={`relative flex flex-col items-center gap-0 rounded-md py-px transition-colors ${zone.color} ${
                   selected && !readOnly ? 'cursor-pointer ring-2 ring-brand-400 ring-offset-1' : ''
                 }`}
               >
@@ -102,26 +108,26 @@ export default function RankingAnswer({ items, tiers, value, onChange, readOnly,
                       e.stopPropagation()
                       handleTeamClick(occupant.id)
                     }}
-                    className={`flex h-6 w-6 items-center justify-center rounded-full ${
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${
                       selected === occupant.id ? 'ring-2 ring-brand-700' : ''
                     }`}
                   >
                     {occupant.badge ? (
                       // La imagen va un poco más grande que el propio círculo
-                      // (h-7 en vez de h-6) -- como el círculo no recorta
+                      // (h-6 en vez de h-5) -- como el círculo no recorta
                       // (no lleva overflow-hidden) y el escudo es un PNG
                       // transparente, sobresale un pelín sin verse cortado,
                       // y así se aprovecha mejor el hueco en blanco que
                       // suele quedar alrededor del escudo dentro de su caja.
-                      <img src={occupant.badge} alt="" className="h-7 w-7 object-contain" />
+                      <img src={occupant.badge} alt="" className="h-6 w-6 object-contain" />
                     ) : (
-                      <span className="text-xs">🛡️</span>
+                      <span className="text-[10px]">🛡️</span>
                     )}
                   </button>
                 ) : (
-                  <span className="flex h-6 w-6 items-center justify-center text-xs text-gray-300">·</span>
+                  <span className="flex h-5 w-5 items-center justify-center text-xs text-gray-300">·</span>
                 )}
-                <span className="text-[9px] font-semibold text-gray-500">{position}º</span>
+                <span className="text-[8px] font-semibold text-gray-500">{position}º</span>
               </div>
             )
           })}

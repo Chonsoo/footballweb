@@ -74,9 +74,14 @@ export default function PlayerAvatarMarquee({
 
   return (
     <div className={`flex items-center overflow-hidden ${band}`}>
-      <div className={mirror ? '[transform:scaleX(-1)]' : ''}>
+      {/* will-change + backface-visibility: iOS Safari a veces "atasca" una
+          animación cuando va anidada dentro de otro elemento con transform
+          estático (como este espejo) si no se le da una pista explícita de
+          que va a animarse -- sin esto, en algunos móviles la cinta puede
+          quedarse congelada o dejar de repintarse pasado un rato. */}
+      <div className={mirror ? '[transform:scaleX(-1)] [will-change:transform]' : ''}>
         <div
-          className="flex w-max shrink-0 items-center"
+          className="flex w-max shrink-0 items-center [-webkit-backface-visibility:hidden] [will-change:transform]"
           style={{ animation: `player-marquee-left ${COPY_TRANSIT_SECONDS}s linear infinite` }}
         >
           {repeated.map((photo, i) => (
@@ -91,8 +96,14 @@ export default function PlayerAvatarMarquee({
           ))}
         </div>
       </div>
+      {/* translateZ(0) va DENTRO de la propia animación (no como transform
+          estático aparte) para forzar que el navegador promocione la cinta a
+          su propia capa GPU durante TODO el recorrido -- en iOS Safari, sin
+          esto, una animación de larga duración (90s) anidada dentro de un
+          nodo con transform estático (el espejo) a veces deja de repintarse
+          o "se pierde" pasado un rato. */}
       <style>{`
-        @keyframes player-marquee-left { from { transform: translateX(0); } to { transform: translateX(-${travelPercent}%); } }
+        @keyframes player-marquee-left { from { transform: translateX(0) translateZ(0); } to { transform: translateX(-${travelPercent}%) translateZ(0); } }
       `}</style>
     </div>
   )
