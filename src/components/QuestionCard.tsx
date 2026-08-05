@@ -53,19 +53,13 @@ export default function QuestionCard({
   return (
     <div className="rounded-lg bg-white/[0.67] p-4 shadow-sm backdrop-blur-sm">
       {/* En apuestas flash no mostramos la competición (de momento todas son
-          Liga) — en su lugar, el contador de esta pregunta arriba a la
-          derecha, y los puntos que vale abajo a la derecha (mismo sitio que
-          en Mis apuestas / Apuestas detalladas). En apuestas iniciales se
-          mantiene el formato de siempre (competición + puntos arriba), ya
-          que ahí el contador único va arriba de toda la página. */}
-      {showCountdown ? (
-        !closed &&
-        question.closes_at && (
-          <div className="mb-1 flex items-center justify-end">
-            <Countdown deadline={new Date(question.closes_at)} />
-          </div>
-        )
-      ) : !hideMeta ? (
+          Liga) — en su lugar, el contador de esta pregunta junto al título
+          (misma fila, no en una línea propia encima), y los puntos que vale
+          abajo a la derecha (mismo sitio que en Mis apuestas / Apuestas
+          detalladas). En apuestas iniciales se mantiene el formato de
+          siempre (competición + puntos arriba), ya que ahí el contador único
+          va arriba de toda la página. */}
+      {!showCountdown && !hideMeta && (
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs uppercase text-gray-400">{question.competition}</span>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
@@ -73,7 +67,7 @@ export default function QuestionCard({
             {checkmark}
           </span>
         </div>
-      ) : null}
+      )}
       {/* Bloque 2 (premios individuales): el enunciado guardado suele ser
           "Pichichi Absoluto: ¿quién será el máximo goleador...", pensado para
           Apuestas detalladas donde no hay contexto alrededor. Aquí, con la
@@ -82,12 +76,16 @@ export default function QuestionCard({
           sobra -- basta el nombre del premio (la parte antes de los dos
           puntos), igual que ya se hacía en Mis apuestas/Detalladas.
 
-          El tic de "respondida" (solo en hideMeta) va JUNTO al título, a su
-          misma altura -- antes iba en una línea suelta encima, que quedaba
-          descolgada del título en vez de asociada a él. */}
+          El tic de "respondida" (solo en hideMeta) y el contador (solo en
+          showCountdown, apuestas flash) van JUNTOS a la derecha, a la misma
+          altura que el título -- antes el contador iba en una línea suelta
+          encima, descolgada del título. */}
       <div className="mb-3 flex items-center justify-between gap-2">
         <p className="font-medium">{question.block === 2 ? shortQuestionLabel(question) : question.question}</p>
-        {hideMeta && checkmark}
+        <span className="flex shrink-0 items-center gap-2">
+          {hideMeta && checkmark}
+          {showCountdown && !closed && question.closes_at && <Countdown deadline={new Date(question.closes_at)} />}
+        </span>
       </div>
 
       {!closed ? (
@@ -111,7 +109,7 @@ export default function QuestionCard({
         </div>
       )}
       {showCountdown && (
-        <p className="mt-2 text-right text-[11px] font-medium text-gray-400">Vale {formatPoints(question.points)}</p>
+        <p className="mt-2 text-right text-[11px] font-semibold text-gray-600">Vale {formatPoints(question.points)}</p>
       )}
     </div>
   )
