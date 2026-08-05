@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from '../components/QuestionCard'
+import BigThreeInput from '../components/BigThreeInput'
 import FantasyLineupBlock from '../components/FantasyLineupBlock'
 import Countdown from '../components/Countdown'
 import BlockScoringHelp from '../components/BlockScoringHelp'
@@ -182,7 +183,18 @@ export default function SeasonBets() {
                 <div>
                   <BlockScoringHelp block={b} label={BLOCK_LABELS[b]} />
                 </div>
-                {blockQuestions.map(renderCard)}
+                {b === 3 ? (
+                  <BigThreeInput
+                    questions={blockQuestions}
+                    answers={Object.fromEntries(
+                      blockQuestions.map((q) => [q.id, q.answers.find((a) => a.user_id === user?.id)])
+                    )}
+                    savingId={savingId}
+                    onSave={saveAnswer}
+                  />
+                ) : (
+                  blockQuestions.map(renderCard)
+                )}
               </div>
             )}
           </div>

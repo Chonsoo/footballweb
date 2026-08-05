@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from './QuestionCard'
+import BigThreeInput from './BigThreeInput'
 import FantasyLineupPicker from './FantasyLineupPicker'
 import AuthShell from './AuthShell'
 import PlayerAvatarMarquee from './PlayerAvatarMarquee'
@@ -285,6 +286,13 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
                 />
               )}
             </div>
+          ) : current!.block === 3 ? (
+            <BigThreeInput
+              questions={current!.questions}
+              answers={answers}
+              savingId={savingId}
+              onSave={saveAnswer}
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {current!.questions.map((q) => (
