@@ -127,21 +127,31 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         header={null}
         backgroundMark={
           favoriteTeam?.badge && (
+            // Los escudos de equipo (a diferencia del símbolo de LaLiga, que
+            // rellena casi toda su caja) traen bastante margen transparente
+            // dentro del propio PNG -- a igual tamaño de caja se ven mucho
+            // más pequeños. Para que el escudo en sí se perciba del mismo
+            // tamaño que el logo de LaLiga en las otras pantallas, la caja
+            // va aprox. un 45% más grande. Y se sube bastante (-translate-y)
+            // para que quede concentrado detrás del escudo pequeño + título
+            // de arriba, sin meterse por detrás del párrafo de texto.
             <img
               src={favoriteTeam.badge}
               alt=""
-              className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(32rem,98vw,85vh)] w-[min(32rem,98vw,85vh)] -translate-x-1/2 object-contain opacity-40 sm:h-[min(40rem,90vw,85vh)] sm:w-[min(40rem,90vw,85vh)] sm:-translate-y-2"
+              className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(46rem,98vw,88vh)] w-[min(46rem,98vw,88vh)] -translate-x-1/2 -translate-y-24 object-contain opacity-40 sm:h-[min(58rem,90vw,88vh)] sm:w-[min(58rem,90vw,88vh)] sm:-translate-y-36"
             />
           )
         }
       >
-        <div className="flex flex-col gap-6 text-center">
-          <div>
+        <div className="flex flex-col gap-6">
+          <div className="text-center">
             {favoriteTeam?.badge && (
               <img src={favoriteTeam.badge} alt="" className="mx-auto mb-3 h-16 w-16 object-contain" />
             )}
-            <h1 className="mb-2 text-2xl font-bold text-gray-900">¡Bienvenido a la Porra de LaLiga 2026/27!</h1>
-            <p className="text-gray-500">
+            <h1 className="mb-2 text-2xl font-bold text-gray-900">
+              ¡Bienvenido a la Porra de LaLiga 2026/27{profile?.username ? `, ${profile.username}` : ''}!
+            </h1>
+            <p className="text-left text-gray-500">
               Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
               individuales, los duelos entre grandes, algún que otro over/under y tu 11 de Abuelonchos. Todo
               repartido en {totalSteps} bloques.
