@@ -50,7 +50,7 @@ export default function FantasyLineupBlock() {
       {open && (
         <div className="flex flex-col gap-3 border-t border-white/40 p-3">
           <div>
-            <BlockScoringHelp block={5} label="El 11 de Abuelonchos" buttonLabel="🛈 Cómo funciona" />
+            <BlockScoringHelp block={5} label="El 11 de Abuelonchos" buttonLabel="🛈 Cómo funciona" centered />
           </div>
           {closed && (
             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

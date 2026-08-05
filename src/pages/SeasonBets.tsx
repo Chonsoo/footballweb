@@ -181,7 +181,7 @@ export default function SeasonBets() {
             {isOpen && (
               <div className="flex flex-col gap-3 border-t border-white/40 p-3">
                 <div>
-                  <BlockScoringHelp block={b} label={BLOCK_LABELS[b]} />
+                  <BlockScoringHelp block={b} label={BLOCK_LABELS[b]} centered />
                 </div>
                 {b === 3 ? (
                   <BigThreeInput

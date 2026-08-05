@@ -11,6 +11,7 @@ export default function BlockScoringHelp({
   block,
   label,
   buttonLabel = '💡 Cómo puntúa',
+  centered = false,
 }: {
   block: number
   label?: string
@@ -18,6 +19,13 @@ export default function BlockScoringHelp({
   // tiene sentido "Cómo puntúa", así que el botón admite un texto distinto
   // ("Cómo funciona") reutilizando el mismo modal.
   buttonLabel?: string
+  // Apuestas iniciales quiere el modal centrado en la pantalla (igual que
+  // "Mis datos" o "Cerrar sesión"), pero en el asistente de bienvenida el
+  // contenido de algunos bloques es largo y necesita anclarse arriba (si no,
+  // con items-center el modal "baila" verticalmente según cuánto texto
+  // tenga, y en textos largos casi no deja margen arriba). Por eso el
+  // centrado es opt-in y el asistente no lo activa, se queda como estaba.
+  centered?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const lines = BLOCK_SCORING_HINTS[block]
@@ -44,12 +52,15 @@ export default function BlockScoringHelp({
         // fuera de toda esa jerarquía, así que "fixed" siempre es relativo
         // al viewport de verdad, venga de donde venga.
         createPortal(
-          // items-start + overflow-y-auto en el fondo (no items-center): con
-          // textos largos (bloque 2, 8 líneas) el modal podía ser más alto que
-          // la pantalla y quedaba cortado sin forma de hacer scroll -- así,
-          // si no cabe entero, se puede desplazar todo el fondo hacia abajo.
+          // overflow-y-auto en el fondo pase lo que pase: con textos largos
+          // (bloque 2, 8 líneas) el modal podía ser más alto que la pantalla
+          // y quedaba cortado sin forma de hacer scroll -- así, si no cabe
+          // entero, se puede desplazar todo el fondo hacia abajo tanto
+          // centrado como anclado arriba.
           <div
-            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
+            className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-black/40 px-4 py-8 ${
+              centered ? 'items-center' : 'items-start'
+            }`}
             onClick={() => setOpen(false)}
           >
             <div
