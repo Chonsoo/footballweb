@@ -354,20 +354,19 @@ export default function FantasyLineupPicker({
                 </button>
               </div>
             </div>
-            {/* En modo Cartas, el fondo del banquillo pasa a blanco (igual
-                que el resto de la tarjeta que envuelve todo esto) en vez del
-                gris apagado con borde discontinuo -- ese estilo "borrador de
-                formulario" tenía sentido para la lista, pero quedaba raro
-                detrás de las cartas, que ya llevan su propio marco. */}
+            {/* En modo Cartas, sin fondo ni borde propios -- se funde con el
+                fondo de detrás (la tarjeta/pantalla que envuelve todo esto),
+                en vez de una caja blanca u opaca aparte. El estilo gris con
+                borde discontinuo se queda solo para la Lista. */}
             <div
               onClick={handlePoolAreaClick}
-              className={`flex max-h-64 overflow-y-auto rounded border p-2 transition-colors sm:max-h-[60vh] ${
-                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border-dashed'
+              className={`flex max-h-64 overflow-y-auto rounded p-2 transition-colors sm:max-h-[60vh] ${
+                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border border-dashed'
               } ${
                 selected != null && !readOnly
-                  ? 'cursor-pointer border-brand-500 bg-brand-50'
+                  ? 'cursor-pointer border border-brand-500 bg-brand-50'
                   : poolView === 'cards'
-                    ? 'border-gray-200 bg-white'
+                    ? 'border-0 bg-transparent'
                     : 'border-gray-200 bg-gray-50'
               }`}
             >
