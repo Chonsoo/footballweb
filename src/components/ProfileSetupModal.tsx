@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import TeamSelect from './TeamSelect'
+import AuthShell from './AuthShell'
 
 export default function ProfileSetupModal() {
   const { profile, refreshProfile } = useAuth()
@@ -29,13 +30,11 @@ export default function ProfileSetupModal() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <div>
-        <h1 className="text-xl font-semibold">¡Bienvenido!</h1>
-        <p className="mt-1 text-sm text-gray-500">Antes de nada, cuéntanos un poco de ti.</p>
-      </div>
+    <AuthShell>
+      <h2 className="mb-1 text-xl font-bold text-gray-900">¡Bienvenido!</h2>
+      <p className="mb-5 text-sm text-gray-500">Antes de nada, cuéntanos un poco de ti.</p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-gray-200 bg-white p-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">Nombre de usuario</label>
           <input
@@ -44,7 +43,9 @@ export default function ProfileSetupModal() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Tu nombre de usuario"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            // text-base (16px): por debajo de 16px, iOS Safari hace zoom
+            // automático de toda la página al enfocar el campo.
+            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:text-sm"
           />
         </div>
 
@@ -58,11 +59,11 @@ export default function ProfileSetupModal() {
         <button
           type="submit"
           disabled={saving || !username.trim() || !favoriteTeam}
-          className="mt-1 rounded bg-brand-700 px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="mt-1 rounded-lg bg-brand-700 px-3 py-2.5 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:opacity-50"
         >
           {saving ? 'Guardando…' : 'Continuar'}
         </button>
       </form>
-    </div>
+    </AuthShell>
   )
 }
