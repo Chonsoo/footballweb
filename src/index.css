@@ -27,6 +27,35 @@
   color-scheme: light;
 }
 
+/* Pulso del botón flotante "Tu posición" en Clasificación: se repite solo
+   2 veces (no en bucle infinito, que resultaba molesto) y luego se queda
+   quieto hasta el próximo montaje del componente. */
+@keyframes ranking-fab-ping {
+  75%,
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Etiqueta junto al botón "Tu posición": visible un momento y luego se
+   desvanece sola, para explicar qué hace el botón sin dejar un rótulo fijo
+   todo el rato. */
+@keyframes ranking-fab-label {
+  0%,
+  65% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.animate-ranking-fab-label {
+  animation: ranking-fab-label 3.5s ease forwards;
+}
+
 body {
   margin: 0;
   color: #111827;
