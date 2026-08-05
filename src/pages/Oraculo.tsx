@@ -4,6 +4,7 @@ import { usePlayers } from '../lib/usePlayers'
 import { findTeamBadge } from '../lib/teamBadge'
 import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type SeasonQuestion } from '../lib/database.types'
 import { zoneForPosition, type ZoneInfo } from '../lib/rankingZones'
+import { shortQuestionLabel } from '../lib/questionLabel'
 import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, SplitBar, VerticalBars, type ChartSlice } from '../components/OracleCharts'
 
 interface AnswerCountRow {
@@ -54,13 +55,6 @@ const ZONE_HEX: Record<string, string> = {
 // %, salvo en descenso que va al revés (de menos a más) para que el equipo
 // más "favorito" a bajar quede el último de todos.
 const ZONE_ORDER = ['campeon', 'champions', 'europa', MEDIA_TIER_ID, 'descenso']
-
-const ANSWER_TYPE_ICON: Record<string, string> = {
-  ranking: '🏆',
-  tier_list: '📊',
-  choice: '🗳️',
-  text: '💬',
-}
 
 const BAR_TOP_N = 5
 const PLAYER_SILHOUETTE = '/badges/player-silhouette.png'
@@ -176,9 +170,13 @@ export default function Oraculo() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-2xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
-        <h1 className="text-xl font-bold text-gray-900">🔮 El oráculo</h1>
-        <p className="text-sm text-gray-600">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
+      {/* Mismo formato de cabecera que el resto de páginas (Clasificación,
+          Mis apuestas, Información...): título + descripción en blanco
+          directamente sobre el verde, sin tarjeta de cristal envolviéndolo
+          -- antes era la única página con la cabecera metida en una caja. */}
+      <div>
+        <h1 className="text-xl font-bold text-white">🔮 El oráculo</h1>
+        <p className="text-sm text-white/80">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
       </div>
 
       {questions.length === 0 && (
@@ -210,12 +208,12 @@ export default function Oraculo() {
           <div key={q.id} className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
             <div className="h-1" style={{ backgroundColor: accent }} />
             <div className="p-4">
-              {/* Antes iba "LIGA" (la competición) arriba en mayúsculas --
-                  de momento TODAS las preguntas son de Liga, así que no
-                  aportaba nada y solo era ruido repetido en cada tarjeta. */}
-              <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-800">
-                <span aria-hidden>{ANSWER_TYPE_ICON[q.answer_type] ?? '❓'}</span>
-                {q.question}
+              {/* Antes iba "LIGA" (la competición) arriba en mayúsculas junto
+                  a un icono según el tipo de pregunta -- de momento TODAS las
+                  preguntas son de Liga (no aportaba nada) y el icono al lado
+                  del título tampoco aclaraba nada, así que fuera los dos. */}
+              <p className="mb-3 text-sm font-medium text-gray-800" title={q.question}>
+                {shortQuestionLabel(q)}
               </p>
 
               {isZoneType ? (
