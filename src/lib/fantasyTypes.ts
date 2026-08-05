@@ -37,6 +37,17 @@ export interface FantasyPlayer {
   active: boolean
 }
 
+// Límite de jugadores del Big Three (Real Madrid, Atlético y Barcelona)
+// juntos en el 11 de Abuelonchos -- no es "máximo 3 de cada equipo", es
+// "máximo 3 en total entre los tres", sea la mezcla que sea (p.ej. 2 del
+// Barça + 1 del Atleti vale, pero no 2+1+1).
+export const BIG_THREE_TEAM_IDS = new Set(['real-madrid', 'atletico-madrid', 'barcelona'])
+export const BIG_THREE_LIMIT = 3
+
+export function isBigThreePlayer(player: Pick<FantasyPlayer, 'team_id'>): boolean {
+  return !!player.team_id && BIG_THREE_TEAM_IDS.has(player.team_id)
+}
+
 // El nombre mostrado puede ser corto (p.ej. "Giuliano"), así que la búsqueda
 // también comprueba full_name cuando existe, para encontrarlo por el
 // apellido por el que se le conoce (p.ej. "Simeone") sin cambiar lo que se

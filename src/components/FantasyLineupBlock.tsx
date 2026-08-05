@@ -56,7 +56,8 @@ export default function FantasyLineupBlock() {
             <p className="flex items-start gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
               <span aria-hidden className="shrink-0">💡</span>
               <span>
-                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Cada jugador suma puntos jornada a
+                Elige tu 11 solo con jugadores veteranos (nacidos antes de 1996). Máximo 3 jugadores entre Real
+                Madrid, Atlético y Barcelona en total (da igual la mezcla). Cada jugador suma puntos jornada a
                 jornada según su rendimiento real. Se guarda automáticamente al colocar cada jugador.
               </span>
             </p>

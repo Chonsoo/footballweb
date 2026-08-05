@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import {
+  BIG_THREE_LIMIT,
   FANTASY_FORMATIONS,
   FANTASY_POSITIONS,
   FANTASY_POSITION_LABELS,
   buildFantasySlots,
   formationLabel,
+  isBigThreePlayer,
   playerMatchesSearch,
   slotKey,
   type FantasyFormation,
@@ -60,6 +62,9 @@ export default function FantasyLineupPicker({
   const [positionFilter, setPositionFilter] = useState<Set<FantasyPosition>>(new Set())
   const [view, setView] = useState<'pitch' | 'list'>('pitch')
   const [poolView, setPoolView] = useState<'chips' | 'cards'>('chips')
+  // Aviso breve cuando se intenta colocar un 4º jugador del Big Three -- se
+  // limpia solo al cambiar de selección o pasado un momento.
+  const [bigThreeWarning, setBigThreeWarning] = useState(false)
 
   function togglePositionFilter(pos: FantasyPosition) {
     setPositionFilter((cur) => {
@@ -91,6 +96,20 @@ export default function FantasyLineupPicker({
   }
   const unplacedCount = players.filter((p) => !placedIds.has(p.api_player_id)).length
 
+  // Cuántos del 11 ya colocado son del Big Three (Real Madrid + Atlético +
+  // Barcelona juntos, no por separado).
+  const bigThreeCount = Object.keys(value).reduce((n, idStr) => {
+    const p = playersById.get(Number(idStr))
+    return p && isBigThreePlayer(p) ? n + 1 : n
+  }, 0)
+
+  function countBigThree(v: Record<string, string>): number {
+    return Object.keys(v).reduce((n, idStr) => {
+      const p = playersById.get(Number(idStr))
+      return p && isBigThreePlayer(p) ? n + 1 : n
+    }, 0)
+  }
+
   const selectedPlayer = selected != null ? playersById.get(selected) ?? null : null
 
   function handlePlayerClick(id: number) {
@@ -101,6 +120,7 @@ export default function FantasyLineupPicker({
       }
       return
     }
+    setBigThreeWarning(false)
     setSelected((cur) => (cur === id ? null : id))
   }
 
@@ -122,6 +142,16 @@ export default function FantasyLineupPicker({
       }
     }
     next[selectedIdStr] = key
+
+    // Máximo 3 jugadores entre Real Madrid, Atlético y Barcelona en total
+    // (no 3 de cada) -- si este cambio se pasa, no se aplica.
+    if (countBigThree(next) > BIG_THREE_LIMIT) {
+      setBigThreeWarning(true)
+      setSelected(null)
+      return
+    }
+
+    setBigThreeWarning(false)
     onChange(next)
     setSelected(null)
   }
@@ -283,6 +313,21 @@ export default function FantasyLineupPicker({
                 )
               })}
             </div>
+            {/* Máximo 3 jugadores entre los tres grandes (Real Madrid,
+                Atlético y Barcelona) en total, sea la mezcla que sea --
+                contador siempre visible, no solo un aviso al fallar. */}
+            <p
+              className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                bigThreeCount >= BIG_THREE_LIMIT ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              ⚡ Big Three: {bigThreeCount}/{BIG_THREE_LIMIT}
+            </p>
+            {bigThreeWarning && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+                Máximo {BIG_THREE_LIMIT} jugadores entre Real Madrid, Atlético y Barcelona en total (da igual la mezcla).
+              </p>
+            )}
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-medium text-gray-500">Sin colocar ({unplacedCount})</p>
               <div className="flex overflow-hidden rounded border border-gray-300 text-[10px]">
@@ -309,25 +354,21 @@ export default function FantasyLineupPicker({
               } ${selected != null && !readOnly ? 'cursor-pointer border-brand-500 bg-brand-50' : 'border-gray-200 bg-gray-50'}`}
             >
               {filtered.length === 0 && <span className="text-xs text-gray-300">Sin resultados</span>}
-              {filtered.map((p) =>
-                poolView === 'cards' ? (
-                  <PlayerCard
-                    key={p.api_player_id}
-                    player={p}
-                    size="sm"
-                    selected={selected === p.api_player_id}
-                    onClick={() => handlePlayerClick(p.api_player_id)}
-                  />
-                ) : (
-                  <PlayerChip
-                    key={p.api_player_id}
-                    player={p}
-                    selected={selected === p.api_player_id}
-                    onClick={() => handlePlayerClick(p.api_player_id)}
-                    pool
-                  />
+              {filtered.map((p) => {
+                // Ya hay 3 del Big Three colocados: se atenúan los que
+                // quedan por colocar de esos 3 equipos, igual que se
+                // atenúan los huecos de una posición que no toca.
+                const blocked = bigThreeCount >= BIG_THREE_LIMIT && isBigThreePlayer(p)
+                return (
+                  <div key={p.api_player_id} className={blocked ? 'pointer-events-none opacity-40' : ''} title={blocked ? 'Ya tienes 3 del Big Three' : undefined}>
+                    {poolView === 'cards' ? (
+                      <PlayerCard player={p} size="sm" selected={selected === p.api_player_id} onClick={() => handlePlayerClick(p.api_player_id)} />
+                    ) : (
+                      <PlayerChip player={p} selected={selected === p.api_player_id} onClick={() => handlePlayerClick(p.api_player_id)} pool />
+                    )}
+                  </div>
                 )
-              )}
+              })}
             </div>
           </div>
         </div>
