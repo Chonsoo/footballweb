@@ -300,6 +300,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
                   closed={false}
                   saving={savingId === q.id}
                   onSave={(value) => saveAnswer(q.id, value)}
+                  hideMeta
                 />
               ))}
             </div>
@@ -307,7 +308,10 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         </div>
 
         <div className="flex items-center justify-between gap-4 text-sm">
-          <button onClick={goNext} className="text-left text-gray-400 hover:underline">
+          <button
+            onClick={goNext}
+            className="text-left font-medium text-gray-500 underline decoration-gray-300 underline-offset-2 hover:text-gray-700"
+          >
             {skipLabel}
           </button>
           <button

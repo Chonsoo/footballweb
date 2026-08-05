@@ -103,6 +103,7 @@ export default function SeasonBets() {
         onSave={(value) => saveAnswer(q.id, value)}
         otherAnswers={q.answers}
         result={q.result}
+        hideMeta
       />
     )
   }

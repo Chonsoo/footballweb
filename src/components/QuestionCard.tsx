@@ -18,6 +18,11 @@ interface Props {
   // iniciales no hace falta repetirlo en cada tarjeta porque ya hay un
   // contador único arriba de la página (todas comparten la misma fecha).
   showCountdown?: boolean
+  // Oculta la fila de "LIGA" + puntos de arriba -- en Apuestas iniciales y el
+  // asistente de bienvenida esa fila sobra: la competición es siempre Liga
+  // (no aporta nada) y los puntos ya se explican con detalle en el modal
+  // "Cómo puntúa" de cada bloque, así que repetirlos aquí es ruido.
+  hideMeta?: boolean
 }
 
 export default function QuestionCard({
@@ -29,6 +34,7 @@ export default function QuestionCard({
   otherAnswers = [],
   result,
   showCountdown,
+  hideMeta,
 }: Props) {
   const complete = isAnswerComplete(question, myAnswer?.answer)
   const checkmark = complete && (
@@ -58,6 +64,8 @@ export default function QuestionCard({
             <Countdown deadline={new Date(question.closes_at)} />
           </div>
         )
+      ) : hideMeta ? (
+        checkmark && <div className="mb-1 flex justify-end">{checkmark}</div>
       ) : (
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs uppercase text-gray-400">{question.competition}</span>
