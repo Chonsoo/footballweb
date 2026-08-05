@@ -12,6 +12,17 @@
 // fotos) la cinta podría no llegar a cubrir pantallas anchas. Se calculan
 // las copias necesarias para tener siempre de sobra (al menos ~40 fotos en
 // total), con un mínimo de 4 copias por seguridad.
+//
+// Ojo con la duración: lo que importa para que el movimiento se "sienta"
+// igual que la cinta de escudos (TeamMarquee, 90s por cada ancho de UNA
+// copia) es el tiempo que tarda en recorrer el ancho de UNA copia, no el
+// número de copias -- el número de copias solo decide cuánto contenido de
+// sobra hay pintado, no la velocidad. Por eso la duración es fija (90s,
+// igual que auth-marquee-left/right en index.css) y NO se multiplica por
+// `copies` como antes (eso hacía que fuese más rápido cuantas más copias
+// hacían falta, dando una sensación de movimiento distinta a la esperada).
+const COPY_TRANSIT_SECONDS = 90
+
 export default function PlayerAvatarMarquee({
   photos,
   direction = 'left',
@@ -32,7 +43,7 @@ export default function PlayerAvatarMarquee({
     <div className="flex h-16 w-full items-center overflow-hidden sm:h-20">
       <div
         className="flex w-max shrink-0 items-center"
-        style={{ animation: `${animName} ${copies * 9}s linear infinite` }}
+        style={{ animation: `${animName} ${COPY_TRANSIT_SECONDS}s linear infinite` }}
       >
         {repeated.map((photo, i) => (
           <img
