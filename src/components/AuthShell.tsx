@@ -22,22 +22,30 @@ export default function AuthShell({ children }: { children: ReactNode }) {
     <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
       <TeamMarquee direction="left" />
 
-      <div className="flex flex-col items-center gap-6 px-4">
-        <div className="flex flex-col items-center gap-1 text-center">
+      <div className="relative flex flex-col items-center gap-6 px-4">
+        {/* Logo grande de Abueloncha FC de fondo, centrado detrás del
+            título y la tarjeta -- la tarjeta (z-10, opaca) lo tapa por
+            abajo, y asoma por arriba, alrededor del título.
+            Usamos abueluchos-fc.png (fondo casi negro, no transparente) con
+            mix-blend-screen: en modo "screen" el negro no pinta nada (se
+            queda invisible) y solo se ve el escudo en sí, fundiéndose con
+            el degradado oscuro en vez de dejar un cuadrado gris/blanco
+            marcado como pasaba con abueluchos-fc-badge.png. */}
+        <img
+          src="/badges/abueluchos-fc.png"
+          alt=""
+          className="pointer-events-none absolute left-1/2 top-0 z-0 h-72 w-72 -translate-x-1/2 -translate-y-8 mix-blend-screen object-contain opacity-90 sm:h-[26rem] sm:w-[26rem] sm:-translate-y-12"
+        />
+
+        <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
           <h1 className="text-2xl font-bold text-white">Porra Abueloncha</h1>
           <p className="text-sm font-medium text-gold-400">2026 · LaLiga</p>
         </div>
 
-        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl shadow-black/30">{children}</div>
-
-        {/* Logo de Abueloncha FC muy difuminado, de fondo, bajo la tarjeta --
-            puro detalle decorativo, no interactivo. */}
-        <img
-          src="/badges/abueluchos-fc-badge.png"
-          alt=""
-          className="h-36 w-36 object-contain opacity-25 blur-[0.5px] sm:h-44 sm:w-44"
-        />
+        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl shadow-black/30">
+          {children}
+        </div>
       </div>
 
       <TeamMarquee direction="right" />
