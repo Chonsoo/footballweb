@@ -176,7 +176,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           )
         }
       >
-        <div className="flex flex-col gap-6 text-center">
+        <div className="flex flex-col gap-8 text-center">
           <div>
             {favoriteTeam?.badge && (
               <img src={favoriteTeam.badge} alt="" className="mx-auto mb-3 h-16 w-16 object-contain" />

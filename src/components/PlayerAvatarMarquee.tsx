@@ -39,7 +39,7 @@ export default function PlayerAvatarMarquee({
             key={i}
             src={photo}
             alt=""
-            className="mr-3 h-14 w-14 shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 sm:mr-4 sm:h-[4.5rem] sm:w-[4.5rem]"
+            className="mr-6 h-14 w-14 shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 sm:mr-8 sm:h-[4.5rem] sm:w-[4.5rem]"
           />
         ))}
       </div>
