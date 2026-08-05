@@ -23,24 +23,35 @@
 // hacían falta, dando una sensación de movimiento distinta a la esperada).
 const COPY_TRANSIT_SECONDS = 90
 
+// Tamaño de las fotos y de la franja: 'lg' (grande) para el intro con el
+// botón "Comenzar", 'sm' (pequeño) para las pantallas de cada bloque, donde
+// interesa que ocupe lo mínimo posible para que quepa todo en pantalla.
+const SIZES = {
+  lg: { band: 'h-16 w-full sm:h-20', img: 'mr-6 h-14 w-14 sm:mr-8 sm:h-[4.5rem] sm:w-[4.5rem]' },
+  sm: { band: 'h-11 w-full sm:h-14', img: 'mr-4 h-9 w-9 sm:mr-5 sm:h-11 sm:w-11' },
+}
+
 export default function PlayerAvatarMarquee({
   photos,
   direction = 'left',
+  size = 'lg',
 }: {
   photos: string[]
   direction?: 'left' | 'right'
+  size?: 'lg' | 'sm'
 }) {
   if (photos.length === 0) return null
 
   const copies = Math.max(4, Math.ceil(40 / photos.length))
   const travelPercent = 100 / copies
   const animName = direction === 'left' ? 'player-marquee-left' : 'player-marquee-right'
+  const { band, img } = SIZES[size]
 
   const repeated: string[] = []
   for (let c = 0; c < copies; c++) repeated.push(...photos)
 
   return (
-    <div className="flex h-11 w-full items-center overflow-hidden sm:h-14">
+    <div className={`flex items-center overflow-hidden ${band}`}>
       <div
         className="flex w-max shrink-0 items-center"
         style={{ animation: `${animName} ${COPY_TRANSIT_SECONDS}s linear infinite` }}
@@ -50,7 +61,7 @@ export default function PlayerAvatarMarquee({
             key={i}
             src={photo}
             alt=""
-            className="mr-4 h-9 w-9 shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 sm:mr-5 sm:h-11 sm:w-11"
+            className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${img}`}
           />
         ))}
       </div>

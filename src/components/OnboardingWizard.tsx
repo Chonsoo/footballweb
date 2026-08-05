@@ -233,9 +233,11 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
     <AuthShell
       maxWidth="max-w-3xl"
       header={null}
-      marqueeTop={teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="left" /> : undefined}
+      marqueeTop={
+        teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="left" size="sm" /> : undefined
+      }
       marqueeBottom={
-        teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="right" /> : undefined
+        teamPhotos.length > 0 ? <PlayerAvatarMarquee photos={teamPhotos} direction="right" size="sm" /> : undefined
       }
       backgroundMark={
         favoriteTeam?.badge && (
