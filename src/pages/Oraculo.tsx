@@ -178,7 +178,7 @@ export default function Oraculo() {
     <div className="flex flex-col gap-6">
       <div className="rounded-2xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-gray-900">🔮 El oráculo</h1>
-        <p className="text-sm text-gray-500">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
+        <p className="text-sm text-gray-600">La respuesta más votada de cada pregunta, sin desvelar quién ha votado qué.</p>
       </div>
 
       {questions.length === 0 && (
@@ -210,15 +210,17 @@ export default function Oraculo() {
           <div key={q.id} className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
             <div className="h-1" style={{ backgroundColor: accent }} />
             <div className="p-4">
-              <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-400">
-                <span>{ANSWER_TYPE_ICON[q.answer_type] ?? '❓'}</span>
-                {q.competition}
+              {/* Antes iba "LIGA" (la competición) arriba en mayúsculas --
+                  de momento TODAS las preguntas son de Liga, así que no
+                  aportaba nada y solo era ruido repetido en cada tarjeta. */}
+              <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                <span aria-hidden>{ANSWER_TYPE_ICON[q.answer_type] ?? '❓'}</span>
+                {q.question}
               </p>
-              <p className="mb-3 text-sm font-medium text-gray-800">{q.question}</p>
 
               {isZoneType ? (
                 teamRows.length === 0 ? (
-                  <p className="text-sm text-gray-400">Todavía no hay respuestas.</p>
+                  <p className="text-sm text-gray-500">Todavía no hay respuestas.</p>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {q.answer_type === 'ranking' && (
@@ -276,7 +278,7 @@ export default function Oraculo() {
                             <ChartLegend slices={slices} />
                           </div>
                         </div>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] font-medium text-gray-600">
                           {stat.total} respuesta{stat.total === 1 ? '' : 's'}
                         </p>
                       </div>
@@ -297,7 +299,7 @@ export default function Oraculo() {
                     return (
                       <div className="flex flex-col gap-2">
                         <SplitBar slices={slices} />
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] font-medium text-gray-600">
                           {stat.total} respuesta{stat.total === 1 ? '' : 's'}
                         </p>
                       </div>
@@ -320,14 +322,14 @@ export default function Oraculo() {
                   return (
                     <div className="flex flex-col gap-2">
                       {q.config.player_choice ? <VerticalBars slices={slices} /> : <RankedBars slices={slices} />}
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] font-medium text-gray-600">
                         {stat.total} respuesta{stat.total === 1 ? '' : 's'}
                       </p>
                     </div>
                   )
                 })()
               ) : (
-                <p className="text-sm text-gray-400">Todavía no hay respuestas.</p>
+                <p className="text-sm text-gray-500">Todavía no hay respuestas.</p>
               )}
             </div>
           </div>

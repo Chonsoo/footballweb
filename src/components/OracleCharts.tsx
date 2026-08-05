@@ -23,11 +23,12 @@ export const CHART_PALETTE = ['#2f8f4e', '#d9ad4a', '#3b82f6', '#f97316', '#a855
 function SliceAvatar({ slice, size = 20 }: { slice: ChartSlice; size?: number }) {
   const src = slice.image ?? slice.fallback
   if (!src) return null
+  // Sin bg-gray-100 detrás: los escudos son PNG con fondo transparente y ese
+  // gris se veía como una caja/recuadro por detrás del escudo -- en las
+  // fotos de jugador (object-cover) tampoco hacía falta, ya rellenan el
+  // círculo entero.
   return (
-    <span
-      className={`inline-block shrink-0 overflow-hidden bg-gray-100 ${slice.imageRound ? 'rounded-full' : ''}`}
-      style={{ width: size, height: size }}
-    >
+    <span className={`inline-block shrink-0 overflow-hidden ${slice.imageRound ? 'rounded-full' : ''}`} style={{ width: size, height: size }}>
       <img src={src} alt="" className={`h-full w-full ${slice.imageRound ? 'object-cover' : 'object-contain'}`} />
     </span>
   )
