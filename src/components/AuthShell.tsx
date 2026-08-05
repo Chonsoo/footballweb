@@ -31,7 +31,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             blanco (currentColor + text-white) se mantiene nítido sobre el
             degradado oscuro aunque baje la opacidad, y algo más pequeño para
             que se distinga mejor la silueta en vez de un rombo grande. */}
-        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-44 w-44 -translate-x-1/2 text-white opacity-10 sm:h-56 sm:w-56" />
+        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-56 w-56 -translate-x-1/2 -translate-y-12 text-[#FF4B44] opacity-40 sm:h-72 sm:w-72 sm:-translate-y-20" />
 
         <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
@@ -39,7 +39,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           <p className="text-sm font-medium text-gold-400">2026 · LaLiga</p>
         </div>
 
-        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/85 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm">
+        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm">
           {children}
         </div>
       </div>
