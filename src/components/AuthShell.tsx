@@ -30,6 +30,14 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl shadow-black/30">{children}</div>
+
+        {/* Logo de Abueloncha FC muy difuminado, de fondo, bajo la tarjeta --
+            puro detalle decorativo, no interactivo. */}
+        <img
+          src="/badges/abueluchos-fc-badge.png"
+          alt=""
+          className="h-24 w-24 object-contain opacity-15 blur-[1px] sm:h-28 sm:w-28"
+        />
       </div>
 
       <TeamMarquee direction="right" />
