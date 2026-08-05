@@ -41,23 +41,30 @@ function LegRow({
   const answered = isAnswerComplete(question, myAnswer?.answer)
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-center gap-2 text-sm sm:flex-nowrap">
-        {label && <span className="w-10 shrink-0 text-[11px] font-semibold uppercase text-gray-400">{label}</span>}
+    // El botón "Guardar" va SIEMPRE en su propia fila (no dentro de la fila
+    // del marcador con flex-wrap) -- así IDA y VUELTA quedan con la misma
+    // altura de fila a fila, en vez de que el botón salte de sitio según si
+    // la fila de arriba hace wrap o no (que dependía del ancho disponible y
+    // quedaba distinto entre una fila y otra).
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-sm">
+        {label && <span className="w-12 shrink-0 text-[11px] font-semibold uppercase text-gray-400">{label}</span>}
         <TeamLabel name={question.config.home_team ?? 'Local'} align="right" />
         <ScoreStepper value={home} onChange={setHome} />
         <span className="shrink-0">-</span>
         <ScoreStepper value={away} onChange={setAway} />
         <TeamLabel name={question.config.away_team ?? 'Visitante'} />
+      </div>
+      <div className="flex justify-end">
         <button
           onClick={() => onSave({ home, away })}
           disabled={saving}
-          className={`ml-auto shrink-0 rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 sm:ml-0 ${saveBtnClass(answered, hasUnsaved)}`}
+          className={`shrink-0 rounded px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 ${saveBtnClass(answered, hasUnsaved)}`}
         >
           Guardar
         </button>
       </div>
-      {hasUnsaved && <p className="pl-12 text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
+      {hasUnsaved && <p className="text-right text-xs text-amber-600">Pulsa «Guardar» para que se guarde tu respuesta.</p>}
     </div>
   )
 }
