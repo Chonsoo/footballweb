@@ -16,6 +16,7 @@ import {
 } from '../lib/fantasyTypes'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import PlayerCard from './PlayerCard'
+import PlayerRingAvatar from './PlayerRingAvatar'
 
 const POSITION_COLORS: Record<FantasyPosition, string> = {
   POR: 'bg-orange-200 text-orange-900',
@@ -499,7 +500,6 @@ function PitchAvatar({
   onClick: () => void
   onRemove: () => void
 }) {
-  const [imgError, setImgError] = useState(false)
   const [badgeError, setBadgeError] = useState(false)
   const team = LALIGA_TEAMS_2026_27.find((t) => t.id === player.team_id)
   const shortName = player.name.length > 12 ? player.name.split(' ').slice(-1)[0] : player.name
@@ -515,9 +515,14 @@ function PitchAvatar({
       title={`${player.name} · ${FANTASY_POSITION_LABELS[player.player_position]}${team ? ` · ${team.name}` : ''}`}
       className="flex w-14 cursor-pointer flex-col items-center gap-0.5"
     >
+      {/* Mismo marco circular "Abueluchos FC" que en las cartas del banquillo
+          (PlayerCard), en vez del círculo simple de antes -- así el jugador
+          colocado en el campo se ve igual que en el resto de la app. El
+          escudo del equipo real se mantiene igual, superpuesto en la
+          esquina. */}
       <span
-        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 ${
-          selected ? 'border-white ring-2 ring-brand-500' : 'border-white/70'
+        className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+          selected ? 'ring-2 ring-brand-500 ring-offset-1' : ''
         }`}
       >
         {!readOnly && (
@@ -540,38 +545,14 @@ function PitchAvatar({
             {points}
           </span>
         )}
-        {player.photo_url && !imgError ? (
-          <>
-            <img
-              src={player.photo_url}
-              alt=""
-              className="h-full w-full rounded-full object-cover"
-              onError={() => setImgError(true)}
-            />
-            {team?.badge && !badgeError && (
-              <img
-                src={team.badge}
-                alt=""
-                className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white object-contain ring-2 ring-white"
-                onError={() => setBadgeError(true)}
-              />
-            )}
-          </>
-        ) : team?.badge && !badgeError ? (
-          <span className="flex h-full w-full items-center justify-center rounded-full bg-white p-1.5">
-            <img
-              src={team.badge}
-              alt=""
-              className="h-full w-full object-contain"
-              onError={() => setBadgeError(true)}
-            />
-          </span>
-        ) : (
-          <span
-            className={`flex h-full w-full items-center justify-center rounded-full text-xs font-semibold ${POSITION_COLORS[player.player_position]}`}
-          >
-            {player.player_position[0]}
-          </span>
+        <PlayerRingAvatar photoUrl={player.photo_url} className="h-full w-full" />
+        {team?.badge && !badgeError && (
+          <img
+            src={team.badge}
+            alt=""
+            className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-white object-contain ring-2 ring-white"
+            onError={() => setBadgeError(true)}
+          />
         )}
       </span>
       <span className="max-w-full truncate text-[10px] font-medium text-white drop-shadow">{shortName}</span>

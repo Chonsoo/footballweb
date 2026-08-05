@@ -18,7 +18,6 @@ export default function PlayerCard({
   selected?: boolean
   onClick?: () => void
 }) {
-  const [imgError, setImgError] = useState(false)
   const team = LALIGA_TEAMS_2026_27.find((t) => t.id === player.team_id)
   const nat = getNationalityInfo(player.nationality)
   const dims = size === 'lg' ? 'w-36' : 'w-24'
@@ -35,30 +34,7 @@ export default function PlayerCard({
         onClick ? 'cursor-pointer hover:scale-[1.03]' : ''
       } ${selected ? 'ring-2 ring-brand-500' : ''}`}
     >
-      {/* Escudo Abueluchos FC con la foto del jugador en el hueco central */}
-      <div className="relative aspect-square w-full">
-        <div
-          className="absolute overflow-hidden rounded-full bg-white"
-          style={{
-            left: `${HOLE_CENTER_X - HOLE_DIAMETER / 2}%`,
-            top: `${HOLE_CENTER_Y - HOLE_DIAMETER / 2}%`,
-            width: `${HOLE_DIAMETER}%`,
-            height: `${HOLE_DIAMETER}%`,
-          }}
-        >
-          {player.photo_url && !imgError ? (
-            <img
-              src={player.photo_url}
-              alt=""
-              className="h-full w-full object-cover"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <img src={SILHOUETTE} alt="" className="h-full w-full scale-110 object-cover" />
-          )}
-        </div>
-        <img src={ABUELONCHOS_RING} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
-      </div>
+      <PlayerRingAvatar photoUrl={player.photo_url} className="w-full" />
 
       {/* Escudo del equipo real y bandera a cada lado del nombre/posición, en
           vez de debajo en una fila aparte -- así se leen de un vistazo junto
