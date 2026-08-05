@@ -4,6 +4,7 @@ import {
   FANTASY_FORMATIONS,
   FANTASY_POSITIONS,
   FANTASY_POSITION_LABELS,
+  POSITION_COLORS,
   buildFantasySlots,
   formationLabel,
   isBigThreePlayer,
@@ -17,13 +18,6 @@ import {
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import PlayerCard from './PlayerCard'
 import PlayerRingAvatar from './PlayerRingAvatar'
-
-const POSITION_COLORS: Record<FantasyPosition, string> = {
-  POR: 'bg-orange-200 text-orange-900',
-  DEF: 'bg-blue-200 text-blue-900',
-  MED: 'bg-green-200 text-green-900',
-  DEL: 'bg-red-200 text-red-900',
-}
 
 interface Props {
   players: FantasyPlayer[]
@@ -358,15 +352,19 @@ export default function FantasyLineupPicker({
                 fondo de detrás (la tarjeta/pantalla que envuelve todo esto),
                 en vez de una caja blanca u opaca aparte. El estilo gris con
                 borde discontinuo se queda solo para la Lista. */}
+            {/* Al tener un jugador seleccionado, antes se rellenaba todo el
+                banquillo de un verde pálido (bg-brand-50) además del borde --
+                en modo Cartas eso se veía como una gran caja blanquecina de
+                fondo. Ahora solo se marca con el borde, sin rellenar el fondo. */}
             <div
               onClick={handlePoolAreaClick}
-              className={`flex max-h-64 overflow-y-auto rounded p-2 transition-colors sm:max-h-[60vh] ${
-                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border border-dashed'
+              className={`flex max-h-64 overflow-y-auto rounded border p-2 transition-colors sm:max-h-[60vh] ${
+                poolView === 'cards' ? 'flex-row flex-wrap gap-2' : 'flex-col gap-1 border-dashed'
               } ${
                 selected != null && !readOnly
-                  ? 'cursor-pointer border border-brand-500 bg-brand-50'
+                  ? 'cursor-pointer border-brand-500'
                   : poolView === 'cards'
-                    ? 'border-0 bg-transparent'
+                    ? 'border-transparent'
                     : 'border-gray-200 bg-gray-50'
               }`}
             >

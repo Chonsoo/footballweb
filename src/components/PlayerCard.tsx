@@ -1,5 +1,5 @@
 import type { FantasyPlayer } from '../lib/fantasyTypes'
-import { FANTASY_POSITION_LABELS } from '../lib/fantasyTypes'
+import { POSITION_COLORS } from '../lib/fantasyTypes'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getNationalityInfo } from '../lib/nationalityFlags'
 import PlayerRingAvatar from './PlayerRingAvatar'
@@ -22,7 +22,7 @@ export default function PlayerCard({
   const nat = getNationalityInfo(player.nationality)
   const dims = size === 'lg' ? 'w-36' : 'w-24'
   const nameSize = size === 'lg' ? 'text-xs' : 'text-[10px]'
-  const sideIconSize = size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'
+  const sideIconSize = size === 'lg' ? 'h-5 w-5' : 'h-4 w-4'
 
   const Wrapper = onClick ? 'button' : 'div'
 
@@ -30,34 +30,32 @@ export default function PlayerCard({
     <Wrapper
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      // border-0 bg-transparent explícitos: al ser a veces un <button>, sin esto
-      // el navegador le pone su propio borde/fondo por defecto, que es lo que
-      // se veía como una rejilla de cuadros blancos entre carta y carta.
-      className={`flex ${dims} shrink-0 flex-col items-center rounded-xl border-0 bg-transparent text-center transition-transform ${
-        onClick ? 'cursor-pointer hover:scale-[1.03]' : ''
-      } ${selected ? 'ring-2 ring-brand-500' : ''}`}
+      // border-0 explícito: al ser a veces un <button>, sin esto el navegador
+      // le pone su propio borde por defecto, que es lo que se veía como una
+      // rejilla entre carta y carta. El fondo ahora sí es a propósito: el
+      // color de la posición (igual que en la lista), para identificarla de
+      // un vistazo sin tener que leer la etiqueta.
+      className={`flex ${dims} shrink-0 flex-col items-center gap-1 rounded-xl border-0 p-1.5 text-center transition-transform ${
+        POSITION_COLORS[player.player_position]
+      } ${onClick ? 'cursor-pointer hover:scale-[1.03]' : ''} ${selected ? 'ring-2 ring-brand-500' : ''}`}
     >
       <PlayerRingAvatar photoUrl={player.photo_url} className="w-full" />
 
-      {/* Escudo del equipo real y bandera a cada lado del nombre/posición,
-          pegados a él (no flex-1, que estiraba el hueco del nombre a todo
-          el ancho disponible y dejaba escudo/bandera lejos, en los bordes). */}
-      <div className="mt-1.5 flex w-full items-center justify-center gap-1">
+      <p className={`max-w-full truncate px-1 font-bold ${nameSize}`} title={player.name}>
+        {player.name}
+      </p>
+
+      {/* Donde antes iba el texto de la posición (ya sobra: el color de
+          fondo de la carta ya la indica) ahora va el escudo del equipo real
+          y la bandera, uno a cada lado. */}
+      <div className="flex w-full items-center justify-center gap-1.5">
         {team?.badge ? (
           <img src={team.badge} alt="" title={team.name} className={`${sideIconSize} shrink-0 object-contain`} />
         ) : (
           <span className={`${sideIconSize} shrink-0`} />
         )}
-        <span className="min-w-0 max-w-[60%]">
-          <p className={`max-w-full truncate px-1 font-bold text-gray-900 ${nameSize}`} title={player.name}>
-            {player.name}
-          </p>
-          <p className="text-[9px] font-medium uppercase tracking-wide text-gray-500">
-            {FANTASY_POSITION_LABELS[player.player_position]}
-          </p>
-        </span>
         {nat && (
-          <span title={nat.label} className={`shrink-0 ${size === 'lg' ? 'text-lg leading-none' : 'text-sm leading-none'}`}>
+          <span title={nat.label} className={`shrink-0 ${size === 'lg' ? 'text-base leading-none' : 'text-xs leading-none'}`}>
             {nat.flag}
           </span>
         )}

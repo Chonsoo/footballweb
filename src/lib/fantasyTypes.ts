@@ -14,6 +14,16 @@ export const FANTASY_POSITION_LABELS: Record<FantasyPosition, string> = {
   DEL: 'Delantero',
 }
 
+// Color por posición, reutilizado en varios sitios (banquillo en lista,
+// cartas de jugador, tabla de reglas) para que se identifique de un vistazo
+// sin tener que leer la etiqueta de texto.
+export const POSITION_COLORS: Record<FantasyPosition, string> = {
+  POR: 'bg-orange-200 text-orange-900',
+  DEF: 'bg-blue-200 text-blue-900',
+  MED: 'bg-green-200 text-green-900',
+  DEL: 'bg-red-200 text-red-900',
+}
+
 // De momento solo existe este modo: solo se pueden elegir jugadores "veteranos",
 // nacidos antes del 1996-01-01 (los abuelos de verdad).
 // (el modo "open" con todos los jugadores se deja aparcado para más adelante)
