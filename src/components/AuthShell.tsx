@@ -24,10 +24,14 @@ export default function AuthShell({ children }: { children: ReactNode }) {
       <TeamMarquee direction="left" />
 
       <div className="relative flex flex-col items-center gap-6 px-4">
-        {/* Marca de LaLiga grande de fondo, centrada detrás del título y la
-            tarjeta -- como es un SVG (sin caja de fondo), no tiene el
-            problema del cuadrado gris/negro que daban los PNG anteriores. */}
-        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-96 w-96 -translate-x-1/2 -translate-y-6 opacity-40 sm:h-[30rem] sm:w-[30rem] sm:-translate-y-10" />
+        {/* Marca de LaLiga de fondo, centrada detrás del título y la tarjeta.
+            En rojo real a bastante opacidad se veía como una mancha marrón
+            (rojo + verde mezclados) y, a ese tamaño tan grande, se perdían
+            los huecos afilados del símbolo y parecía un bloque sólido. Con
+            blanco (currentColor + text-white) se mantiene nítido sobre el
+            degradado oscuro aunque baje la opacidad, y algo más pequeño para
+            que se distinga mejor la silueta en vez de un rombo grande. */}
+        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-44 w-44 -translate-x-1/2 text-white opacity-10 sm:h-56 sm:w-56" />
 
         <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
@@ -35,7 +39,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           <p className="text-sm font-medium text-gold-400">2026 · LaLiga</p>
         </div>
 
-        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm">
+        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/85 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm">
           {children}
         </div>
       </div>
