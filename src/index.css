@@ -79,10 +79,10 @@
   }
 }
 .auth-marquee-left {
-  animation: auth-marquee-left 35s linear infinite;
+  animation: auth-marquee-left 90s linear infinite;
 }
 .auth-marquee-right {
-  animation: auth-marquee-right 35s linear infinite;
+  animation: auth-marquee-right 90s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-marquee-left,

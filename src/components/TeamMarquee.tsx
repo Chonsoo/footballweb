@@ -17,14 +17,23 @@ export default function TeamMarquee({ direction = 'left' }: { direction?: 'left'
   const animClass = direction === 'left' ? 'auth-marquee-left' : 'auth-marquee-right'
 
   return (
-    <div className="flex h-14 w-full items-center overflow-hidden sm:h-16">
-      <div className={`flex w-max shrink-0 items-center gap-7 ${animClass}`}>
+    <div className="flex h-16 w-full items-center overflow-hidden sm:h-20">
+      {/* Ojo: el espaciado entre escudos va en mr-* de cada imagen, NO en un
+          gap del contenedor. Con `gap` el hueco entre la última imagen de la
+          1ª copia y la primera de la 2ª solo se cuenta una vez en el ancho
+          total, así que la mitad del ancho (donde apunta translateX(-50%))
+          no coincide exactamente con el ancho de una copia -- eso es lo que
+          causaba el pequeño salto/parpadeo al reiniciar el bucle. Con mr-*
+          en cada imagen (incluida la última de cada copia) el hueco queda
+          "dentro" de cada copia, así que dos copias iguales miden el doble
+          exacto y el -50% cae siempre justo en el sitio correcto. */}
+      <div className={`flex w-max shrink-0 items-center ${animClass}`}>
         {[...teams, ...teams].map((team, i) => (
           <img
             key={`${team.id}-${i}`}
             src={team.badge}
             alt=""
-            className="h-9 w-9 shrink-0 object-contain opacity-80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:h-11 sm:w-11"
+            className="mr-5 h-14 w-14 shrink-0 object-contain opacity-80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] sm:mr-6 sm:h-[4.5rem] sm:w-[4.5rem]"
           />
         ))}
       </div>
