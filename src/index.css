@@ -56,6 +56,37 @@
   animation: ranking-fab-label 3.5s ease forwards;
 }
 
+/* Anillo de escudos que orbita de fondo en Login/Registro (ver
+   AuthOrbitBackground.tsx). Truco de dos rotaciones opuestas y misma
+   duración: el anillo entero gira (ring), y cada escudo lleva dentro un
+   contra-giro a la misma velocidad (counter) que cancela justo el giro del
+   anillo -- así los escudos se desplazan en círculo pero se ven siempre
+   "de pie", sin dar vueltas sobre sí mismos. */
+@keyframes auth-orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes auth-orbit-counter-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .auth-orbit-ring {
+    animation: auth-orbit-spin 120s linear infinite;
+  }
+  .auth-orbit-counter {
+    animation: auth-orbit-counter-spin 120s linear infinite;
+  }
+}
+
 body {
   margin: 0;
   color: #111827;

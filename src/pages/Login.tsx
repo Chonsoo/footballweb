@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import AuthShell from '../components/AuthShell'
+import GoogleButton from '../components/GoogleButton'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -32,8 +34,9 @@ export default function Login() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
+    <AuthShell>
+      <h2 className="mb-1 text-xl font-bold text-gray-900">Iniciar sesión</h2>
+      <p className="mb-5 text-sm text-gray-500">Bienvenido de vuelta, abueloncho.</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
@@ -42,7 +45,9 @@ export default function Login() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2"
+          // text-base (16px): por debajo de 16px, iOS Safari hace zoom
+          // automático de toda la página al enfocar el campo.
+          className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:text-sm"
         />
         <input
           type="password"
@@ -50,33 +55,30 @@ export default function Login() {
           placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2"
+          className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:text-sm"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-brand-700 px-3 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-lg bg-brand-700 px-3 py-2.5 font-semibold text-white shadow-sm hover:bg-brand-800 disabled:opacity-50"
         >
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
 
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <div className="h-px flex-1 bg-gray-200" /> o <div className="h-px flex-1 bg-gray-200" />
+      <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
+        <div className="h-px flex-1 bg-gray-200" />o<div className="h-px flex-1 bg-gray-200" />
       </div>
 
-      <button
-        onClick={handleGoogle}
-        type="button"
-        className="rounded border border-gray-300 px-3 py-2 font-medium"
-      >
-        Continuar con Google
-      </button>
+      <GoogleButton onClick={handleGoogle} />
 
-      <p className="text-center text-sm text-gray-500">
-        ¿No tienes cuenta? <Link to="/signup" className="text-brand-700">Regístrate</Link>
+      <p className="mt-5 text-center text-sm text-gray-500">
+        ¿No tienes cuenta?{' '}
+        <Link to="/signup" className="font-semibold text-brand-700 hover:underline">
+          Regístrate
+        </Link>
       </p>
-    </div>
+    </AuthShell>
   )
 }
