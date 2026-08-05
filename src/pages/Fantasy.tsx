@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import FantasyPointsPopup from '../components/FantasyPointsPopup'
+import FantasyScoringRules from '../components/FantasyScoringRules'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { fetchPlayedMatchdays, fetchPlayerStats, pointsByPlayerFromStats } from '../lib/fantasyStatsQueries'
 import {
@@ -12,7 +13,7 @@ import {
   type FantasyPlayerStats,
 } from '../lib/fantasyTypes'
 
-type Subview = 'liga' | 'resumen'
+type Subview = 'liga' | 'resumen' | 'puntos'
 
 interface FantasyLeaderboardRow {
   mode: string
@@ -29,6 +30,7 @@ interface RivalLineup {
 const SUBVIEWS: [Subview, string][] = [
   ['liga', 'Clasificación'],
   ['resumen', 'Mi equipo'],
+  ['puntos', 'Cómo puntúa'],
 ]
 
 // Selector de pestañas/jornadas con "pista" oscura y estado activo en
@@ -79,6 +81,7 @@ export default function Fantasy() {
 
       {subview === 'resumen' && <MiEquipoView matchdays={matchdays} onPlayerSelect={openPopup} />}
       {subview === 'liga' && <LigaView matchdays={matchdays} onPlayerSelect={openPopup} />}
+      {subview === 'puntos' && <FantasyScoringRules />}
 
       {popupPlayer && (
         <FantasyPointsPopup
