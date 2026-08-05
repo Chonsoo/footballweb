@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import AnswerSummary, { shortMatchTeamName } from './AnswerSummary'
+import AnswerSummary, { shortMatchTeamName, teamCode } from './AnswerSummary'
 import RankingAccuracySummary from './RankingAccuracySummary'
 import ScorePredictionBadge from './ScorePredictionBadge'
 import { shortQuestionLabel } from '../lib/questionLabel'
@@ -69,12 +69,23 @@ function PairedResults({
           {legs.map((leg) => {
             const v = answers[leg.id] as { home: number; away: number } | undefined
             return (
-              <div key={leg.id} className="flex items-center gap-2">
-                <TeamCrest name={leg.config.home_team} />
-                <span className="w-14 shrink-0 text-center text-sm font-bold text-gray-800">
+              <div key={leg.id} className="flex items-center gap-1.5">
+                {/* Grupos de ancho fijo (no dependen de la longitud del
+                    nombre real) para que el marcador quede siempre en la
+                    misma columna entre la ida y la vuelta. El código de 3
+                    letras identifica el equipo sin necesitar hover (en
+                    móvil el title del escudo no se ve nunca). */}
+                <span className="flex w-16 shrink-0 items-center justify-end gap-1">
+                  <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.home_team)}</span>
+                  <TeamCrest name={leg.config.home_team} />
+                </span>
+                <span className="w-12 shrink-0 text-center text-sm font-bold text-gray-800">
                   {v ? `${v.home} - ${v.away}` : '—'}
                 </span>
-                <TeamCrest name={leg.config.away_team} />
+                <span className="flex w-16 shrink-0 items-center gap-1">
+                  <TeamCrest name={leg.config.away_team} />
+                  <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.away_team)}</span>
+                </span>
                 <span className="ml-auto">
                   <ScorePredictionBadge points={points[leg.id]} />
                 </span>

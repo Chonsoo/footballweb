@@ -119,6 +119,26 @@ export function shortMatchTeamName(name: string | undefined): string | undefined
   return name ? (SHORT_MATCH_TEAM_NAME[name] ?? name) : name
 }
 
+// Código de 3 letras para pintar junto al escudo en cada fila ida/vuelta del
+// Bloque 3 -- en el móvil el "title" del escudo (hover) no se ve nunca, así
+// que sin texto no había forma de saber de un vistazo qué equipo era cada
+// fila. Con nombres completos no cabía, así que va con código fijo (como
+// las camisetas): no depende de la longitud del nombre real, así nunca
+// descuadra la fila.
+const TEAM_CODE: Record<string, string> = {
+  'Real Madrid': 'RMA',
+  Barcelona: 'BAR',
+  'Atlético de Madrid': 'ATM',
+}
+
+export function teamCode(name: string | undefined): string {
+  if (!name) return '—'
+  if (TEAM_CODE[name]) return TEAM_CODE[name]
+  const words = name.split(' ').filter((w) => !['de', 'la', 'el', 'los', 'del'].includes(w.toLowerCase()))
+  const code = words.length > 1 ? words.map((w) => w[0]).join('') : words[0]?.slice(0, 3) ?? ''
+  return code.slice(0, 3).toUpperCase()
+}
+
 // Exportado: lo reutiliza "Mis apuestas" para juntar los 3 duelos Big Three
 // (ida y vuelta) en una sola fila compacta por emparejamiento.
 export function TeamBadgeLabel({ name, align = 'left' }: { name: string | undefined; align?: 'left' | 'right' }) {
