@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
@@ -28,7 +29,13 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
     onClose()
   }
 
-  return (
+  return createPortal(
+    // Portal a document.body -- el botón "Mis datos" que abre esto vive
+    // dentro del navbar (backdrop-blur), y un ancestro con backdrop-filter
+    // pasa a ser el "containing block" de sus descendientes position:fixed,
+    // rompiendo el modal (encajado al tamaño del navbar en vez de a pantalla
+    // completa). Con el portal, esto no depende de dónde se abra el modal.
+    //
     // overflow-y-auto en el fondo + max-h/overflow en la tarjeta: antes, con
     // el teclado táctil abierto o el visualViewport más bajo que el layout
     // viewport (típico en móvil), "items-center" sin scroll dejaba la parte
@@ -75,6 +82,7 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

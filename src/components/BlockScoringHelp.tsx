@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BLOCK_SCORING_HINTS } from '../lib/blocks'
 
 // Botón "💡 Cómo puntúa" + modal de ayuda, para no tener el texto explicativo
@@ -32,41 +33,52 @@ export default function BlockScoringHelp({
         {buttonLabel}
       </button>
 
-      {open && (
-        // items-start + overflow-y-auto en el fondo (no items-center): con
-        // textos largos (bloque 2, 8 líneas) el modal podía ser más alto que
-        // la pantalla y quedaba cortado sin forma de hacer scroll -- así,
-        // si no cabe entero, se puede desplazar todo el fondo hacia abajo.
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        // Portal a document.body: este botón se usa dentro de tarjetas con
+        // backdrop-blur (el "cristal" del rediseño), y cualquier ancestro
+        // con backdrop-filter pasa a ser el "containing block" de sus
+        // descendientes position:fixed -- el modal quedaba encajado al
+        // tamaño/posición de esa tarjeta en vez de a pantalla completa, y su
+        // botón "✕" acababa tapado detrás del navbar (por eso cerraba solo
+        // pulsando fuera, no con la X). Con el portal, el modal se monta
+        // fuera de toda esa jerarquía, así que "fixed" siempre es relativo
+        // al viewport de verdad, venga de donde venga.
+        createPortal(
+          // items-start + overflow-y-auto en el fondo (no items-center): con
+          // textos largos (bloque 2, 8 líneas) el modal podía ser más alto que
+          // la pantalla y quedaba cortado sin forma de hacer scroll -- así,
+          // si no cabe entero, se puede desplazar todo el fondo hacia abajo.
           <div
-            className="flex max-h-[85vh] w-full max-w-sm flex-col rounded-xl bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-8"
+            onClick={() => setOpen(false)}
           >
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 p-4">
-              <h3 className="font-semibold text-gray-900">{label ?? 'Cómo puntúa este bloque'}</h3>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-                className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                ✕
-              </button>
+            <div
+              className="flex max-h-[85vh] w-full max-w-sm flex-col rounded-xl bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 p-4">
+                <h3 className="font-semibold text-gray-900">{label ?? 'Cómo puntúa este bloque'}</h3>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Cerrar"
+                  className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <ul className="flex flex-col gap-2 overflow-y-auto p-4 text-sm leading-relaxed text-gray-600">
+                {lines.map((line, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-brand-500">•</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="flex flex-col gap-2 overflow-y-auto p-4 text-sm leading-relaxed text-gray-600">
-              {lines.map((line, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-brand-500">•</span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </>
   )
 }

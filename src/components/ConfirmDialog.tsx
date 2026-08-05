@@ -1,3 +1,5 @@
+import { createPortal } from 'react-dom'
+
 interface Props {
   title: string
   message: string
@@ -12,7 +14,11 @@ interface Props {
 // pedían confirmación y deberían (cerrar sesión, cambiar el rol de un
 // usuario).
 export default function ConfirmDialog({ title, message, confirmLabel = 'Confirmar', danger, onConfirm, onCancel }: Props) {
-  return (
+  // Portal a document.body -- se abre desde botones dentro de tarjetas con
+  // backdrop-blur (Navbar, Admin...), y un ancestro con backdrop-filter pasa
+  // a ser el "containing block" de sus descendientes position:fixed, dejando
+  // el modal encajado al tamaño de esa tarjeta en vez de a pantalla completa.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onCancel}>
       <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-2 text-lg font-semibold text-gray-900">{title}</h2>
@@ -32,6 +38,7 @@ export default function ConfirmDialog({ title, message, confirmLabel = 'Confirma
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { FANTASY_POSITION_LABELS, type FantasyMatchday, type FantasyPlayer, type FantasyPlayerStats } from '../lib/fantasyTypes'
@@ -55,7 +56,11 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
 
   const cols = 'grid-cols-[44px_1fr_52px]'
 
-  return (
+  // Portal a document.body -- se abre al tocar un jugador dentro de tarjetas
+  // con backdrop-blur (pool/pitch del rediseño), que si no pasarían a ser el
+  // "containing block" de este modal position:fixed y lo encajarían a su
+  // tamaño en vez de a pantalla completa.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
         className="w-full max-w-sm overflow-hidden rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 shadow-xl"
@@ -153,6 +158,7 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
           <span className="text-lg font-bold text-brand-950">{total} pts</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

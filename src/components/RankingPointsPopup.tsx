@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import BlockAnswers from './BlockAnswers'
 import { BLOCK_LABELS } from '../lib/blocks'
@@ -109,7 +110,12 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
     }
   }, [userId])
 
-  return (
+  // Portal a document.body -- se abre al tocar una fila de Clasificación,
+  // que ya no es una tarjeta blanca suelta sino que vive dentro del panel
+  // con backdrop-blur de la página; sin portal, ese ancestro pasaría a ser
+  // el "containing block" de este modal position:fixed y quedaría encajado
+  // a su tamaño en vez de a pantalla completa.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
         className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 shadow-xl"
@@ -193,6 +199,7 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
           <span className="text-lg font-bold text-brand-950">{totalPoints} pts</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
