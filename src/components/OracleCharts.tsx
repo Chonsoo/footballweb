@@ -99,6 +99,58 @@ export function RankedBars({ slices }: { slices: ChartSlice[] }) {
   )
 }
 
+// Barras verticales (columnas), foto arriba y nombre abajo -- para el
+// buscador de jugador (Pichichi, Zamora...), en vez de barras horizontales
+// donde el nombre del jugador suele forzar más ancho o cortarse.
+export function VerticalBars({ slices, height = 90 }: { slices: ChartSlice[]; height?: number }) {
+  const max = Math.max(...slices.map((s) => s.pct), 1)
+  return (
+    <div className="flex items-end justify-between gap-2">
+      {slices.map((s) => (
+        <div key={s.label} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+          <span className="text-xs font-semibold" style={{ color: s.color }}>
+            {Math.round(s.pct)}%
+          </span>
+          <div className="flex w-full items-end justify-center" style={{ height }}>
+            <div
+              className="w-full max-w-[28px] rounded-t-md"
+              style={{ height: `${Math.max((s.pct / max) * 100, 4)}%`, backgroundColor: s.color }}
+            />
+          </div>
+          <SliceAvatar slice={s} size={28} />
+          <span className="max-w-[70px] truncate text-center text-[10px] text-gray-600">{s.label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Una sola barra partida en tramos (uno por opción) con la etiqueta y el %
+// debajo de cada lado -- pensada para preguntas de 2 opciones (Sí/No), donde
+// dos barras horizontales por separado son redundantes.
+export function SplitBar({ slices }: { slices: ChartSlice[] }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex h-3 w-full overflow-hidden rounded-full bg-gray-100">
+        {slices
+          .filter((s) => s.pct > 0)
+          .map((s) => (
+            <div key={s.label} style={{ width: `${s.pct}%`, backgroundColor: s.color }} />
+          ))}
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        {slices.map((s, i) => (
+          <span key={s.label} className={`flex items-center gap-1 font-semibold ${i > 0 ? 'flex-row-reverse' : ''}`}>
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+            <span style={{ color: s.color }}>{s.label}</span>
+            <span className="text-gray-500">{Math.round(s.pct)}%</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Barra "apilada": un solo trazo con un tramo de color por porción, en vez de
 // una barra fina de un único color con solo el valor más votado.
 export function SegmentedBar({ slices }: { slices: ChartSlice[] }) {

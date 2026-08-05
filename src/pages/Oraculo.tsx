@@ -4,7 +4,7 @@ import { usePlayers } from '../lib/usePlayers'
 import { findTeamBadge } from '../lib/teamBadge'
 import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type SeasonQuestion } from '../lib/database.types'
 import { zoneForPosition, type ZoneInfo } from '../lib/rankingZones'
-import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, type ChartSlice } from '../components/OracleCharts'
+import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, SplitBar, VerticalBars, type ChartSlice } from '../components/OracleCharts'
 
 interface AnswerCountRow {
   answer_value: unknown
@@ -208,27 +208,24 @@ export default function Oraculo() {
                         ))}
                       </div>
                     )}
-                    <ul className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+                    <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 md:grid-cols-4">
                       {teamRows.map((r) => {
                         const badge = teamBadge(q, r.team_id)
                         return (
-                          <li key={r.team_id} className="flex flex-col gap-1">
-                            <div className="flex items-center justify-between gap-2 text-sm">
-                              <span className="flex min-w-0 items-center gap-1.5 text-gray-700">
-                                {badge ? (
-                                  <img src={badge} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                                ) : (
-                                  <span className="h-4 w-4 shrink-0" />
-                                )}
-                                <span className="truncate">{teamName(q, r.team_id)}</span>
-                              </span>
-                              <span className="shrink-0 text-gray-500">
-                                {r.label} <span className="font-semibold text-gray-700">{Math.round(r.pct)}%</span>
-                              </span>
-                            </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                              <div className="h-full rounded-full" style={{ width: `${Math.round(r.pct)}%`, backgroundColor: r.color }} />
-                            </div>
+                          <li
+                            key={r.team_id}
+                            className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px]"
+                            style={{ backgroundColor: r.color }}
+                          >
+                            {badge ? (
+                              <img src={badge} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                            ) : (
+                              <span className="h-4 w-4 shrink-0" />
+                            )}
+                            <span className="min-w-0 flex-1 truncate font-medium text-gray-800" title={teamName(q, r.team_id)}>
+                              {teamName(q, r.team_id)}
+                            </span>
+                            <span className="shrink-0 font-bold text-gray-800">{Math.round(r.pct)}%</span>
                           </li>
                         )
                       })}
@@ -263,10 +260,29 @@ export default function Oraculo() {
                     )
                   }
 
-                  // Buscador de jugador (Pichichi, Zamora, Zarra...) o cualquier
-                  // otra elección de texto libre: universo de respuestas
-                  // potencialmente grande, así que barras con las 5 más
-                  // votadas en vez de una tarta con muchas porciones finas.
+                  // Pregunta de 2 opciones (Sí/No): una sola barra partida en
+                  // dos tramos de color en vez de dos barras sueltas.
+                  if (stat.rows.length === 2 && !q.config.player_choice) {
+                    // Color por el texto de la opción, no por cuál va primero
+                    // (que depende de cuál va ganando) -- así "Sí" es siempre
+                    // verde y "No" siempre rojo, gane quien gane.
+                    const slices: ChartSlice[] = stat.rows.map((r) => ({
+                      label: r.label,
+                      pct: r.pct,
+                      color: r.label.trim().toLowerCase() === 'no' ? '#ef4444' : '#2f8f4e',
+                    }))
+                    return (
+                      <div className="flex flex-col gap-2">
+                        <SplitBar slices={slices} />
+                        <p className="text-[11px] text-gray-400">
+                          {stat.total} respuesta{stat.total === 1 ? '' : 's'}
+                        </p>
+                      </div>
+                    )
+                  }
+
+                  // Buscador de jugador (Pichichi, Zamora, Zarra...): columnas
+                  // verticales con la foto del jugador, las 5 más votadas.
                   const top = stat.rows.slice(0, BAR_TOP_N)
                   const restPct = stat.rows.slice(BAR_TOP_N).reduce((s, r) => s + r.pct, 0)
                   const rows = restPct > 0 ? [...top, { label: 'Otros', pct: restPct }] : top
@@ -279,7 +295,7 @@ export default function Oraculo() {
                   }))
                   return (
                     <div className="flex flex-col gap-2">
-                      <RankedBars slices={slices} />
+                      {q.config.player_choice ? <VerticalBars slices={slices} /> : <RankedBars slices={slices} />}
                       <p className="text-[11px] text-gray-400">
                         {stat.total} respuesta{stat.total === 1 ? '' : 's'}
                       </p>
