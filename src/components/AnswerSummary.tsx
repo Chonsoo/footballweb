@@ -139,6 +139,21 @@ export function teamCode(name: string | undefined): string {
   return code.slice(0, 3).toUpperCase()
 }
 
+// Fecha del duelo (config.match_date, "YYYY-MM-DD") en formato compacto tipo
+// "20 sept" -- con el año solo si no es el actual, para no ocupar de más en
+// los partidos de esta temporada (mayoría) y aun así distinguir los que
+// caen ya en el año siguiente.
+export function formatMatchDate(dateStr: string | undefined): string | null {
+  if (!dateStr) return null
+  const d = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return null
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  const opts: Intl.DateTimeFormatOptions = sameYear
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: '2-digit' }
+  return d.toLocaleDateString('es-ES', opts).replace(/\.$/, '')
+}
+
 // Exportado: lo reutiliza "Mis apuestas" para juntar los 3 duelos Big Three
 // (ida y vuelta) en una sola fila compacta por emparejamiento.
 export function TeamBadgeLabel({ name, align = 'left' }: { name: string | undefined; align?: 'left' | 'right' }) {

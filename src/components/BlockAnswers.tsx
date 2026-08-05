@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import AnswerSummary, { shortMatchTeamName, teamCode } from './AnswerSummary'
+import AnswerSummary, { shortMatchTeamName, teamCode, formatMatchDate } from './AnswerSummary'
 import RankingAccuracySummary from './RankingAccuracySummary'
 import ScorePredictionBadge from './ScorePredictionBadge'
 import { shortQuestionLabel } from '../lib/questionLabel'
@@ -43,10 +43,16 @@ function PairedResults({
   questions,
   answers,
   points,
+  wide,
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
   points: PointsMap
+  // Información no mete esto en una tarjeta/popup estrecho como Mis
+  // apuestas o el desglose de puntos -- ahí ida y vuelta caben en la misma
+  // fila (2 columnas) en vez de una debajo de otra, sin dejar tanto hueco
+  // vacío a la derecha.
+  wide?: boolean
 }) {
   const pairs = new Map<string, SeasonQuestion[]>()
   for (const q of questions) {
@@ -58,23 +64,37 @@ function PairedResults({
     pairs.get(key)!.push(q)
   }
 
+  // Ida y vuelta ordenados por fecha (el más próximo primero); sin fecha
+  // puesta todavía, al final. Y las 3 tarjetas de emparejamientos también
+  // se ordenan por su partido más próximo, para que arriba salga siempre
+  // lo que se juega antes.
+  const dateOf = (q: SeasonQuestion) => q.config.match_date ?? '9999-99-99'
+  const sortedPairs = [...pairs.values()]
+    .map((legs) => [...legs].sort((a, b) => dateOf(a).localeCompare(dateOf(b))))
+    .sort((a, b) => dateOf(a[0]).localeCompare(dateOf(b[0])))
+
   return (
     <div className="flex flex-col gap-2">
-      {[...pairs.values()].map((legs, i) => (
+      {sortedPairs.map((legs, i) => (
         <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
           <p className="truncate text-center text-[11px] font-semibold text-gray-400">
             {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-300">vs</span>{' '}
             {shortMatchTeamName(legs[0]?.config.away_team)}
           </p>
-          {legs.map((leg) => {
+          <div className={wide ? 'grid grid-cols-2 gap-x-3 gap-y-1.5' : 'flex flex-col gap-1.5'}>
+            {legs.map((leg) => {
             const v = answers[leg.id] as { home: number; away: number } | undefined
+            const date = formatMatchDate(leg.config.match_date)
             return (
-              <div key={leg.id} className="flex items-center gap-1.5">
+              <div key={leg.id} className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
                 {/* Grupos de ancho fijo (no dependen de la longitud del
                     nombre real) para que el marcador quede siempre en la
                     misma columna entre la ida y la vuelta. El código de 3
                     letras identifica el equipo sin necesitar hover (en
-                    móvil el title del escudo no se ve nunca). */}
+                    móvil el title del escudo no se ve nunca). flex-wrap +
+                    ml-auto: si no cabe todo en una línea (2 columnas en
+                    Información, por ejemplo), la fecha/pastilla de puntos
+                    baja a su propia línea en vez de desbordar o apretujarse. */}
                 <span className="flex w-16 shrink-0 items-center justify-end gap-1">
                   <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.home_team)}</span>
                   <TeamCrest name={leg.config.home_team} />
@@ -86,12 +106,14 @@ function PairedResults({
                   <TeamCrest name={leg.config.away_team} />
                   <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.away_team)}</span>
                 </span>
-                <span className="ml-auto">
+                <span className="ml-auto flex items-center gap-1.5">
+                  {date && <span className="text-[10px] text-gray-400">{date}</span>}
                   <ScorePredictionBadge points={points[leg.id]} />
                 </span>
               </div>
             )
-          })}
+            })}
+          </div>
         </div>
       ))}
     </div>
@@ -109,6 +131,7 @@ export default function BlockAnswers({
   points = {},
   currentResults = {},
   emptyLabel,
+  wide = false,
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
@@ -120,6 +143,9 @@ export default function BlockAnswers({
   // (donde "answers" es el resultado oficial, no la respuesta de un usuario)
   // tiene más sentido "Aún sin resolver".
   emptyLabel?: string
+  // Bloque 3: ida y vuelta en 2 columnas en vez de una debajo de otra --
+  // solo tiene sentido fuera de tarjetas/popups estrechos (Información).
+  wide?: boolean
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -170,7 +196,7 @@ export default function BlockAnswers({
               </div>
             )}
 
-            {b === 3 && <PairedResults questions={qs} answers={answers} points={points} />}
+            {b === 3 && <PairedResults questions={qs} answers={answers} points={points} wide={wide} />}
 
             {b === 4 && (
               <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">

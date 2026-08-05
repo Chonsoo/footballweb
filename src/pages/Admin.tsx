@@ -597,6 +597,7 @@ function Block3Panel({
   const [drafts, setDrafts] = useState<Record<string, { home: number; away: number }>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
   const [statusById, setStatusById] = useState<Record<string, Status>>({})
+  const [savingDateId, setSavingDateId] = useState<string | null>(null)
 
   useEffect(() => {
     const init: Record<string, { home: number; away: number }> = {}
@@ -604,6 +605,19 @@ function Block3Panel({
     setDrafts(init)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  // La fecha es solo informativa (no afecta a puntos ni resultado), así que
+  // se guarda sola nada más cambiar el campo -- no hace falta un botón
+  // aparte ni mezclarla con el guardado del marcador.
+  async function saveDate(q: SeasonQuestion, matchDate: string) {
+    setSavingDateId(q.id)
+    const { error } = await supabase
+      .from('season_questions')
+      .update({ config: { ...q.config, match_date: matchDate || null } })
+      .eq('id', q.id)
+    setSavingDateId(null)
+    if (!error) await onChanged()
+  }
 
   // Cada duelo se guarda por separado -- se van jugando en fechas distintas,
   // así que forzar un único "Guardar" para los 6 obligaría a fijar 0-0 (un
@@ -650,6 +664,19 @@ function Block3Panel({
                 >
                   {savingId === q.id ? 'Guardando…' : resolved ? 'Actualizar' : 'Guardar'}
                 </button>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <label htmlFor={`match-date-${q.id}`}>Fecha del partido:</label>
+                <input
+                  id={`match-date-${q.id}`}
+                  type="date"
+                  defaultValue={q.config.match_date ?? ''}
+                  onBlur={(e) => {
+                    if (e.target.value !== (q.config.match_date ?? '')) saveDate(q, e.target.value)
+                  }}
+                  className="rounded border border-gray-300 px-2 py-1 text-xs"
+                />
+                {savingDateId === q.id && <span className="text-gray-400">Guardando…</span>}
               </div>
               {/* Al guardar se puntúa solo automáticamente: no hace falta elegir
                   el 1x2 aparte, se deduce del marcador. Puntos fijos (no

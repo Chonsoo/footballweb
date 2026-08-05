@@ -39,6 +39,7 @@ export interface QuestionConfig {
   tiers?: TierDef[] // 'tier_list' | 'ranking' (tiers "especiales"; el resto cae en una tier implícita "media")
   home_team?: string // 'score_prediction'
   away_team?: string // 'score_prediction'
+  match_date?: string // 'score_prediction' — fecha del partido (YYYY-MM-DD), opcional/informativa
 }
 
 export type QuestionPhase = 'initial' | 'weekly'
