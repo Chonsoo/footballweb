@@ -43,16 +43,15 @@ function PairedResults({
   questions,
   answers,
   points,
-  wide,
+  showDates,
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
   points: PointsMap
-  // Información no mete esto en una tarjeta/popup estrecho como Mis
-  // apuestas o el desglose de puntos -- ahí ida y vuelta caben en la misma
-  // fila (2 columnas) en vez de una debajo de otra, sin dejar tanto hueco
-  // vacío a la derecha.
-  wide?: boolean
+  // Solo Información pasa esto -- ahí hay sitio de sobra en la línea; en
+  // las tarjetas estrechas (Mis apuestas, Detalladas, desglose de puntos)
+  // se omite para no competir por espacio con la pastilla de puntos.
+  showDates?: boolean
 }) {
   const pairs = new Map<string, SeasonQuestion[]>()
   for (const q of questions) {
@@ -81,7 +80,12 @@ function PairedResults({
             {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-300">vs</span>{' '}
             {shortMatchTeamName(legs[0]?.config.away_team)}
           </p>
-          <div className={wide ? 'grid grid-cols-2 gap-x-3 gap-y-1.5' : 'flex flex-col gap-1.5'}>
+          {/* Siempre una columna (ida debajo de vuelta) -- con 2 columnas
+              lado a lado la columna quedaba demasiado estrecha para
+              "código+escudo+marcador+código+escudo+fecha" en una línea, y
+              esa fila se partía sola en dos alturas distintas, dando un
+              efecto de filas mezcladas/descuadradas. */}
+          <div className="flex flex-col gap-1.5">
             {legs.map((leg) => {
             const v = answers[leg.id] as { home: number; away: number } | undefined
             const date = formatMatchDate(leg.config.match_date)
@@ -91,10 +95,7 @@ function PairedResults({
                     nombre real) para que el marcador quede siempre en la
                     misma columna entre la ida y la vuelta. El código de 3
                     letras identifica el equipo sin necesitar hover (en
-                    móvil el title del escudo no se ve nunca). flex-wrap +
-                    ml-auto: si no cabe todo en una línea (2 columnas en
-                    Información, por ejemplo), la fecha/pastilla de puntos
-                    baja a su propia línea en vez de desbordar o apretujarse. */}
+                    móvil el title del escudo no se ve nunca). */}
                 <span className="flex w-16 shrink-0 items-center justify-end gap-1">
                   <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.home_team)}</span>
                   <TeamCrest name={leg.config.home_team} />
@@ -107,7 +108,10 @@ function PairedResults({
                   <span className="text-[11px] font-bold text-gray-500">{teamCode(leg.config.away_team)}</span>
                 </span>
                 <span className="ml-auto flex items-center gap-1.5">
-                  {date && <span className="text-[10px] text-gray-400">{date}</span>}
+                  {/* La fecha solo en Información: en las tarjetas estrechas
+                      (desglose, Mis apuestas, Detalladas), fecha + pastilla
+                      de puntos no caben en una línea. */}
+                  {showDates && date && <span className="text-[10px] text-gray-400">{date}</span>}
                   <ScorePredictionBadge points={points[leg.id]} />
                 </span>
               </div>
@@ -131,7 +135,7 @@ export default function BlockAnswers({
   points = {},
   currentResults = {},
   emptyLabel,
-  wide = false,
+  showDates = false,
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
@@ -143,9 +147,10 @@ export default function BlockAnswers({
   // (donde "answers" es el resultado oficial, no la respuesta de un usuario)
   // tiene más sentido "Aún sin resolver".
   emptyLabel?: string
-  // Bloque 3: ida y vuelta en 2 columnas en vez de una debajo de otra --
-  // solo tiene sentido fuera de tarjetas/popups estrechos (Información).
-  wide?: boolean
+  // Bloque 3: muestra la fecha de cada duelo -- solo Información, donde hay
+  // sitio de sobra en la línea (en las tarjetas estrechas no cabe junto a
+  // la pastilla de puntos).
+  showDates?: boolean
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -196,7 +201,7 @@ export default function BlockAnswers({
               </div>
             )}
 
-            {b === 3 && <PairedResults questions={qs} answers={answers} points={points} wide={wide} />}
+            {b === 3 && <PairedResults questions={qs} answers={answers} points={points} showDates={showDates} />}
 
             {b === 4 && (
               <div className="divide-y divide-gray-100 overflow-hidden rounded-lg border border-gray-200 bg-white">

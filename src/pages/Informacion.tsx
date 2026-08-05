@@ -123,7 +123,7 @@ export default function Informacion() {
             Todavía no hay preguntas aquí.
           </div>
         ) : (
-          <BlockAnswers questions={otherBlocksQuestions} answers={resultsMap} emptyLabel={EMPTY_RESULT_LABEL} wide />
+          <BlockAnswers questions={otherBlocksQuestions} answers={resultsMap} emptyLabel={EMPTY_RESULT_LABEL} showDates />
         )
       ) : subview === 'flash' ? (
         flashQuestions.length === 0 ? (
