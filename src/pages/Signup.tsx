@@ -49,6 +49,12 @@ export default function Signup() {
       <h2 className="mb-1 text-xl font-bold text-gray-900">Crear cuenta</h2>
       <p className="mb-5 text-sm text-gray-500">Únete a la porra de este año.</p>
 
+      <GoogleButton onClick={handleGoogle} label="Registrarse con Google" />
+
+      <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
+        <div className="h-px flex-1 bg-gray-200" />o<div className="h-px flex-1 bg-gray-200" />
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="text"
@@ -85,12 +91,6 @@ export default function Signup() {
           {loading ? 'Creando…' : 'Crear cuenta'}
         </button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
-        <div className="h-px flex-1 bg-gray-200" />o<div className="h-px flex-1 bg-gray-200" />
-      </div>
-
-      <GoogleButton onClick={handleGoogle} label="Registrarse con Google" />
 
       <p className="mt-5 text-center text-sm text-gray-500">
         ¿Ya tienes cuenta?{' '}

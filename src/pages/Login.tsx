@@ -38,6 +38,12 @@ export default function Login() {
       <h2 className="mb-1 text-xl font-bold text-gray-900">Iniciar sesión</h2>
       <p className="mb-5 text-sm text-gray-500">Bienvenido de vuelta, abueloncho.</p>
 
+      <GoogleButton onClick={handleGoogle} />
+
+      <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
+        <div className="h-px flex-1 bg-gray-200" />o<div className="h-px flex-1 bg-gray-200" />
+      </div>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input
           type="email"
@@ -66,12 +72,6 @@ export default function Login() {
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-
-      <div className="my-5 flex items-center gap-3 text-xs font-medium text-gray-400">
-        <div className="h-px flex-1 bg-gray-200" />o<div className="h-px flex-1 bg-gray-200" />
-      </div>
-
-      <GoogleButton onClick={handleGoogle} />
 
       <p className="mt-5 text-center text-sm text-gray-500">
         ¿No tienes cuenta?{' '}
