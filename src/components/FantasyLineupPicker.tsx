@@ -261,7 +261,9 @@ export default function FantasyLineupPicker({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar jugador…"
               disabled={readOnly}
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs"
+              // text-base (16px) en vez de text-xs: por debajo de 16px, iOS Safari
+              // hace zoom automático de toda la página al enfocar el campo.
+              className="w-full rounded border border-gray-300 px-2 py-1.5 text-base sm:text-xs"
             />
             <div className="flex flex-wrap gap-1">
               {FANTASY_POSITIONS.map((pos) => {

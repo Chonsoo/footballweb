@@ -85,11 +85,29 @@ export default function Ranking() {
 
   if (loading) return <p className="text-gray-500">Cargando clasificación…</p>
 
+  const hasMyRow = !!user && rows.some((r) => r.user_id === user.id)
+
+  function scrollToMe() {
+    if (!user) return
+    document.getElementById(`ranking-row-${user.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">🏆 Clasificación</h1>
-        <p className="text-sm text-gray-500">Quién manda y quién paga la primera ronda.</p>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">🏆 Clasificación</h1>
+          <p className="text-sm text-gray-500">Quién manda y quién paga la primera ronda.</p>
+        </div>
+        {hasMyRow && (
+          <button
+            type="button"
+            onClick={scrollToMe}
+            className="shrink-0 rounded-full bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800"
+          >
+            📍 Tu puesto
+          </button>
+        )}
       </div>
 
       {rows.length === 0 ? (
@@ -111,9 +129,13 @@ export default function Ranking() {
               const isMe = row.user_id === user?.id
 
               return (
-                <div
+                <button
+                  type="button"
                   key={row.user_id}
-                  className="relative flex items-center gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-4 shadow-sm"
+                  id={`ranking-row-${row.user_id}`}
+                  onClick={() => setBreakdownFor(row)}
+                  title="Ver de dónde salen estos puntos"
+                  className="relative flex w-full items-center gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-4 text-left shadow-sm transition-colors hover:brightness-95"
                   style={{ background: style.background, borderColor: style.borderColor }}
                 >
                   {/* Marca "tú" con una franja verde a la izquierda, sin bordes raros */}
@@ -157,16 +179,11 @@ export default function Ranking() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setBreakdownFor(row)}
-                  title="Ver de dónde salen estos puntos"
-                  className="rounded-lg px-1 py-0.5 text-right transition-colors hover:bg-black/5"
-                >
+                <div className="rounded-lg px-1 py-0.5 text-right">
                   <p className="text-lg font-bold text-gray-900">{row.total_points}</p>
                   <p className="text-[10px] uppercase tracking-wide text-gray-400">pts</p>
-                </button>
-              </div>
+                </div>
+              </button>
               )
             })
           })()}

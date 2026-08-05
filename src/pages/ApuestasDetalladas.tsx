@@ -121,7 +121,9 @@ export default function ApuestasDetalladas() {
         placeholder="Buscar jugador…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm"
+        // text-base (16px) en vez de text-sm: por debajo de 16px, iOS Safari
+        // hace zoom automático de toda la página al enfocar el campo.
+        className="w-full max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-base sm:text-sm"
       />
 
       <div className="flex flex-col gap-2">
