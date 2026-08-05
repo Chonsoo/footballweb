@@ -12,18 +12,23 @@ export interface ChartSlice {
   // barras/leyenda -- ver SliceAvatar.
   image?: string
   imageRound?: boolean
+  // Si no hay foto real, se pinta esto en su lugar en vez de dejar el hueco
+  // vacío -- para que todas las columnas de VerticalBars midan lo mismo
+  // aunque algún jugador no tenga foto todavía.
+  fallback?: string
 }
 
 export const CHART_PALETTE = ['#2f8f4e', '#d9ad4a', '#3b82f6', '#f97316', '#a855f7', '#ef4444', '#06b6d4', '#ec4899']
 
 function SliceAvatar({ slice, size = 20 }: { slice: ChartSlice; size?: number }) {
-  if (!slice.image) return null
+  const src = slice.image ?? slice.fallback
+  if (!src) return null
   return (
     <span
       className={`inline-block shrink-0 overflow-hidden bg-gray-100 ${slice.imageRound ? 'rounded-full' : ''}`}
       style={{ width: size, height: size }}
     >
-      <img src={slice.image} alt="" className={`h-full w-full ${slice.imageRound ? 'object-cover' : 'object-contain'}`} />
+      <img src={src} alt="" className={`h-full w-full ${slice.imageRound ? 'object-cover' : 'object-contain'}`} />
     </span>
   )
 }
@@ -108,6 +113,12 @@ export function VerticalBars({ slices, height = 90 }: { slices: ChartSlice[]; he
     <div className="flex items-end justify-between gap-2">
       {slices.map((s) => (
         <div key={s.label} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+          {/* Alto fijo aunque no haya foto (fallback), para que todas las
+              columnas arranquen alineadas en vez de bailar según cuál tenga
+              foto real y cuál no. */}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+            <SliceAvatar slice={s} size={28} />
+          </span>
           <span className="text-xs font-semibold" style={{ color: s.color }}>
             {Math.round(s.pct)}%
           </span>
@@ -117,7 +128,6 @@ export function VerticalBars({ slices, height = 90 }: { slices: ChartSlice[]; he
               style={{ height: `${Math.max((s.pct / max) * 100, 4)}%`, backgroundColor: s.color }}
             />
           </div>
-          <SliceAvatar slice={s} size={28} />
           <span className="max-w-[70px] truncate text-center text-[10px] text-gray-600">{s.label}</span>
         </div>
       ))}

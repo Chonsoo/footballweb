@@ -35,6 +35,7 @@ interface SimpleStat {
 // equipo y con qué margen".
 interface TeamTopZone {
   team_id: string
+  zone_id: string
   label: string
   pct: number
   color: string
@@ -48,6 +49,12 @@ const ZONE_HEX: Record<string, string> = {
   [MEDIA_TIER_ID]: '#e5e7eb',
 }
 
+// Orden de zonas para la Clasificación: de más arriba de tabla a menos,
+// dejando el descenso para el final -- y dentro de cada zona, de más a menos
+// %, salvo en descenso que va al revés (de menos a más) para que el equipo
+// más "favorito" a bajar quede el último de todos.
+const ZONE_ORDER = ['campeon', 'champions', 'europa', MEDIA_TIER_ID, 'descenso']
+
 const ANSWER_TYPE_ICON: Record<string, string> = {
   ranking: '🏆',
   tier_list: '📊',
@@ -56,6 +63,7 @@ const ANSWER_TYPE_ICON: Record<string, string> = {
 }
 
 const BAR_TOP_N = 5
+const PLAYER_SILHOUETTE = '/badges/player-silhouette.png'
 
 function formatAnswerValue(value: unknown): string {
   return String(value)
@@ -107,6 +115,7 @@ export default function Oraculo() {
                 const top = teamRows.reduce((a, b) => (Number(b.cnt) > Number(a.cnt) ? b : a))
                 return {
                   team_id: teamId,
+                  zone_id: top.tier_id,
                   label: tierLabels.get(top.tier_id) ?? top.tier_id,
                   pct: total > 0 ? (Number(top.cnt) / total) * 100 : 0,
                   color: CHART_PALETTE[tierOrder.indexOf(top.tier_id) % CHART_PALETTE.length] ?? '#9ca3af',
@@ -132,6 +141,7 @@ export default function Oraculo() {
                 const top = entries.reduce((a, b) => (b.cnt > a.cnt ? b : a))
                 return {
                   team_id: teamId,
+                  zone_id: top.zone.id,
                   label: top.zone.label,
                   pct: totalVotes > 0 ? (top.cnt / totalVotes) * 100 : 0,
                   color: ZONE_HEX[top.zone.id] ?? '#9ca3af',
@@ -180,8 +190,21 @@ export default function Oraculo() {
       {questions.map((q, i) => {
         const accent = CHART_PALETTE[i % CHART_PALETTE.length]
         const isZoneType = q.answer_type === 'tier_list' || q.answer_type === 'ranking'
-        const teamRows = topZoneStats[q.id] ?? []
         const stat = simpleStats[q.id]
+
+        // Clasificación: agrupado de arriba de tabla hacia abajo (campeón,
+        // Champions, Europa, media, descenso al final), y dentro de cada
+        // grupo de más a menos % -- salvo en descenso, que va de menos a más
+        // para que el más "cantado" a bajar quede el último del todo.
+        const teamRows =
+          q.answer_type === 'ranking'
+            ? [...(topZoneStats[q.id] ?? [])].sort((a, b) => {
+                const orderA = ZONE_ORDER.indexOf(a.zone_id)
+                const orderB = ZONE_ORDER.indexOf(b.zone_id)
+                if (orderA !== orderB) return orderA - orderB
+                return a.zone_id === 'descenso' ? a.pct - b.pct : b.pct - a.pct
+              })
+            : (topZoneStats[q.id] ?? [])
 
         return (
           <div key={q.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -292,6 +315,7 @@ export default function Oraculo() {
                     color: CHART_PALETTE[idx % CHART_PALETTE.length],
                     image: q.config.player_choice ? players.find((p) => p.name === r.label)?.photo_url ?? undefined : undefined,
                     imageRound: true,
+                    fallback: q.config.player_choice ? PLAYER_SILHOUETTE : undefined,
                   }))
                   return (
                     <div className="flex flex-col gap-2">
