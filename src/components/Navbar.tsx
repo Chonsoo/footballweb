@@ -59,9 +59,10 @@ export default function Navbar() {
   }
 
   return (
-    // Mismo lenguaje que el resto de la app ya: barra translúcida "de
-    // cristal" sobre el verde de marca (Layout), no una barra blanca sólida
-    // -- así el navbar no rompe la cohesión con el fondo de cada página.
+    <>
+    {/* Mismo lenguaje que el resto de la app ya: barra translúcida "de
+        cristal" sobre el verde de marca (Layout), no una barra blanca sólida
+        -- así el navbar no rompe la cohesión con el fondo de cada página. */}
     <nav className="sticky top-0 z-30 border-b border-white/10 bg-brand-900/70 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 py-3">
         {isAdminRoute ? (
@@ -299,22 +300,31 @@ export default function Navbar() {
           </div>
         </div>
       )}
-
-      {editOpen && <EditProfileModal onClose={() => setEditOpen(false)} />}
-
-      {confirmSignOut && (
-        <ConfirmDialog
-          title="Cerrar sesión"
-          message="¿Seguro que quieres cerrar sesión?"
-          confirmLabel="Cerrar sesión"
-          danger
-          onConfirm={() => {
-            setConfirmSignOut(false)
-            signOut()
-          }}
-          onCancel={() => setConfirmSignOut(false)}
-        />
-      )}
     </nav>
+
+    {/* Los modales van FUERA de <nav>, no dentro -- <nav> lleva
+        backdrop-blur (el "cristal" del navbar) y cualquier elemento con
+        backdrop-filter (igual que con transform/filter) pasa a ser el
+        "containing block" de sus descendientes position:fixed. Con los
+        modales dentro, su "fixed inset-0" quedaba encajado al tamaño y
+        posición de la barra de navegación en vez de la pantalla entera --
+        de ahí que se vieran como una cajita pequeña pegada arriba en vez de
+        un modal centrado a pantalla completa. */}
+    {editOpen && <EditProfileModal onClose={() => setEditOpen(false)} />}
+
+    {confirmSignOut && (
+      <ConfirmDialog
+        title="Cerrar sesión"
+        message="¿Seguro que quieres cerrar sesión?"
+        confirmLabel="Cerrar sesión"
+        danger
+        onConfirm={() => {
+          setConfirmSignOut(false)
+          signOut()
+        }}
+        onCancel={() => setConfirmSignOut(false)}
+      />
+    )}
+    </>
   )
 }
