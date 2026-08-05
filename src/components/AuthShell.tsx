@@ -31,12 +31,11 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             blanco (currentColor + text-white) se mantiene nítido sobre el
             degradado oscuro aunque baje la opacidad, y algo más pequeño para
             que se distinga mejor la silueta en vez de un rombo grande.
-            Tamaño con min(): en vez de un rem fijo (que en pantallas de
-            móvil estrechas se salía del ancho y se recortaba), el tamaño se
-            limita también a un % del ancho y del alto de la pantalla -- así
-            en pantallas pequeñas se encoge solo lo justo para entrar entero,
-            y en pantallas grandes usa el tamaño de referencia en rem. */}
-        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(28rem,65vw,45vh)] w-[min(28rem,65vw,45vh)] -translate-x-1/2 text-[#FF4B44] opacity-40 sm:h-[min(36rem,60vw,45vh)] sm:w-[min(36rem,60vw,45vh)] sm:-translate-y-2" />
+            Tamaño de referencia en rem (el mismo de siempre) con un tope de
+            vw/vh solo para que NO se recorte en pantallas realmente
+            pequeñas -- los topes van holgados (95vw/80vh) para no encoger
+            el tamaño en un móvil normal, donde el rem ya entraba bien. */}
+        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(28rem,95vw,80vh)] w-[min(28rem,95vw,80vh)] -translate-x-1/2 text-[#FF4B44] opacity-40 sm:h-[min(36rem,85vw,80vh)] sm:w-[min(36rem,85vw,80vh)] sm:-translate-y-2" />
 
         <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
