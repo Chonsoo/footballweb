@@ -19,7 +19,7 @@ import TeamMarquee from './TeamMarquee'
 // sin depender de paddings sumados aparte que puedan desequilibrarlo.
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
+    <div className="relative flex min-h-dvh flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 py-3">
       <TeamMarquee direction="left" />
 
       <div className="flex flex-col items-center gap-6 px-4">
@@ -36,7 +36,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         <img
           src="/badges/abueluchos-fc-badge.png"
           alt=""
-          className="h-24 w-24 object-contain opacity-15 blur-[1px] sm:h-28 sm:w-28"
+          className="h-36 w-36 object-contain opacity-25 blur-[0.5px] sm:h-44 sm:w-44"
         />
       </div>
 
