@@ -22,6 +22,7 @@ export default function SeasonBets() {
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [openBlock, setOpenBlock] = useState<number | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -57,13 +58,22 @@ export default function SeasonBets() {
   async function saveAnswer(questionId: string, value: AnswerValue) {
     if (!user) return
     setSavingId(questionId)
+    setSaveError(null)
     const { data, error } = await supabase
       .from('season_answers')
       .upsert({ question_id: questionId, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
       .select('*')
       .single()
     setSavingId(null)
-    if (error) return
+    if (error) {
+      // Antes esto fallaba en silencio (p.ej. si el plazo de esa pregunta ya
+      // había pasado, la política de la base de datos rechaza el guardado) --
+      // sin avisar, parecía que se había guardado bien y luego, al no existir
+      // la fila en season_answers, esa respuesta nunca podía recibir puntos
+      // (ni siquiera 0), aunque el admin la calificara.
+      setSaveError('No se ha podido guardar esta respuesta (puede que el plazo ya haya pasado). Vuelve a intentarlo.')
+      return
+    }
 
     // Actualiza solo la respuesta afectada en memoria, sin recargar toda la
     // página (evita el salto visual al principio y la recarga innecesaria).
@@ -114,6 +124,12 @@ export default function SeasonBets() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold text-white">Apuestas iniciales</h1>
+
+      {saveError && (
+        <div className="rounded-xl border border-red-200/50 bg-red-50/90 px-4 py-3 text-sm text-red-800 backdrop-blur-sm">
+          {saveError}
+        </div>
+      )}
 
       {closed ? (
         <div className="rounded-xl border border-amber-200/50 bg-amber-50/90 px-4 py-3 text-sm text-amber-800 backdrop-blur-sm">

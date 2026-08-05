@@ -29,6 +29,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   const [showIntro, setShowIntro] = useState(true)
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [teamPlayers, setTeamPlayers] = useState<FantasyPlayer[]>([])
   const fantasy = useFantasyLineup()
 
@@ -134,13 +135,20 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   async function saveAnswer(questionId: string, value: AnswerValue) {
     if (!user) return
     setSavingId(questionId)
+    setSaveError(null)
     const { data, error } = await supabase
       .from('season_answers')
       .upsert({ question_id: questionId, user_id: user.id, answer: value }, { onConflict: 'question_id,user_id' })
       .select('*')
       .single()
     setSavingId(null)
-    if (error) return
+    if (error) {
+      // Antes fallaba en silencio -- sin avisar, parecía guardado aunque no
+      // lo estuviera (p.ej. si el plazo ya hubiera pasado), y esa respuesta
+      // nunca podría recibir puntos, ni siquiera 0.
+      setSaveError('No se ha podido guardar esta respuesta. Vuelve a intentarlo.')
+      return
+    }
     setAnswers((a) => ({ ...a, [questionId]: data as SeasonAnswer }))
   }
 
@@ -256,6 +264,9 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
         </div>
 
         <div>
+          {saveError && (
+            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{saveError}</div>
+          )}
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-gray-900">
               {isFantasyStep ? 'El 11 de Abuelonchos' : current!.label}

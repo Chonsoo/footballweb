@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { formatAnswer } from '../lib/answerFormat'
@@ -225,15 +225,43 @@ function Block1Panel({
   result?: SeasonResult
   onChanged: () => void
 }) {
-  const [resultDraft, setResultDraft] = useState<Record<string, number>>((result?.result as Record<string, number>) ?? {})
+  const [resultDraft, setResultDraftState] = useState<Record<string, number>>((result?.result as Record<string, number>) ?? {})
   const [saving, setSaving] = useState(false)
   const [laligaLoading, setLaligaLoading] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  // "Sucio" = hay cambios del usuario sin guardar todavía. Se distingue de
+  // "el prop result cambió" (recarga desde el servidor tras guardar) para no
+  // entrar en un bucle: guardar -> onChanged() recarga -> se resetea
+  // resultDraft -> si no se distinguiera, eso parecería "otro cambio" y
+  // volvería a guardar solo, sin fin.
+  const dirtyRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    setResultDraft((result?.result as Record<string, number>) ?? {})
+    setResultDraftState((result?.result as Record<string, number>) ?? {})
+    dirtyRef.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result?.resolved_at])
+
+  function setResultDraft(next: Record<string, number>) {
+    dirtyRef.current = true
+    setResultDraftState(next)
+  }
+
+  // Auto-guardado: en cuanto se coloca un equipo, se guarda solo a los pocos
+  // cientos de ms (sin esperar a un botón "Guardar") -- fija el resultado
+  // real Y recalcula los puntos de todos los participantes a la vez.
+  useEffect(() => {
+    if (!dirtyRef.current || !question) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      saveNow()
+    }, 600)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultDraft])
 
   if (!question) return <p className="text-sm text-gray-400">No hay pregunta de Clasificación de Liga creada.</p>
 
@@ -246,7 +274,7 @@ function Block1Panel({
       if (!resp.ok || !data.positions) throw new Error(data.error ?? `El proxy respondió ${resp.status}`)
       setResultDraft(data.positions)
       const extra = data.unmapped && data.unmapped.length > 0 ? ` (sin mapear: ${data.unmapped.join(', ')})` : ''
-      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — revisa y pulsa "Guardar"` })
+      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — guardando…` })
     } catch (err) {
       setStatus({ type: 'error', text: `No se pudo traer de LaLiga.com: ${err instanceof Error ? err.message : 'error desconocido'}` })
     } finally {
@@ -254,7 +282,8 @@ function Block1Panel({
     }
   }
 
-  async function save() {
+  async function saveNow() {
+    dirtyRef.current = false
     setStatus(null)
     setSaving(true)
     const { error } = await supabase.rpc('set_season_result', { p_question_id: question!.id, p_result: resultDraft })
@@ -280,7 +309,7 @@ function Block1Panel({
 
   return (
     <div className="flex flex-col gap-4">
-      <StatusBanner status={status} />
+      <StatusBanner status={saving ? { type: 'ok', text: 'Guardando…' } : status} />
       <div className="rounded bg-gray-50 p-3">
         <p className="mb-2 text-xs font-medium text-gray-500">Clasificación real</p>
         <RankingAnswer
@@ -298,14 +327,11 @@ function Block1Panel({
           >
             {laligaLoading ? 'Trayendo…' : 'Actualizar desde LaLiga.com'}
           </button>
-          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
         </div>
         <p className="mt-2 text-xs text-gray-400">
-          Guardar fija la clasificación real (se ve en Información › Clasificación actual y en los ✓/✗ de Mis
-          apuestas / Apuestas detalladas) y calcula y aplica los puntos de todos los participantes a la vez, con el
-          bonus de zona incluido (Champions +3, Europa League +3, Descenso +5).
+          Se guarda solo en cuanto colocas o cambias un equipo (se ve en Información › Clasificación actual y en los
+          ✓/✗ de Mis apuestas / Apuestas detalladas), y recalcula los puntos de todos los participantes a la vez, con
+          el bonus de zona incluido (Champions +3, Europa League +3, Descenso +5).
         </p>
       </div>
     </div>
@@ -328,18 +354,38 @@ function Block2Panel({
 }) {
   const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result
 
-  const [drafts, setDrafts] = useState<Record<string, AnswerValue>>({})
+  const [drafts, setDraftsState] = useState<Record<string, AnswerValue>>({})
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const dirtyRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const init: Record<string, AnswerValue> = {}
     for (const q of questions) {
       init[q.id] = resultFor(q.id) ?? (isUnderdogQuestion(q) ? { gold: '', silver: '', bronze: '' } : '')
     }
-    setDrafts(init)
+    setDraftsState(init)
+    dirtyRef.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  function setDrafts(update: Record<string, AnswerValue> | ((d: Record<string, AnswerValue>) => Record<string, AnswerValue>)) {
+    dirtyRef.current = true
+    setDraftsState(update)
+  }
+
+  useEffect(() => {
+    if (!dirtyRef.current) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      save()
+    }, 600)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts])
 
   function teamName(id: string | null) {
     return LALIGA_TEAMS_2026_27.find((t) => t.id === id)?.name ?? ''
@@ -366,6 +412,7 @@ function Block2Panel({
   }
 
   async function save() {
+    dirtyRef.current = false
     setStatus(null)
     setSaving(true)
     for (const q of questions) {
@@ -416,7 +463,7 @@ function Block2Panel({
 
   return (
     <div className="flex flex-col gap-4">
-      <StatusBanner status={status} />
+      <StatusBanner status={saving ? { type: 'ok', text: 'Guardando…' } : status} />
       <div className="flex flex-col gap-4 rounded bg-gray-50 p-3">
         {questions.map((q) => {
           const teams = teamOptionsFor(q.config)
@@ -477,14 +524,12 @@ function Block2Panel({
           >
             Calcular Fiasco / Underdog desde la clasificación
           </button>
-          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
         </div>
         <p className="text-xs text-gray-400">
-          El Fiasco Europeo se calcula como el peor colocado de los equipos con Europa la temporada pasada. El Podio
-          Underdog se calcula solo entre los equipos que algún participante haya elegido: si nadie eligió al que
-          quedó mejor, el oro pasa al siguiente que sí haya elegido alguien (15 / 8 / 3 pts).
+          Se guarda solo en cuanto rellenas o cambias un campo. El Fiasco Europeo se calcula como el peor colocado de
+          los equipos con Europa la temporada pasada. El Podio Underdog se calcula solo entre los equipos que algún
+          participante haya elegido: si nadie eligió al que quedó mejor, el oro pasa al siguiente que sí haya elegido
+          alguien (15 / 8 / 3 pts).
         </p>
       </div>
     </div>
@@ -509,6 +554,10 @@ function Block3Panel({
   const [savingDateId, setSavingDateId] = useState<string | null>(null)
   const [clearingId, setClearingId] = useState<string | null>(null)
   const [confirmClearId, setConfirmClearId] = useState<string | null>(null)
+  // Un temporizador de auto-guardado por duelo (cada uno se juega en fecha
+  // distinta, así que cada marcador se guarda solo por separado, no todos a
+  // la vez).
+  const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     const init: Record<string, { home: number; away: number }> = {}
@@ -516,6 +565,15 @@ function Block3Panel({
     setDrafts(init)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
+
+  function setScore(q: SeasonQuestion, next: { home: number; away: number }) {
+    setDrafts((d) => ({ ...d, [q.id]: next }))
+    if (saveTimersRef.current[q.id]) clearTimeout(saveTimersRef.current[q.id])
+    saveTimersRef.current[q.id] = setTimeout(() => {
+      saveOne(q)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 600)
+  }
 
   // La fecha es solo informativa (no afecta a puntos ni resultado), así que
   // se guarda sola nada más cambiar el campo -- no hace falta un botón
@@ -572,6 +630,7 @@ function Block3Panel({
 
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-xs text-gray-400">Cada marcador se guarda solo en cuanto lo cambias con las flechas.</p>
       <div className="flex flex-col gap-2 rounded bg-gray-50 p-3">
         {questions.map((q) => {
           const draft = drafts[q.id] ?? { home: 0, away: 0 }
@@ -580,17 +639,13 @@ function Block3Panel({
             <div key={q.id} className="flex flex-col gap-1 rounded bg-white px-3 py-2">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <TeamLabel name={q.config.home_team ?? 'Local'} align="right" />
-                <ScoreStepper value={draft.home} onChange={(home) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, home } }))} />
+                <ScoreStepper value={draft.home} onChange={(home) => setScore(q, { ...draft, home })} />
                 <span className="shrink-0">-</span>
-                <ScoreStepper value={draft.away} onChange={(away) => setDrafts((d) => ({ ...d, [q.id]: { ...draft, away } }))} />
+                <ScoreStepper value={draft.away} onChange={(away) => setScore(q, { ...draft, away })} />
                 <TeamLabel name={q.config.away_team ?? 'Visitante'} />
-                <button
-                  onClick={() => saveOne(q)}
-                  disabled={savingId === q.id}
-                  className="ml-auto shrink-0 rounded bg-brand-700 px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
-                >
-                  {savingId === q.id ? 'Guardando…' : resolved ? 'Actualizar' : 'Guardar'}
-                </button>
+                <span className="ml-auto shrink-0 text-xs text-gray-400">
+                  {savingId === q.id ? 'Guardando…' : resolved ? 'Guardado ✓' : 'Sin jugar'}
+                </span>
               </div>
               {resolved && (
                 <div className="flex justify-end">
@@ -657,20 +712,41 @@ function Block4Panel({
 }) {
   const resultFor = (id: string) => results.find((r) => r.question_id === id)?.result as string | undefined
 
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [drafts, setDraftsState] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [clearing, setClearing] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const dirtyRef = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const init: Record<string, string> = {}
     for (const q of questions) init[q.id] = resultFor(q.id) ?? ''
-    setDrafts(init)
+    setDraftsState(init)
+    dirtyRef.current = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
 
+  function setDrafts(update: Record<string, string> | ((d: Record<string, string>) => Record<string, string>)) {
+    dirtyRef.current = true
+    setDraftsState(update)
+  }
+
+  useEffect(() => {
+    if (!dirtyRef.current) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      save()
+    }, 600)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts])
+
   async function save() {
+    dirtyRef.current = false
     setStatus(null)
     setSaving(true)
     for (const q of questions) {
@@ -715,7 +791,7 @@ function Block4Panel({
 
   return (
     <div className="flex flex-col gap-4">
-      <StatusBanner status={status} />
+      <StatusBanner status={saving ? { type: 'ok', text: 'Guardando…' } : status} />
       <div className="flex flex-col gap-4 rounded bg-gray-50 p-3">
         {questions.map((q) => (
           <div key={q.id} className="flex flex-col gap-1.5">
@@ -736,10 +812,7 @@ function Block4Panel({
             </div>
           </div>
         ))}
-        <div className="mt-1 flex flex-wrap gap-2">
-          <button onClick={save} disabled={saving} className="rounded bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
-            {saving ? 'Guardando…' : 'Guardar'}
-          </button>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
           <button
             onClick={() => setConfirmClear(true)}
             disabled={clearing}
@@ -748,6 +821,7 @@ function Block4Panel({
             {clearing ? 'Limpiando…' : 'Limpiar resultado'}
           </button>
         </div>
+        <p className="text-xs text-gray-400">Se guarda solo en cuanto eliges una opción.</p>
       </div>
 
       {confirmClear && (

@@ -16,11 +16,15 @@ const SUBVIEWS: [Subview, string][] = [
   ['reglas', 'Reglas'],
 ]
 
+// Mismo color por zona que en el formulario donde se rellena (RankingAnswer.tsx
+// / zoneForPosition, ver lib/rankingZones.ts) y que en el resumen de Mis
+// apuestas/Detalladas (AnswerSummary.tsx) -- antes esta tabla tenía su propia
+// paleta aparte (oro/azul/rojo) que no coincidía con la de la propia app.
 const ZONE_CHIP: Record<string, string> = {
-  campeon: 'bg-gold-100 text-gold-600',
-  champions: 'bg-brand-100 text-brand-700',
+  campeon: 'bg-red-100 text-red-700',
+  champions: 'bg-orange-100 text-orange-700',
   europa: 'bg-yellow-100 text-yellow-700',
-  descenso: 'bg-red-100 text-red-700',
+  descenso: 'bg-lime-100 text-lime-700',
   media: 'bg-gray-50 text-gray-400',
 }
 

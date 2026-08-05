@@ -193,14 +193,6 @@ function PlayerAnswer({ name }: { name: string }) {
   )
 }
 
-const ZONE_BG: Record<string, string> = {
-  campeon: 'bg-gold-100',
-  champions: 'bg-brand-100',
-  europa: 'bg-yellow-100',
-  descenso: 'bg-red-100',
-  [MEDIA_TIER_ID]: 'bg-gray-50',
-}
-
 function RankingSummary({
   config,
   value,
@@ -233,7 +225,10 @@ function RankingSummary({
           <div
             key={item.id}
             title={`${pos}º ${item.name}`}
-            className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 ${ZONE_BG[zone.id] ?? 'bg-gray-50'}`}
+            // Mismo color por zona que en el formulario donde se rellena
+            // (RankingAnswer.tsx / zoneForPosition) -- antes este resumen
+            // tenía su propia paleta aparte (ZONE_BG) que no coincidía.
+            className={`relative flex flex-col items-center gap-0.5 rounded-md py-1 ${zone.color}`}
           >
             {matches === true && (
               <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-green-600 text-[8px] font-bold text-white">
