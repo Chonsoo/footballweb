@@ -113,12 +113,18 @@ const SHORT_MATCH_TEAM_NAME: Record<string, string> = {
   'Atlético de Madrid': 'At. Madrid',
 }
 
+// Exportado: lo reutiliza BlockAnswers (duelos Big Three) tanto para el
+// nombre corto de la cabecera como el de PairedResults.
+export function shortMatchTeamName(name: string | undefined): string | undefined {
+  return name ? (SHORT_MATCH_TEAM_NAME[name] ?? name) : name
+}
+
 // Exportado: lo reutiliza "Mis apuestas" para juntar los 3 duelos Big Three
 // (ida y vuelta) en una sola fila compacta por emparejamiento.
 export function TeamBadgeLabel({ name, align = 'left' }: { name: string | undefined; align?: 'left' | 'right' }) {
   const badge = findTeamBadge(name)
   const [err, setErr] = useState(false)
-  const shortName = name ? (SHORT_MATCH_TEAM_NAME[name] ?? name) : name
+  const shortName = shortMatchTeamName(name)
   return (
     <span
       className={`flex min-w-0 items-center gap-1 text-xs text-gray-500 ${

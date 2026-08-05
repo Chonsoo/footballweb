@@ -1,10 +1,11 @@
-import { Fragment } from 'react'
-import AnswerSummary, { TeamBadgeLabel } from './AnswerSummary'
+import { useState } from 'react'
+import AnswerSummary, { shortMatchTeamName } from './AnswerSummary'
 import RankingAccuracySummary from './RankingAccuracySummary'
 import ScorePredictionBadge from './ScorePredictionBadge'
 import { shortQuestionLabel } from '../lib/questionLabel'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
 import { formatPoints } from '../lib/formatPoints'
+import { findTeamBadge } from '../lib/teamBadge'
 import type { AnswerValue, SeasonQuestion } from '../lib/database.types'
 
 type PointsMap = Record<string, number | null | undefined>
@@ -21,8 +22,23 @@ function pairKey(a: string, b: string) {
   return [a, b].sort().join('|')
 }
 
+// Escudo pequeño de tamaño fijo (sin texto) -- el nombre completo va solo en
+// la cabecera del emparejamiento, aquí basta el escudo + title al pasar el
+// ratón/mantener pulsado, así ningún nombre largo ("Atlético de Madrid")
+// puede descuadrar la fila.
+function TeamCrest({ name }: { name: string | undefined }) {
+  const badge = findTeamBadge(name)
+  const [err, setErr] = useState(false)
+  if (!badge || err) return <span className="h-6 w-6 shrink-0" title={name} />
+  return <img src={badge} alt={name ?? ''} title={name} className="h-6 w-6 shrink-0 object-contain" onError={() => setErr(true)} />
+}
+
 // Bloque 3 (duelos Big Three): agrupa cada emparejamiento (ida + vuelta) en
-// una sola fila en vez de 6 tarjetas sueltas.
+// una sola tarjeta. Cada fila (ida/vuelta) es su propio contenedor flex
+// independiente en vez de compartir una única rejilla -- con una rejilla
+// compartida, cuando la pastilla de puntos de una fila no se pintaba aún
+// (sin calificar) React no generaba ese nodo y todas las columnas de las
+// filas siguientes se desplazaban una posición, descuadrando todo.
 function PairedResults({
   questions,
   answers,
@@ -45,22 +61,24 @@ function PairedResults({
   return (
     <div className="flex flex-col gap-2">
       {[...pairs.values()].map((legs, i) => (
-        // Grid (no flex-wrap) para que el marcador de ida y el de vuelta
-        // queden en la misma columna, uno debajo del otro -- con flex
-        // envolvía la vuelta a una línea suelta que no alineaba con nada.
-        <div
-          key={i}
-          className="grid grid-cols-[minmax(0,1fr)_2.75rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm"
-        >
+        <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-2.5 shadow-sm">
+          <p className="truncate text-center text-[11px] font-semibold text-gray-400">
+            {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-300">vs</span>{' '}
+            {shortMatchTeamName(legs[0]?.config.away_team)}
+          </p>
           {legs.map((leg) => {
             const v = answers[leg.id] as { home: number; away: number } | undefined
             return (
-              <Fragment key={leg.id}>
-                <TeamBadgeLabel name={leg.config.home_team} align="right" />
-                <span className="text-center text-sm font-bold text-gray-800">{v ? `${v.home} - ${v.away}` : '—'}</span>
-                <TeamBadgeLabel name={leg.config.away_team} />
-                <ScorePredictionBadge points={points[leg.id]} />
-              </Fragment>
+              <div key={leg.id} className="flex items-center gap-2">
+                <TeamCrest name={leg.config.home_team} />
+                <span className="w-14 shrink-0 text-center text-sm font-bold text-gray-800">
+                  {v ? `${v.home} - ${v.away}` : '—'}
+                </span>
+                <TeamCrest name={leg.config.away_team} />
+                <span className="ml-auto">
+                  <ScorePredictionBadge points={points[leg.id]} />
+                </span>
+              </div>
             )
           })}
         </div>
