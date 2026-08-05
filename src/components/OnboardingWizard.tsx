@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import QuestionCard from './QuestionCard'
 import FantasyLineupPicker from './FantasyLineupPicker'
+import AuthShell from './AuthShell'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
 import { BLOCKS, BLOCK_LABELS } from '../lib/blocks'
@@ -121,19 +122,25 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
   if (showIntro) {
     const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
-        {favoriteTeam?.badge && (
-          <div
-            className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat opacity-[0.06]"
-            style={{ backgroundImage: `url(${favoriteTeam.badge})`, backgroundSize: '60vh' }}
-          />
-        )}
-        <div className="relative z-10 mx-auto flex w-full max-w-lg flex-col gap-6 text-center">
+      <AuthShell
+        maxWidth="max-w-lg"
+        header={null}
+        backgroundMark={
+          favoriteTeam?.badge && (
+            <img
+              src={favoriteTeam.badge}
+              alt=""
+              className="pointer-events-none absolute left-1/2 top-0 z-0 h-[min(32rem,98vw,85vh)] w-[min(32rem,98vw,85vh)] -translate-x-1/2 object-contain opacity-40 sm:h-[min(40rem,90vw,85vh)] sm:w-[min(40rem,90vw,85vh)] sm:-translate-y-2"
+            />
+          )
+        }
+      >
+        <div className="flex flex-col gap-6 text-center">
           <div>
             {favoriteTeam?.badge && (
               <img src={favoriteTeam.badge} alt="" className="mx-auto mb-3 h-16 w-16 object-contain" />
             )}
-            <h1 className="mb-2 text-2xl font-bold">¡Bienvenido a la Porra de LaLiga 2026/27!</h1>
+            <h1 className="mb-2 text-2xl font-bold text-gray-900">¡Bienvenido a la Porra de LaLiga 2026/27!</h1>
             <p className="text-gray-500">
               Vas a dejar tus pronósticos para toda la temporada: quién será campeón, quién bajará, los premios
               individuales, los duelos entre grandes, algún que otro over/under y tu 11 de Abuelonchos. Todo
@@ -149,12 +156,12 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           </div>
           <button
             onClick={() => setShowIntro(false)}
-            className="self-center rounded bg-brand-700 px-5 py-2.5 font-medium text-white"
+            className="self-center rounded-lg bg-brand-700 px-5 py-2.5 font-semibold text-white shadow-sm hover:bg-brand-800"
           >
             Comenzar →
           </button>
         </div>
-      </div>
+      </AuthShell>
     )
   }
 
