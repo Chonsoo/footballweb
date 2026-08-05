@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import TeamMarquee from './TeamMarquee'
+import LaLigaMark from './LaLigaMark'
 
 // Envoltorio compartido de Login/Registro: fondo con degradado de marca +
 // dos cintas de escudos (arriba/abajo, en direcciones opuestas) + nombre de
@@ -23,19 +24,10 @@ export default function AuthShell({ children }: { children: ReactNode }) {
       <TeamMarquee direction="left" />
 
       <div className="relative flex flex-col items-center gap-6 px-4">
-        {/* Logo grande de Abueloncha FC de fondo, centrado detrás del
-            título y la tarjeta -- la tarjeta (z-10, opaca) lo tapa por
-            abajo, y asoma por arriba, alrededor del título.
-            Usamos abueluchos-fc.png (fondo casi negro, no transparente) con
-            mix-blend-screen: en modo "screen" el negro no pinta nada (se
-            queda invisible) y solo se ve el escudo en sí, fundiéndose con
-            el degradado oscuro en vez de dejar un cuadrado gris/blanco
-            marcado como pasaba con abueluchos-fc-badge.png. */}
-        <img
-          src="/badges/abueluchos-fc.png"
-          alt=""
-          className="pointer-events-none absolute left-1/2 top-0 z-0 h-72 w-72 -translate-x-1/2 -translate-y-8 mix-blend-screen object-contain opacity-90 sm:h-[26rem] sm:w-[26rem] sm:-translate-y-12"
-        />
+        {/* Marca de LaLiga grande de fondo, centrada detrás del título y la
+            tarjeta -- como es un SVG (sin caja de fondo), no tiene el
+            problema del cuadrado gris/negro que daban los PNG anteriores. */}
+        <LaLigaMark className="pointer-events-none absolute left-1/2 top-0 z-0 h-64 w-64 -translate-x-1/2 -translate-y-6 opacity-15 sm:h-80 sm:w-80 sm:-translate-y-10" />
 
         <div className="relative z-10 flex flex-col items-center gap-1 text-center">
           <span className="text-4xl">🏆</span>
@@ -43,7 +35,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           <p className="text-sm font-medium text-gold-400">2026 · LaLiga</p>
         </div>
 
-        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl shadow-black/30">
+        <div className="relative z-10 w-full max-w-sm rounded-2xl bg-white/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm">
           {children}
         </div>
       </div>
