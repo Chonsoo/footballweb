@@ -31,8 +31,8 @@ export default function ProfileSetupModal() {
 
   return (
     <AuthShell>
-      <h2 className="mb-1 text-xl font-bold text-gray-900">¡Bienvenido!</h2>
-      <p className="mb-5 text-sm text-gray-500">Antes de nada, cuéntanos un poco de ti.</p>
+      <h2 className="mb-1 text-xl font-bold text-gray-900">¡Ya casi estás dentro!</h2>
+      <p className="mb-5 text-sm text-gray-500">Dinos cómo te llamamos y de qué equipo sufres, y arrancamos la temporada.</p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <div>
