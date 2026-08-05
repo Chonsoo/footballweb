@@ -42,7 +42,14 @@ export default function PlayerAvatarMarquee({
 }) {
   if (photos.length === 0) return null
 
-  const copies = Math.max(4, Math.ceil(40 / photos.length))
+  // Objetivo de imágenes totales pintadas (repetidas): con avatares 'sm'
+  // (más pequeños) hace falta MÁS cantidad para cubrir el mismo ancho de
+  // pantalla que con 'lg', si no, en plantillas con pocos jugadores con
+  // foto la cinta se queda corta y se nota un corte/hueco al llegar al
+  // final del contenido repetido antes de que el bucle encaje. Mínimo de
+  // copias también subido (8, antes 4) como margen de seguridad extra.
+  const target = size === 'sm' ? 70 : 40
+  const copies = Math.max(8, Math.ceil(target / photos.length))
   const travelPercent = 100 / copies
   const animName = direction === 'left' ? 'player-marquee-left' : 'player-marquee-right'
   const { band, img } = SIZES[size]

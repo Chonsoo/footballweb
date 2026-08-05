@@ -249,9 +249,8 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
           />
         )
       }
-      cardClassName="max-h-[82vh] overflow-y-auto"
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         <div>
           <p className="mb-1 text-sm text-gray-500">
             Bloque {step + 1} de {totalSteps}
