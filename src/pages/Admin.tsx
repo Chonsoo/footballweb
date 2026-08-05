@@ -199,106 +199,9 @@ function InitialBlocksSection() {
       {block === 2 && (
         <Block2Panel questions={blockQuestions(2)} answers={answers} results={results} block1Result={block1Result} onChanged={load} />
       )}
-      {block === 3 && <Block3Panel questions={blockQuestions(3)} answers={answers} results={results} onChanged={load} />}
-      {block === 4 && <Block4Panel questions={blockQuestions(4)} answers={answers} results={results} onChanged={load} />}
+      {block === 3 && <Block3Panel questions={blockQuestions(3)} results={results} onChanged={load} />}
+      {block === 4 && <Block4Panel questions={blockQuestions(4)} results={results} onChanged={load} />}
     </section>
-  )
-}
-
-// ---------------- Ajuste manual de puntos por respuesta, reutilizable en
-// cualquier bloque -- colapsado por defecto, para no perder la posibilidad de
-// corregir un caso puntual sin que sea el flujo principal. ----------------
-function ManualPointsEditor({
-  question,
-  answers,
-  onChanged,
-}: {
-  question: SeasonQuestion
-  answers: AnswerWithProfile[]
-  onChanged: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [pointsDrafts, setPointsDrafts] = useState<Record<string, string>>({})
-  const [saving, setSaving] = useState(false)
-  const [status, setStatus] = useState<Status>(null)
-
-  const sortedAnswers = [...answers].sort((a, b) =>
-    normalizeText(formatAnswer(question, a.answer)).localeCompare(normalizeText(formatAnswer(question, b.answer)))
-  )
-
-  async function saveOne(answerId: string) {
-    const raw = pointsDrafts[answerId]
-    if (raw === undefined || raw === '') return
-    const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
-    if (error) {
-      setStatus({ type: 'error', text: error.message })
-      return
-    }
-    await onChanged()
-  }
-
-  async function saveAll() {
-    setSaving(true)
-    setStatus(null)
-    const entries = Object.entries(pointsDrafts).filter(([, v]) => v !== '')
-    for (const [answerId, raw] of entries) {
-      const { error } = await supabase.rpc('set_answer_points', { p_answer_id: answerId, p_points: Number(raw) })
-      if (error) {
-        setStatus({ type: 'error', text: error.message })
-        setSaving(false)
-        return
-      }
-    }
-    setSaving(false)
-    setStatus({ type: 'ok', text: 'Puntos guardados ✓' })
-    await onChanged()
-  }
-
-  return (
-    <div className="rounded border border-gray-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-gray-500"
-      >
-        <span>
-          Ajustar a mano · {question.question.split(':')[0]} ({answers.length})
-        </span>
-        <span className="text-gray-400">{open ? '▲' : '▼'}</span>
-      </button>
-      {open && (
-        <div className="flex flex-col gap-2 border-t border-gray-100 p-3">
-          <StatusBanner status={status} />
-          {Object.keys(pointsDrafts).length > 0 && (
-            <button onClick={saveAll} disabled={saving} className="self-end text-xs text-brand-700 hover:underline disabled:opacity-50">
-              {saving ? 'Guardando…' : 'Guardar todas'}
-            </button>
-          )}
-          <div className="flex flex-col gap-1.5">
-            {answers.length === 0 && <p className="text-sm text-gray-400">Nadie ha respondido todavía.</p>}
-            {sortedAnswers.map((a) => (
-              <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
-                <span>
-                  <strong>{a.profile?.username ?? '—'}</strong>: {formatAnswer(question, a.answer)}
-                </span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    placeholder={a.points != null ? String(a.points) : 'pts'}
-                    value={pointsDrafts[a.id] ?? ''}
-                    onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
-                    className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
-                  />
-                  <button onClick={() => saveOne(a.id)} className="text-brand-700 hover:underline">
-                    Guardar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -391,8 +294,6 @@ function Block1Panel({
           bonus de zona incluido (Champions +3, Europa League +3, Descenso +5).
         </p>
       </div>
-
-      <ManualPointsEditor question={question} answers={answers} onChanged={onChanged} />
     </div>
   )
 }
@@ -572,10 +473,6 @@ function Block2Panel({
           quedó mejor, el oro pasa al siguiente que sí haya elegido alguien (15 / 8 / 3 pts).
         </p>
       </div>
-
-      {questions.map((q) => (
-        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
-      ))}
     </div>
   )
 }
@@ -583,12 +480,10 @@ function Block2Panel({
 // ---------------- Bloque 3: Duelos directos (marcadores) ----------------
 function Block3Panel({
   questions,
-  answers,
   results,
   onChanged,
 }: {
   questions: SeasonQuestion[]
-  answers: AnswerWithProfile[]
   results: SeasonResult[]
   onChanged: () => void
 }) {
@@ -719,10 +614,6 @@ function Block3Panel({
         })}
       </div>
 
-      {questions.map((q) => (
-        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
-      ))}
-
       {confirmClearId && (
         <ConfirmDialog
           title="Limpiar resultado"
@@ -743,12 +634,10 @@ function Block3Panel({
 // ---------------- Bloque 4: Sí / No ----------------
 function Block4Panel({
   questions,
-  answers,
   results,
   onChanged,
 }: {
   questions: SeasonQuestion[]
-  answers: AnswerWithProfile[]
   results: SeasonResult[]
   onChanged: () => void
 }) {
@@ -846,10 +735,6 @@ function Block4Panel({
           </button>
         </div>
       </div>
-
-      {questions.map((q) => (
-        <ManualPointsEditor key={q.id} question={q} answers={answers.filter((a) => a.question_id === q.id)} onChanged={onChanged} />
-      ))}
 
       {confirmClear && (
         <ConfirmDialog
