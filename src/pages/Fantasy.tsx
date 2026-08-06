@@ -34,18 +34,18 @@ const SUBVIEWS: [Subview, string][] = [
 ]
 
 // Selector de pestañas/jornadas con "pista" oscura y estado activo en
-// dorado — el resto de la app es deliberadamente clara, así que este es uno
-// de los puntos donde Fantasy tiene su propia identidad visual (verde
-// oscuro + dorado, ya en la paleta de marca) en vez de blanco/gris.
+// dorado — Fantasy tiene su propia identidad visual (negro/grafito +
+// dorado, look "premium") en vez del verde del resto de la app, para que se
+// note que es su propia sección dentro de la porra.
 function darkTrackBtn(active: boolean) {
   return `rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-    active ? 'bg-gold-500 text-brand-950' : 'text-brand-100 hover:bg-brand-800/60'
+    active ? 'bg-gold-500 text-neutral-950' : 'text-neutral-300 hover:bg-neutral-800/60'
   }`
 }
 
 function scopeChip(active: boolean) {
   return `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-    active ? 'bg-gold-500 text-brand-950' : 'bg-brand-800/60 text-brand-100 hover:bg-brand-800'
+    active ? 'bg-gold-500 text-neutral-950' : 'bg-neutral-800/60 text-neutral-300 hover:bg-neutral-800'
   }`
 }
 
@@ -66,9 +66,9 @@ export default function Fantasy() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 px-4 py-4 text-white shadow-sm">
+      <div className="rounded-xl bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 px-4 py-4 text-white shadow-sm">
         <h1 className="text-xl font-bold">⚽ Fantasy</h1>
-        <p className="text-sm text-brand-100">Tu 11 de Abuelonchos, jornada a jornada.</p>
+        <p className="text-sm text-neutral-300">Tu 11 de Abuelonchos, jornada a jornada.</p>
 
         <div className="mt-3 flex overflow-hidden rounded-lg bg-black/20 p-1 text-sm">
           {SUBVIEWS.map(([key, label]) => (
@@ -162,14 +162,14 @@ function MiEquipoView({
         ))}
       </div>
 
-      <div className="flex items-center justify-between rounded-lg bg-gradient-to-br from-brand-900 to-brand-800 px-4 py-3 text-white shadow-sm">
-        <span className="text-sm text-brand-100">
+      <div className="flex items-center justify-between rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 px-4 py-3 text-white shadow-sm">
+        <span className="text-sm text-neutral-300">
           {scope === 'total' ? 'Tus puntos fantasy (jornadas jugadas)' : `Tus puntos en la jornada ${scope}`}
         </span>
         <div className="text-right">
           <span className="text-2xl font-bold text-gold-400">{loadingPoints ? '…' : total}</span>
           {scope === 'total' && lastMd != null && (
-            <p className="text-[11px] text-brand-200">
+            <p className="text-[11px] text-neutral-400">
               {lastJornadaTotal > 0 ? '+' : ''}
               {lastJornadaTotal} en J{lastMd}
             </p>
