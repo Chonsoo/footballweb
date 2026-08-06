@@ -98,9 +98,17 @@ export default function PlayerSelect({
   // el desplegable -- el teclado emergente dispara un resize (y a veces un
   // scroll) inmediatamente, que sin este retraso cerraba el panel una
   // fracción de segundo después de abrirse (parecía que "no abría").
+  //
+  // Importante: 'scroll' no burbujea, pero un listener en window con fase de
+  // "captura" (el `true` final) SÍ se dispara para el scroll de CUALQUIER
+  // elemento dentro de la página, incluida la propia lista de jugadores
+  // (que tiene su scroll interno). Sin comprobar el origen, desplazar la
+  // lista con el dedo cerraba el desplegable en el acto -- hay que ignorar
+  // los scrolls que ocurren dentro del propio panel.
   useEffect(() => {
     if (!open) return
-    function close() {
+    function close(e: Event) {
+      if (panelRef.current?.contains(e.target as Node)) return
       setOpen(false)
     }
     const timer = window.setTimeout(() => {

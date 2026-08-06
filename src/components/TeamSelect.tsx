@@ -49,10 +49,14 @@ export default function TeamSelect({
   // quedaría "despegado" del botón. Se activa con un pequeño retraso (mismo
   // motivo que en PlayerSelect: evitar que un resize/scroll disparado justo
   // al abrir -- p.ej. por el teclado en otro campo de la misma página --
-  // cierre el panel una fracción de segundo después de abrirse.
+  // cierre el panel una fracción de segundo después de abrirse. También se
+  // ignoran los scrolls que ocurren dentro del propio panel (su lista tiene
+  // scroll interno, y 'scroll' con fase de captura en window se dispara
+  // igualmente para eso).
   useEffect(() => {
     if (!open) return
-    function close() {
+    function close(e: Event) {
+      if (panelRef.current?.contains(e.target as Node)) return
       setOpen(false)
     }
     const timer = window.setTimeout(() => {
