@@ -139,25 +139,18 @@ export default function Informacion() {
               una sección permanente. */}
           {eggProgress?.step === 4 && (
             <div className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
-              <div className="m-3 overflow-hidden rounded-lg border border-gray-200 bg-white/50">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">Día</th>
-                      <th className="px-3 py-2 text-right font-medium text-gray-500">Resultado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {resultsTableForDisplay().map(({ day, home, away }) => (
-                      <tr key={day} className="border-b border-gray-50 last:border-b-0">
-                        <td className="px-3 py-2 text-gray-700">{day}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-gray-800">
-                          {home} - {away}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid grid-cols-4 gap-1.5 p-3 sm:grid-cols-6">
+                {resultsTableForDisplay().map(({ day, home, away }) => (
+                  <div
+                    key={day}
+                    className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white/60 py-2"
+                  >
+                    <span className="text-[10px] font-medium text-gray-400">Día {day}</span>
+                    <span className="text-sm font-semibold text-gray-800">
+                      {home}-{away}
+                    </span>
+                  </div>
+                ))}
               </div>
               <p className="px-4 pb-4 text-xs text-gray-500">
                 🔒 Hay una apuesta nueva esperando respuesta. Que no se te pase el día... mañana el resultado será

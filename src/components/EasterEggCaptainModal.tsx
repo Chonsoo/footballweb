@@ -7,10 +7,23 @@ const SILHOUETTE = '/badges/player-silhouette.png'
 
 // Avatar de cada fila -- mismo patrón que RowAvatar en PlayerSelect.tsx
 // (Pichichi y demás preguntas de jugador): si no hay foto real, silueta
-// genérica en vez de dejar un hueco vacío. Aquí en la práctica siempre habrá
-// foto real (el pool ya viene filtrado a jugadores con photo_url), pero se
-// deja el fallback por seguridad.
-function RowAvatar({ photoUrl, size = 8 }: { photoUrl: string | null; size?: 8 | 14 }) {
+// genérica en vez de dejar un hueco vacío. El filtro por photo_url no nulo
+// (Ranking.tsx) evita a los que no tienen NINGUNA foto guardada, pero no
+// detecta una URL rota (foto guardada que ya no carga) hasta que el
+// navegador la intenta cargar de verdad -- por eso también avisa hacia
+// arriba con onBroken, para sacar a ese jugador de la lista seleccionable en
+// cuanto se confirma que su foto no carga (si no, podría elegirse a alguien
+// cuya foto luego no aparece en la cinta de Inicio, y el paso 3 sería
+// imposible).
+function RowAvatar({
+  photoUrl,
+  size = 8,
+  onBroken,
+}: {
+  photoUrl: string | null
+  size?: 8 | 14
+  onBroken?: () => void
+}) {
   const [imgError, setImgError] = useState(false)
   const showSilhouette = !photoUrl || imgError
   const cls = size === 14 ? 'h-14 w-14' : 'h-8 w-8'
@@ -20,7 +33,10 @@ function RowAvatar({ photoUrl, size = 8 }: { photoUrl: string | null; size?: 8 |
         src={showSilhouette ? SILHOUETTE : photoUrl}
         alt=""
         className={`h-full w-full object-cover ${showSilhouette ? 'scale-110' : ''}`}
-        onError={() => setImgError(true)}
+        onError={() => {
+          setImgError(true)
+          onBroken?.()
+        }}
       />
     </div>
   )
@@ -49,8 +65,20 @@ export default function EasterEggCaptainModal({
   const [stage, setStage] = useState<Stage>('picking')
   const [picked, setPicked] = useState<FantasyPlayer | null>(null)
   const [saving, setSaving] = useState(false)
+  // Jugadores cuya foto ha resultado no cargar de verdad -- se descartan de
+  // la lista en cuanto se detecta, aunque tuvieran photo_url guardada.
+  const [brokenIds, setBrokenIds] = useState<Set<number>>(new Set())
 
-  const filtered = search.trim() ? players.filter((p) => playerMatchesSearch(p, search)) : players
+  const pool = players.filter((p) => !brokenIds.has(p.api_player_id))
+  const filtered = search.trim() ? pool.filter((p) => playerMatchesSearch(p, search)) : pool
+
+  function markBroken(id: number) {
+    setBrokenIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }
 
   function handlePick(player: FantasyPlayer) {
     setPicked(player)
@@ -114,7 +142,7 @@ export default function EasterEggCaptainModal({
                   onClick={() => handlePick(p)}
                   className="flex w-full items-center gap-2 border-b border-gold-100 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-gold-100/70"
                 >
-                  <RowAvatar photoUrl={p.photo_url} />
+                  <RowAvatar photoUrl={p.photo_url} onBroken={() => markBroken(p.api_player_id)} />
                   <span className="min-w-0 flex-1 truncate text-gray-700">{p.name}</span>
                   <span className="shrink-0 text-xs text-gray-400">{p.player_position}</span>
                 </button>
@@ -128,7 +156,15 @@ export default function EasterEggCaptainModal({
             <p className="text-sm font-semibold text-gray-800">¿Confirmas a este jugador como capitán?</p>
             <div className="mt-4 flex items-center justify-center gap-3">
               <div className="relative">
-                <RowAvatar photoUrl={picked.photo_url} size={14} />
+                <RowAvatar
+                  photoUrl={picked.photo_url}
+                  size={14}
+                  onBroken={() => {
+                    markBroken(picked.api_player_id)
+                    setPicked(null)
+                    setStage('picking')
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => {
