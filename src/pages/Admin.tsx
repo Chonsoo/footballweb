@@ -558,15 +558,24 @@ function Block3Panel({
   // distinta, así que cada marcador se guarda solo por separado, no todos a
   // la vez).
   const saveTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Espejo de "drafts" que se actualiza al instante (no espera al siguiente
+  // render) -- saveOne() lee de aquí, no del estado. Si leyera del estado
+  // "drafts" directamente, el temporizador programado en un clic quedaría
+  // con el valor de ANTES de ese clic (closure obsoleta): con varios clics
+  // seguidos en +/-, el último cambio se perdía y se guardaba el penúltimo
+  // valor en vez del último.
+  const draftsRef = useRef<Record<string, { home: number; away: number }>>({})
 
   useEffect(() => {
     const init: Record<string, { home: number; away: number }> = {}
     for (const q of questions) init[q.id] = resultFor(q.id) ?? { home: 0, away: 0 }
     setDrafts(init)
+    draftsRef.current = init
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.map((q) => q.id).join(','), results.map((r) => r.resolved_at).join(',')])
 
   function setScore(q: SeasonQuestion, next: { home: number; away: number }) {
+    draftsRef.current = { ...draftsRef.current, [q.id]: next }
     setDrafts((d) => ({ ...d, [q.id]: next }))
     if (saveTimersRef.current[q.id]) clearTimeout(saveTimersRef.current[q.id])
     saveTimersRef.current[q.id] = setTimeout(() => {
@@ -594,7 +603,7 @@ function Block3Panel({
   async function saveOne(q: SeasonQuestion) {
     setStatusById((s) => ({ ...s, [q.id]: null }))
     setSavingId(q.id)
-    const draft = drafts[q.id] ?? { home: 0, away: 0 }
+    const draft = draftsRef.current[q.id] ?? { home: 0, away: 0 }
     const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
     if (e1) {
       setStatusById((s) => ({ ...s, [q.id]: { type: 'error', text: `No se pudo guardar: ${e1.message}` } }))
