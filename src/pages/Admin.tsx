@@ -659,7 +659,7 @@ function Block3Panel({
                 </div>
               )}
               <div className="flex items-center gap-2 text-xs text-gray-500">
-                <label htmlFor={`match-date-${q.id}`}>Fecha del partido:</label>
+                <label htmlFor={`match-date-${q.id}`}>Fecha:</label>
                 <input
                   id={`match-date-${q.id}`}
                   type="date"
