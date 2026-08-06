@@ -102,7 +102,12 @@ export default function Ranking() {
     setShowCaptainModal(true)
   }
 
-  const { tap: tapCrest } = useTapCounter(
+  // "count" se usa para dar feedback visual en cada toque (ver el badge
+  // sobre el escudo más abajo) -- antes no había ninguna señal de que un
+  // toque se hubiera contado, así que si el objetivo (la posición real del
+  // equipo) tardaba un pelín en cargar, los primeros toques se perdían en
+  // silencio y parecía que hacía falta tocar más veces de la cuenta.
+  const { tap: tapCrest, count: tapCount } = useTapCounter(
     eggProgress?.step === 1 ? favoriteTeamPosition ?? 0 : 0,
     handleCrestTapComplete
   )
@@ -251,13 +256,24 @@ export default function Ranking() {
                         }
                       : undefined
                   }
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100"
+                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100"
                   style={teamColor ? { boxShadow: `0 0 0 2px ${teamColor}55` } : undefined}
                 >
                   {team?.badge ? (
                     <img src={team.badge} alt="" className="h-7 w-7 object-contain" />
                   ) : (
                     <span className="text-sm">🛡️</span>
+                  )}
+                  {/* Feedback de cada toque -- sin esto no había ninguna señal
+                      de que un toque se hubiera contado, así que si el
+                      objetivo tardaba en cargar, los primeros toques se
+                      perdían en silencio y parecía que hacían falta más
+                      toques de la cuenta. Se ve el número, no la meta: sigue
+                      sin desvelar cuántos hacen falta. */}
+                  {isMe && eggProgress?.step === 1 && tapCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gold-500 text-[9px] font-bold text-noir-950 shadow">
+                      {tapCount}
+                    </span>
                   )}
                 </span>
 
