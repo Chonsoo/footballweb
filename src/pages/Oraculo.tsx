@@ -286,10 +286,17 @@ export default function Oraculo() {
                   // Pregunta de 2 opciones (Sí/No): una sola barra partida en
                   // dos tramos de color en vez de dos barras sueltas.
                   if (stat.rows.length === 2 && !q.config.player_choice) {
-                    // Color por el texto de la opción, no por cuál va primero
-                    // (que depende de cuál va ganando) -- así "Sí" es siempre
-                    // verde y "No" siempre rojo, gane quien gane.
-                    const slices: ChartSlice[] = stat.rows.map((r) => ({
+                    // Orden fijo según las opciones configuradas (no según
+                    // quién va ganando): así la 1ª opción siempre queda a la
+                    // izquierda y la 2ª a la derecha en todas las preguntas,
+                    // en vez de saltar de lado según los votos. El color
+                    // tampoco depende de la posición: "Sí" siempre verde y
+                    // "No" siempre rojo, gane quien gane.
+                    const optionOrder = q.config.options ?? ['Sí', 'No']
+                    const orderedRows = optionOrder
+                      .map((opt) => stat.rows.find((r) => r.label === opt) ?? { label: opt, pct: 0 })
+                      .concat(stat.rows.filter((r) => !optionOrder.includes(r.label)))
+                    const slices: ChartSlice[] = orderedRows.map((r) => ({
                       label: r.label,
                       pct: r.pct,
                       color: r.label.trim().toLowerCase() === 'no' ? '#ef4444' : '#2f8f4e',
