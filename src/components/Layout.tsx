@@ -61,14 +61,23 @@ export default function Layout({ children }: { children: ReactNode }) {
     // del equipo favorito se ve grande y difuminado (antes casi invisible a
     // opacity 0.06 sobre gris) porque ahora contrasta con el verde en vez de
     // perderse sobre un fondo casi del mismo tono.
-    <div className="relative min-h-screen bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
+    // "min-h-dvh" (no "min-h-screen"/100vh) a propósito: en móvil, 100vh
+    // mide el alto de la pantalla con la barra de dirección Y la barra de
+    // botones del navegador COLAPSADAS (el "viewport grande"), que es más
+    // alto que lo que realmente se ve con esas barras visibles. Con
+    // contenido corto, esa diferencia se notaba como un hueco vacío enorme
+    // antes de llegar al footer, que encima quedaba fuera de pantalla y
+    // había que hacer scroll para verlo aunque "cupiera" de sobra. 100dvh
+    // (dynamic viewport height) se ajusta al alto que de verdad se ve en
+    // cada momento.
+    <div className="relative min-h-dvh bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
       {profile?.favorite_team && (
         <div
           className="pointer-events-none fixed inset-0 z-0 bg-center bg-no-repeat opacity-[0.12]"
           style={{ backgroundImage: `url(/badges/${profile.favorite_team}.png)`, backgroundSize: '60vh' }}
         />
       )}
-      <div className="relative z-10 flex min-h-screen flex-col">
+      <div className="relative z-10 flex min-h-dvh flex-col">
         <Navbar />
         <main
           key={location.pathname}

@@ -154,7 +154,7 @@ export default function OnboardingWizard({ onDone }: { onDone: () => void }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center">
         <p className="text-gray-500">Cargando…</p>
       </div>
     )
