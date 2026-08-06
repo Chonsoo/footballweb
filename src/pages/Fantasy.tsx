@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import FantasyPointsPopup from '../components/FantasyPointsPopup'
 import FantasyScoringRules from '../components/FantasyScoringRules'
+import EasterEggStepModal from '../components/EasterEggStepModal'
 import { useFantasyLineup } from '../lib/useFantasyLineup'
 import { fetchPlayedMatchdays, fetchPlayerStats, pointsByPlayerFromStats } from '../lib/fantasyStatsQueries'
+import { EASTER_EGG_HINTS, useEasterEgg, useEasterEggFantasyTarget } from '../lib/easterEgg'
 import {
   DEFAULT_FANTASY_FORMATION,
   type FantasyFormation,
@@ -115,7 +118,22 @@ function MiEquipoView({
   const [rawStats, setRawStats] = useState<FantasyPlayerStats[]>([])
   const [loadingPoints, setLoadingPoints] = useState(true)
 
+  // Abueloncho Dorado, paso 4: pulsar en tu propio 11 el jugador que
+  // corresponde a tu puesto en la liga Fantasy (ver useEasterEggFantasyTarget).
+  const { progress: eggProgress, advance: eggAdvance } = useEasterEgg()
+  const [showStep4Modal, setShowStep4Modal] = useState(false)
+
   const playerIds = useMemo(() => Object.keys(value).map(Number), [value])
+  const eggTarget = useEasterEggFantasyTarget(playerIds)
+
+  async function handlePlayerSelect(p: FantasyPlayer, matchday?: number) {
+    if (eggProgress?.step === 3 && eggTarget != null && p.api_player_id === eggTarget) {
+      const ok = await eggAdvance(4)
+      if (ok) setShowStep4Modal(true)
+      return
+    }
+    onPlayerSelect(p, matchday)
+  }
   const idsKey = playerIds.slice().sort((a, b) => a - b).join(',')
   const playedNumbers = useMemo(() => new Set(matchdays.map((m) => m.number)), [matchdays])
   const lastMd = matchdays.length > 0 ? matchdays[matchdays.length - 1].number : null
@@ -194,10 +212,14 @@ function MiEquipoView({
           readOnly
           hideSidebar
           pointsByPlayer={pointsByPlayer}
-          onPlayerSelect={(p) => onPlayerSelect(p, scope === 'total' ? undefined : scope)}
+          onPlayerSelect={(p) => handlePlayerSelect(p, scope === 'total' ? undefined : scope)}
         />
       </div>
       <p className="text-center text-xs text-white/70">Toca un jugador para ver de dónde salen sus puntos.</p>
+
+      {showStep4Modal && (
+        <EasterEggStepModal step={4} hint={EASTER_EGG_HINTS[4]} onClose={() => setShowStep4Modal(false)} />
+      )}
     </div>
   )
 }
@@ -249,6 +271,25 @@ function LigaView({
   const [lineupByUser, setLineupByUser] = useState<Record<string, RivalLineup | null>>({})
   const [loadingUser, setLoadingUser] = useState<string | null>(null)
   const [pointsByPlayer, setPointsByPlayer] = useState<Record<number, number>>({})
+
+  // Abueloncho Dorado, paso 4: igual que en "Mi equipo" (ver MiEquipoView),
+  // pero aquí hace falta comprobar que la fila donde se pulsa es la propia
+  // -- nunca la de un rival, aunque también se muestre su 11.
+  const { user } = useAuth()
+  const { progress: eggProgress, advance: eggAdvance } = useEasterEgg()
+  const [showStep4Modal, setShowStep4Modal] = useState(false)
+  const myLineup = user ? lineupByUser[user.id] : null
+  const myLineupPlayerIds = useMemo(() => (myLineup ? Object.keys(myLineup.value).map(Number) : []), [myLineup])
+  const eggTarget = useEasterEggFantasyTarget(myLineupPlayerIds)
+
+  async function handlePlayerSelect(rowUserId: string, p: FantasyPlayer, matchday?: number) {
+    if (user && rowUserId === user.id && eggProgress?.step === 3 && eggTarget != null && p.api_player_id === eggTarget) {
+      const ok = await eggAdvance(4)
+      if (ok) setShowStep4Modal(true)
+      return
+    }
+    onPlayerSelect(p, matchday)
+  }
 
   const playedNumbers = useMemo(() => new Set(matchdays.map((m) => m.number)), [matchdays])
   const lastMd = matchdays.length > 0 ? matchdays[matchdays.length - 1].number : null
@@ -466,7 +507,7 @@ function LigaView({
                           readOnly
                           hideSidebar
                           pointsByPlayer={pointsByPlayer}
-                          onPlayerSelect={(p) => onPlayerSelect(p, scope === 'total' ? undefined : scope)}
+                          onPlayerSelect={(p) => handlePlayerSelect(r.user_id, p, scope === 'total' ? undefined : scope)}
                         />
                       </div>
                     ) : (
@@ -479,6 +520,10 @@ function LigaView({
           })}
           {rows.length === 0 && <p className="text-white/70">Todavía no hay clasificación fantasy.</p>}
         </div>
+      )}
+
+      {showStep4Modal && (
+        <EasterEggStepModal step={4} hint={EASTER_EGG_HINTS[4]} onClose={() => setShowStep4Modal(false)} />
       )}
     </div>
   )

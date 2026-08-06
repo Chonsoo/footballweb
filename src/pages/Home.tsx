@@ -6,6 +6,8 @@ import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
 import { isInitialPhaseClosed } from '../lib/deadlines'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import PlayerAvatarMarquee from '../components/PlayerAvatarMarquee'
+import { EASTER_EGG_HINTS, useEasterEgg } from '../lib/easterEgg'
+import EasterEggStepModal from '../components/EasterEggStepModal'
 import type { LeaderboardRow } from '../lib/database.types'
 import type { FantasyPlayer } from '../lib/fantasyTypes'
 
@@ -97,7 +99,20 @@ export default function Home() {
   const [teamPlayers, setTeamPlayers] = useState<FantasyPlayer[]>([])
 
   const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
-  const teamPhotos = teamPlayers.filter((p) => p.photo_url).map((p) => p.photo_url as string)
+  const teamPlayersWithPhoto = teamPlayers.filter((p) => p.photo_url)
+  const teamPhotos = teamPlayersWithPhoto.map((p) => p.photo_url as string)
+  const teamPlayerIds = teamPlayersWithPhoto.map((p) => p.api_player_id)
+
+  // Abueloncho Dorado, paso 3: cazar al capitán elegido en el paso 2 entre
+  // las fotos que van pasando en bucle.
+  const { progress: eggProgress, advance: eggAdvance } = useEasterEgg()
+  const [showStep3Modal, setShowStep3Modal] = useState(false)
+
+  async function handleCaptainPhotoClick(playerId: number) {
+    if (eggProgress?.step !== 2 || eggProgress.captainPlayerId !== playerId) return
+    const ok = await eggAdvance(3)
+    if (ok) setShowStep3Modal(true)
+  }
 
   useEffect(() => {
     supabase
@@ -155,7 +170,13 @@ export default function Home() {
       <div className="relative overflow-hidden rounded-2xl">
         {teamPhotos.length > 0 && (
           <div className="relative z-10 mb-4">
-            <PlayerAvatarMarquee photos={teamPhotos} direction="left" size="sm" />
+            <PlayerAvatarMarquee
+              photos={teamPhotos}
+              playerIds={teamPlayerIds}
+              onPhotoClick={handleCaptainPhotoClick}
+              direction="left"
+              size="sm"
+            />
           </div>
         )}
 
@@ -188,10 +209,20 @@ export default function Home() {
 
         {teamPhotos.length > 0 && (
           <div className="relative z-10 mt-4">
-            <PlayerAvatarMarquee photos={teamPhotos} direction="right" size="sm" />
+            <PlayerAvatarMarquee
+              photos={teamPhotos}
+              playerIds={teamPlayerIds}
+              onPhotoClick={handleCaptainPhotoClick}
+              direction="right"
+              size="sm"
+            />
           </div>
         )}
       </div>
+
+      {showStep3Modal && (
+        <EasterEggStepModal step={3} hint={EASTER_EGG_HINTS[3]} onClose={() => setShowStep3Modal(false)} />
+      )}
 
       {profile?.username && (
         <p className="text-sm text-white/80">

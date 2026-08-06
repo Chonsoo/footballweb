@@ -33,10 +33,18 @@ const SIZES = {
 
 export default function PlayerAvatarMarquee({
   photos,
+  playerIds,
+  onPhotoClick,
   direction = 'left',
   size = 'lg',
 }: {
   photos: string[]
+  // Ids paralelos a `photos` (mismo índice = misma foto), opcional y solo
+  // necesario si se pasa onPhotoClick -- lo usa el paso 3 del Abueloncho
+  // Dorado para detectar el clic en el capitán elegido, sin tocar el resto
+  // de usos de este componente (Onboarding, etc.) que no lo necesitan.
+  playerIds?: number[]
+  onPhotoClick?: (playerId: number) => void
   direction?: 'left' | 'right'
   size?: 'lg' | 'sm'
 }) {
@@ -54,7 +62,11 @@ export default function PlayerAvatarMarquee({
   const { band, img } = SIZES[size]
 
   const repeated: string[] = []
-  for (let c = 0; c < copies; c++) repeated.push(...photos)
+  const repeatedIds: (number | undefined)[] = []
+  for (let c = 0; c < copies; c++) {
+    repeated.push(...photos)
+    if (playerIds) repeatedIds.push(...playerIds)
+  }
 
   // El truco del espejo (scale-x en un nodo aparte + contra-espejo en cada
   // foto) daba problemas serios en móvil (la cinta fallaba/desaparecía a
@@ -84,14 +96,18 @@ export default function PlayerAvatarMarquee({
           animationDirection: reverse ? 'reverse' : 'normal',
         }}
       >
-        {repeated.map((photo, i) => (
-          <img
-            key={i}
-            src={photo}
-            alt=""
-            className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${img}`}
-          />
-        ))}
+        {repeated.map((photo, i) => {
+          const id = repeatedIds[i]
+          return (
+            <img
+              key={i}
+              src={photo}
+              alt=""
+              onClick={onPhotoClick && id != null ? () => onPhotoClick(id) : undefined}
+              className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${img}`}
+            />
+          )
+        })}
       </div>
       <style>{`
         @keyframes player-marquee-left { from { transform: translateX(0); } to { transform: translateX(-${travelPercent}%); } }

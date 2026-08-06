@@ -4,9 +4,11 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import TeamSelect from './TeamSelect'
+import { EASTER_EGG_HINTS, EASTER_EGG_TOTAL_STEPS, useEasterEgg } from '../lib/easterEgg'
 
 export default function EditProfileModal({ onClose }: { onClose: () => void }) {
   const { profile, refreshProfile } = useAuth()
+  const { progress: eggProgress } = useEasterEgg()
   const [username, setUsername] = useState(profile?.username ?? '')
   const [favoriteTeam, setFavoriteTeam] = useState(profile?.favorite_team ?? '')
   const [saving, setSaving] = useState(false)
@@ -66,6 +68,24 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
         <div className="mb-3">
           <TeamSelect teams={LALIGA_TEAMS_2026_27} value={favoriteTeam} onChange={setFavoriteTeam} />
         </div>
+
+        {/* Solo visible tras encontrar el huevo (paso 1) -- antes de eso no se
+            muestra nada, para no delatar a nadie que ni siquiera ha
+            empezado que existe un huevo de pascua en la app. */}
+        {eggProgress && eggProgress.step >= 1 && (
+          <div className="mb-3 rounded-lg border border-gold-300 bg-gold-50 px-3 py-2 text-xs text-gray-700">
+            {eggProgress.step >= 5 ? (
+              <p className="font-semibold text-gold-700">🏆 ¡Abueloncho Dorado conseguido!</p>
+            ) : (
+              <>
+                <p className="font-semibold text-gold-700">
+                  🥚 Abueloncho Dorado · Paso {eggProgress.step} de {EASTER_EGG_TOTAL_STEPS}
+                </p>
+                <p className="mt-1">{EASTER_EGG_HINTS[eggProgress.step]}</p>
+              </>
+            )}
+          </div>
+        )}
 
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 

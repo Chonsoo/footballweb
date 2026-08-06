@@ -7,6 +7,8 @@ import FlashStatusFilter from '../components/FlashStatusFilter'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyPlayer } from '../lib/fantasyTypes'
 import { getFlashStatus, type FlashStatus } from '../lib/flashStatus'
+import { EASTER_EGG_HINTS, EASTER_EGG_SECRET_WORD, useEasterEgg } from '../lib/easterEgg'
+import EasterEggStepModal from '../components/EasterEggStepModal'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 interface UserLineup {
@@ -28,6 +30,8 @@ export default function ApuestasDetalladas() {
   const [lineupByUser, setLineupByUser] = useState<Record<string, UserLineup | null>>({})
   const [loadingUser, setLoadingUser] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const { progress: eggProgress, advance: eggAdvance } = useEasterEgg()
+  const [showEggModal, setShowEggModal] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -106,6 +110,12 @@ export default function ApuestasDetalladas() {
   }
 
   const filtered = rows.filter((r) => r.username.toLowerCase().includes(search.toLowerCase()))
+  const foundEgg = search.trim().toLowerCase() === EASTER_EGG_SECRET_WORD && eggProgress?.step === 0
+
+  async function handleEggClick() {
+    const ok = await eggAdvance(1)
+    if (ok) setShowEggModal(true)
+  }
 
   if (loading) return <p className="text-white/80">Cargando…</p>
 
@@ -229,8 +239,28 @@ export default function ApuestasDetalladas() {
           )
           })
         })()}
-        {filtered.length === 0 && <p className="text-white/70">Sin resultados.</p>}
+        {filtered.length === 0 && !foundEgg && <p className="text-white/70">Sin resultados.</p>}
+        {filtered.length === 0 && foundEgg && (
+          <button
+            type="button"
+            onClick={handleEggClick}
+            className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-gold-400/60 bg-white/10 py-8 text-center backdrop-blur-sm"
+          >
+            <style>{`
+              @keyframes egg-glow {
+                0%, 100% { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 6px rgba(217,173,74,0.6)); }
+                50% { transform: scale(1.12) rotate(2deg); filter: drop-shadow(0 0 18px rgba(217,173,74,0.95)); }
+              }
+            `}</style>
+            <span className="text-6xl" style={{ animation: 'egg-glow 1.6s ease-in-out infinite' }}>
+              🥚
+            </span>
+            <span className="text-sm font-semibold text-gold-400">✨ Toca el huevo ✨</span>
+          </button>
+        )}
       </div>
+
+      {showEggModal && <EasterEggStepModal step={1} hint={EASTER_EGG_HINTS[1]} onClose={() => setShowEggModal(false)} />}
     </div>
   )
 }

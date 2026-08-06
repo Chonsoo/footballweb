@@ -5,6 +5,9 @@ import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getTeamColor } from '../lib/teamColors'
 import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
 import RankingPointsPopup from '../components/RankingPointsPopup'
+import { fetchTeamRealPosition, useEasterEgg, useTapCounter } from '../lib/easterEgg'
+import EasterEggCaptainModal from '../components/EasterEggCaptainModal'
+import type { FantasyPlayer } from '../lib/fantasyTypes'
 import type { LeaderboardRow } from '../lib/database.types'
 
 interface RowStyle {
@@ -68,10 +71,41 @@ function rowStyleFor(rank: number, tierFromLast: number, tierCount: number, isLa
 const MEDALS = ['🥇', '🥈', '🥉']
 
 export default function Ranking() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
   const [breakdownFor, setBreakdownFor] = useState<LeaderboardRow | null>(null)
+
+  // --- Abueloncho Dorado, paso 2: tocar el escudo de tu propia fila tantas
+  // veces como el puesto real de tu equipo favorito en la Clasificación de
+  // Liga (Bloque 1). Solo activo mientras vas por el paso 1 -> 2.
+  const { progress: eggProgress, advance: eggAdvance } = useEasterEgg()
+  const [favoriteTeamPosition, setFavoriteTeamPosition] = useState<number | null>(null)
+  const [captainPlayers, setCaptainPlayers] = useState<FantasyPlayer[] | null>(null)
+  const [showCaptainModal, setShowCaptainModal] = useState(false)
+
+  useEffect(() => {
+    if (!profile?.favorite_team) return
+    fetchTeamRealPosition(profile.favorite_team).then(setFavoriteTeamPosition)
+  }, [profile?.favorite_team])
+
+  async function handleCrestTapComplete() {
+    if (!profile?.favorite_team) return
+    const { data } = await supabase
+      .from('fantasy_players')
+      .select('*')
+      .eq('team_id', profile.favorite_team)
+      .eq('eligible_abuelonchos', true)
+      .eq('active', true)
+      .order('name')
+    setCaptainPlayers((data as FantasyPlayer[]) ?? [])
+    setShowCaptainModal(true)
+  }
+
+  const { tap: tapCrest } = useTapCounter(
+    eggProgress?.step === 1 ? favoriteTeamPosition ?? 0 : 0,
+    handleCrestTapComplete
+  )
   // Fila que parpadea justo después de pulsar "Tu puesto" -- así se nota que
   // el botón ha hecho algo incluso cuando la fila ya estaba a la vista y no
   // hay scroll perceptible.
@@ -209,6 +243,14 @@ export default function Ranking() {
                   </span>
 
                 <span
+                  onClick={
+                    isMe && eggProgress?.step === 1
+                      ? (e) => {
+                          e.stopPropagation()
+                          tapCrest()
+                        }
+                      : undefined
+                  }
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-100"
                   style={teamColor ? { boxShadow: `0 0 0 2px ${teamColor}55` } : undefined}
                 >
@@ -220,8 +262,9 @@ export default function Ranking() {
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-gray-800">
+                  <p className={`truncate font-semibold ${row.egg_completed ? 'text-gold-600' : 'text-gray-800'}`}>
                     {row.username}
+                    {row.egg_completed && <span className="ml-1">🥚</span>}
                     {isMe && (
                       <span className="ml-1.5 rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                         TÚ
@@ -252,6 +295,16 @@ export default function Ranking() {
           username={breakdownFor.username}
           totalPoints={breakdownFor.total_points}
           onClose={() => setBreakdownFor(null)}
+        />
+      )}
+
+      {showCaptainModal && captainPlayers && (
+        <EasterEggCaptainModal
+          players={captainPlayers}
+          onConfirm={async (playerId) => {
+            await eggAdvance(2, playerId)
+          }}
+          onClose={() => setShowCaptainModal(false)}
         />
       )}
     </div>

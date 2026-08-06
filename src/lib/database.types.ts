@@ -86,6 +86,9 @@ export interface LeaderboardRow {
   username: string
   favorite_team: string | null
   total_points: number
+  // "Abueloncho Dorado" (huevo de pascua de 5 pasos) completado -- ver
+  // src/lib/easterEgg.ts y supabase/migrations/037_easter_egg.sql.
+  egg_completed: boolean
 }
 
 export const MEDIA_TIER_ID = 'media'

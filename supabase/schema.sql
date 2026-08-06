@@ -637,11 +637,61 @@ where p.email_confirmed = true and fm.played = true
 group by fl.mode, fl.user_id, p.username, fm.number
 order by fl.mode, fm.number, points desc;
 
+-- "Abueloncho Dorado": huevo de pascua de 5 pasos (ver migración 037).
+-- Progreso por usuario -- solo se lee la fila propia (RLS), y solo se
+-- escribe a través de easter_egg_advance() (security definer), nunca con
+-- un insert/update directo desde el cliente, para que nadie se salte pasos
+-- llamando a supabase.from(...).update(...) a mano desde la consola.
+create table if not exists public.easter_egg_progress (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  step int not null default 0 check (step between 0 and 5),
+  captain_player_id int references public.fantasy_players (api_player_id),
+  completed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.easter_egg_progress enable row level security;
+
+create policy "easter_egg_progress: select own"
+  on public.easter_egg_progress for select to authenticated
+  using (user_id = auth.uid());
+
+create or replace function public.easter_egg_advance(p_step int, p_captain_player_id int default null)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_current int;
+begin
+  select step into v_current from public.easter_egg_progress where user_id = auth.uid();
+
+  if v_current is null then
+    v_current := 0;
+    insert into public.easter_egg_progress (user_id, step) values (auth.uid(), 0);
+  end if;
+
+  if p_step <> v_current + 1 then
+    raise exception 'Paso fuera de orden';
+  end if;
+
+  update public.easter_egg_progress
+  set step = p_step,
+      captain_player_id = coalesce(p_captain_player_id, captain_player_id),
+      completed_at = case when p_step = 5 then now() else completed_at end,
+      updated_at = now()
+  where user_id = auth.uid();
+end;
+$$;
+
 -- Clasificación general: puntos de season_answers (bloques 1-4 + apuestas
 -- flash) más un bonus por puesto en la Liga fantasy (no los puntos fantasy
 -- en sí, sino puntos de premio según el puesto: 1º 25, 2º 21, 3º 17, 4º 12,
--- 5º 7, 6º 5, 7º 3, 8º 2, 9º 1, el resto 0). Empates comparten puesto
+-- 5º 7, 6º 5, 7º 3, 8º 2, 9º 1, el resto 0) más el bonus fijo de +10 del
+-- huevo de pascua si están los 5 pasos hechos. Empates comparten puesto
 -- ("1224") y el siguiente salta el hueco, vía rank() sobre fantasy_leaderboard.
+-- "egg_completed" se expone aparte (no solo sumado al total) para pintar el
+-- nombre en dorado en Clasificación y la línea del huevo en el desglose.
 create or replace view public.leaderboard as
 with fantasy_ranked as (
   select
@@ -666,12 +716,18 @@ fantasy_bonus as (
       else 0
     end as bonus_points
   from fantasy_ranked
+),
+egg_bonus as (
+  select user_id, 10 as bonus_points
+  from public.easter_egg_progress
+  where completed_at is not null
 )
 select
   p.id as user_id,
   p.username,
-  coalesce(sa.total, 0) + coalesce(fb.bonus_points, 0) as total_points,
-  p.favorite_team
+  coalesce(sa.total, 0) + coalesce(fb.bonus_points, 0) + coalesce(eb.bonus_points, 0) as total_points,
+  p.favorite_team,
+  (eb.user_id is not null) as egg_completed
 from public.profiles p
 left join (
   select user_id, sum(points) as total
@@ -680,6 +736,7 @@ left join (
   group by user_id
 ) sa on sa.user_id = p.id
 left join fantasy_bonus fb on fb.user_id = p.id
+left join egg_bonus eb on eb.user_id = p.id
 where p.email_confirmed = true
 order by total_points desc;
 

@@ -47,6 +47,11 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
         .select('user_id, total_points')
         .eq('mode', 'abuelonchos')
         .order('total_points', { ascending: false })
+      // egg_completed viene de la vista leaderboard (no de easter_egg_progress
+      // directamente): esa tabla solo deja verse la fila propia por RLS, pero
+      // la vista sí expone esta columna para cualquier usuario, igual que ya
+      // hace con total_points -- mismo patrón que el resto de la página.
+      const { data: lbRow } = await supabase.from('leaderboard').select('egg_completed').eq('user_id', userId).maybeSingle()
 
       const allQuestions = (qs as SeasonQuestion[]) ?? []
       const myAnswers = (sa as SeasonAnswer[]) ?? []
@@ -95,6 +100,9 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
         { key: 'flash', label: 'Apuestas flash', points: sums.flash },
         { key: 'fantasy', label: fantasyLabel, points: fantasyPoints },
       ]
+      if (lbRow?.egg_completed) {
+        rows.push({ key: 'egg', label: '🥚 Abueloncho Dorado', points: 10 })
+      }
 
       if (active) {
         setQuestions(allQuestions)
