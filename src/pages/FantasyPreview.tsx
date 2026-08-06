@@ -54,7 +54,7 @@ export default function FantasyPreview() {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        Página de prueba temporal — jugadores ficticios, no reales. Sirve para probar el selector del 11 mientras no
+        Página de prueba temporal: jugadores ficticios, no reales. Sirve para probar el selector del 11 mientras no
         hay conexión con API-Football. No está enlazada en el menú.
       </div>
 

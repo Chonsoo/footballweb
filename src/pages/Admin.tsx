@@ -274,7 +274,7 @@ function Block1Panel({
       if (!resp.ok || !data.positions) throw new Error(data.error ?? `El proxy respondió ${resp.status}`)
       setResultDraft(data.positions)
       const extra = data.unmapped && data.unmapped.length > 0 ? ` (sin mapear: ${data.unmapped.join(', ')})` : ''
-      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — guardando…` })
+      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra}, guardando…` })
     } catch (err) {
       setStatus({ type: 'error', text: `No se pudo traer de LaLiga.com: ${err instanceof Error ? err.message : 'error desconocido'}` })
     } finally {
@@ -303,7 +303,7 @@ function Block1Panel({
       }
     }
     setSaving(false)
-    setStatus({ type: 'ok', text: `Guardado ✓ — resultado y puntos de ${answers.length} participante(s) actualizados` })
+    setStatus({ type: 'ok', text: `Guardado ✓: resultado y puntos de ${answers.length} participante(s) actualizados` })
     await onChanged()
   }
 
@@ -1461,7 +1461,7 @@ function GradingPanel({
       if (!resp.ok || !data.positions) throw new Error(data.error ?? `El proxy respondió ${resp.status}`)
       setResultDraft(data.positions)
       const extra = data.unmapped && data.unmapped.length > 0 ? ` (sin mapear: ${data.unmapped.join(', ')})` : ''
-      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra} — revisa y pulsa "Fijar resultado"` })
+      setStatus({ type: 'ok', text: `Clasificación traída de LaLiga.com${extra}. Revisa y pulsa "Fijar resultado"` })
     } catch (err) {
       setStatus({ type: 'error', text: `No se pudo traer de LaLiga.com: ${err instanceof Error ? err.message : 'error desconocido'}` })
     } finally {

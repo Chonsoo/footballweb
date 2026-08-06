@@ -262,7 +262,7 @@ export default function Reglamento() {
           abajo). Cada apuesta se puntúa en cuanto el admin fija el resultado real; hasta entonces no suma nada.
         </p>
         <p className="text-sm text-gray-600">
-          Si dos o más participantes empatan a puntos en la clasificación general, comparten posición — no hay
+          Si dos o más participantes empatan a puntos en la clasificación general, comparten posición: no hay
           ningún criterio de desempate adicional.
         </p>
       </Section>
@@ -278,7 +278,7 @@ export default function Reglamento() {
       >
         <p className="text-sm text-gray-600">
           Predices la posición (1º a 20º) de los 20 equipos de LaLiga. Cuanto más cerca quedes de la posición real
-          de cada equipo, más puntos ganas — no hace falta clavar toda la tabla exacta. Los puntos dependen de en
+          de cada equipo, más puntos ganas: no hace falta clavar toda la tabla exacta. Los puntos dependen de en
           qué zona cae la posición REAL del equipo:
         </p>
         <Table2 head={['Posición real', 'Si aciertas exacto']} rows={B1_EXACT_TABLE} />
@@ -346,8 +346,8 @@ export default function Reglamento() {
 
       <FantasySection open={isOpen('fantasy')} onToggle={toggle} buttonRef={refFor('fantasy')}>
         <p className="text-sm text-gray-600">
-          El Fantasy (tu 11 de Abuelonchos) tiene su propia liga aparte, jornada a jornada — se ve en la pestaña
-          Fantasy › Clasificación. No se suman los puntos de esa liga directamente a la clasificación general:
+          El Fantasy (tu 11 de Abuelonchos) tiene su propia liga aparte, jornada a jornada (se ve en la pestaña
+          Fantasy › Clasificación). No se suman los puntos de esa liga directamente a la clasificación general:
           en vez de eso, tu <strong>puesto final</strong> en la liga Fantasy se convierte en un bonus de puntos que sí
           entra en la clasificación general, junto a los puntos del resto de bloques.
         </p>
@@ -370,7 +370,7 @@ export default function Reglamento() {
         <p className="text-sm text-gray-600">
           Preguntas que el admin va creando jornada a jornada, fuera de los 4 bloques de Apuestas iniciales, con el
           mismo motor de puntuación por debajo: cada pregunta lleva su propio valor de puntos, decidido por el admin
-          al crearla, así que no hay un valor ni un máximo fijos — depende de cuántas cree y cuántos puntos le ponga
+          al crearla, así que no hay un valor ni un máximo fijos: depende de cuántas cree y cuántos puntos le ponga
           a cada una.
         </p>
         <Table2
@@ -385,7 +385,7 @@ export default function Reglamento() {
       <Section
         id="dudas"
         icon="🛠️"
-        title="Dudas y reclamaciones"
+        title="Dudas y agradecimientos"
         accent="bg-gray-100 text-gray-600"
         open={isOpen('dudas')}
         onToggle={toggle}
@@ -398,11 +398,11 @@ export default function Reglamento() {
         </p>
         <h3 className="text-sm font-semibold text-gray-800">Agradecimientos</h3>
         <p className="text-sm text-gray-600">
-          Gracias por leer el reglamento hasta el final — no todo el mundo llega hasta aquí. Esta porra está hecha
+          Gracias por leer el reglamento hasta el final: no todo el mundo llega hasta aquí. Esta porra está hecha
           con cariño, tardes robadas al sofá y algún que otro exceso de detalle en preguntas que, seamos sinceros,
           nadie más iba a leerse con esta atención. Si has llegado hasta aquí te mereces un premio: ¿qué tal si
           buscas «abuelonchodorado» en el buscador donde se ve lo que ha puesto cada participante? Dicho esto, que
-          disfrutéis la temporada y que gane el mejor (o el más tramposo con suerte).
+          disfrutéis la temporada y que gane el mejor abueloncho (o el que más suerte tenga).
         </p>
       </Section>
     </div>
