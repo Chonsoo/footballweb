@@ -38,6 +38,10 @@ interface Props {
   // intentar seleccionarlo para colocarlo (que no tiene sentido si es de
   // solo lectura) — se usa para abrir el popup de desglose de puntos.
   onPlayerSelect?: (player: FantasyPlayer) => void
+  // Abueloncho Dorado, paso 4: id del jugador que se acaba de acertar, para
+  // darle un brillo dorado breve justo antes de que aparezca el modal (ver
+  // egg-target-found en index.css).
+  celebratingPlayerId?: number | null
 }
 
 export default function FantasyLineupPicker({
@@ -50,6 +54,7 @@ export default function FantasyLineupPicker({
   hideSidebar,
   pointsByPlayer,
   onPlayerSelect,
+  celebratingPlayerId,
 }: Props) {
   const slots = useMemo(() => buildFantasySlots(formation), [formation])
   const [selected, setSelected] = useState<number | null>(null)
@@ -238,6 +243,7 @@ export default function FantasyLineupPicker({
             onSlotClick={handleSlotClick}
             onPlayerClick={handlePlayerClick}
             onRemovePlayer={handleRemovePlacement}
+            celebratingPlayerId={celebratingPlayerId}
           />
         ) : (
           <div className="min-w-0 overflow-hidden rounded border border-gray-200 sm:flex-1">
@@ -412,6 +418,7 @@ function PitchView({
   onSlotClick,
   onPlayerClick,
   onRemovePlayer,
+  celebratingPlayerId,
 }: {
   slots: FantasySlot[]
   playerAtSlot: (key: string) => FantasyPlayer | null
@@ -422,6 +429,7 @@ function PitchView({
   onSlotClick: (slot: FantasySlot) => void
   onPlayerClick: (id: number) => void
   onRemovePlayer: (id: number) => void
+  celebratingPlayerId?: number | null
 }) {
   return (
     <div
@@ -463,6 +471,7 @@ function PitchView({
                       player={occupant}
                       selected={selected === occupant.api_player_id}
                       readOnly={readOnly}
+                      celebrating={celebratingPlayerId === occupant.api_player_id}
                       points={pointsByPlayer?.[occupant.api_player_id]}
                       onClick={() => {
                         // Si ya hay otro jugador del banquillo seleccionado y encaja
@@ -503,6 +512,7 @@ function PitchAvatar({
   selected,
   readOnly,
   points,
+  celebrating,
   onClick,
   onRemove,
 }: {
@@ -510,6 +520,7 @@ function PitchAvatar({
   selected: boolean
   readOnly?: boolean
   points?: number
+  celebrating?: boolean
   onClick: () => void
   onRemove: () => void
 }) {
@@ -536,7 +547,7 @@ function PitchAvatar({
       <span
         className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
           selected ? 'ring-2 ring-brand-500 ring-offset-1' : ''
-        }`}
+        } ${celebrating ? 'egg-target-found' : ''}`}
       >
         {!readOnly && (
           <button

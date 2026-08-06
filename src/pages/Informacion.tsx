@@ -138,21 +138,25 @@ export default function Informacion() {
               igual que el resto de pistas: es un evento de una sola vez, no
               una sección permanente. */}
           {eggProgress?.step === 4 && (
-            <div className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
+            <div className="overflow-hidden rounded-xl bg-gradient-to-br from-gold-100 via-white to-gold-100 shadow-md shadow-black/10 backdrop-blur-sm">
+              <div className="flex items-center gap-2 border-b border-gold-200 px-4 py-2.5">
+                <span className="text-base">🥇</span>
+                <h3 className="text-sm font-bold text-gold-700">Resultados dorados</h3>
+              </div>
               <div className="grid grid-cols-4 gap-1.5 p-3 sm:grid-cols-6">
                 {resultsTableForDisplay().map(({ day, home, away }) => (
                   <div
                     key={day}
-                    className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white/60 py-2"
+                    className="flex flex-col items-center justify-center rounded-lg border border-gold-300 bg-gradient-to-b from-gold-50 to-white py-2"
                   >
-                    <span className="text-[10px] font-medium text-gray-400">Día {day}</span>
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-[10px] font-medium text-gold-600/70">Día {day}</span>
+                    <span className="text-sm font-semibold text-gold-800">
                       {home}-{away}
                     </span>
                   </div>
                 ))}
               </div>
-              <p className="px-4 pb-4 text-xs text-gray-500">
+              <p className="px-4 pb-4 text-xs text-gold-700/70">
                 🔒 Hay una apuesta nueva esperando respuesta. Que no se te pase el día... mañana el resultado será
                 otro.
               </p>

@@ -115,7 +115,7 @@ export default function Home() {
   function handleCaptainPhotoClick(playerId: number, e: ReactMouseEvent<HTMLImageElement>) {
     if (eggProgress?.step !== 2 || eggProgress.captainPlayerId !== playerId) return
     const img = e.currentTarget
-    img.classList.add('egg-captain-found')
+    img.classList.add('egg-target-found')
     setTimeout(async () => {
       const ok = await eggAdvance(3)
       if (ok) setShowStep3Modal(true)
@@ -175,14 +175,6 @@ export default function Home() {
     // pinta Layout como marca de agua fija de fondo en todas las páginas, y
     // poner otro aquí encima daba un molesto efecto de "escudo duplicado".
     <div className="relative flex flex-col gap-6">
-      <style>{`
-        @keyframes egg-captain-found {
-          0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(217,173,74,0)); }
-          40% { transform: scale(1.35); filter: drop-shadow(0 0 14px rgba(217,173,74,0.95)); }
-          100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(217,173,74,0)); }
-        }
-        .egg-captain-found { animation: egg-captain-found 0.65s ease-out; position: relative; z-index: 5; }
-      `}</style>
       <div className="relative overflow-hidden rounded-2xl">
         {teamPhotos.length > 0 && (
           <div className="relative z-10 mb-4">

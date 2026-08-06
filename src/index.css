@@ -17,10 +17,19 @@
   --color-brand-100: #e3f3e8;
   --color-brand-50: #f2f9f4;
 
+  /* Escala completa 50-800 -- antes solo existían 100/400/500/600 y varios
+     sitios ya usaban gold-200/300/700/800 sin que existiera el token, así
+     que esas clases no pintaban nada (Tailwind no genera CSS para un color
+     que no está en el tema). */
+  --color-gold-800: #6e4d17;
+  --color-gold-700: #96691f;
   --color-gold-600: #b8862c;
   --color-gold-500: #d9ad4a;
   --color-gold-400: #f4d888;
+  --color-gold-300: #f6e0a3;
+  --color-gold-200: #f8e8bf;
   --color-gold-100: #fbf1d9;
+  --color-gold-50: #fdf9ef;
 
   /* "Noir" -- identidad propia de Fantasy: grafito casi negro pero con un
      pelín de verde de fondo (no gris/negro puro), para que destaque frente
@@ -63,6 +72,31 @@
 }
 .animate-ranking-fab-label {
   animation: ranking-fab-label 3.5s ease forwards;
+}
+
+/* Abueloncho Dorado: brillo dorado + zoom breve al acertar un jugador (la
+   foto del capitán en la cinta de Inicio -- paso 3 -- y el jugador de
+   Fantasy que toca por puesto -- paso 4). Se aplica añadiendo esta clase al
+   elemento tocado justo antes de avanzar de paso, para que se note "sí, es
+   este" antes de que aparezca el modal. */
+@keyframes egg-target-found {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(217, 173, 74, 0));
+  }
+  40% {
+    transform: scale(1.35);
+    filter: drop-shadow(0 0 14px rgba(217, 173, 74, 0.95));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(217, 173, 74, 0));
+  }
+}
+.egg-target-found {
+  animation: egg-target-found 0.65s ease-out;
+  position: relative;
+  z-index: 5;
 }
 
 /* Cintas de escudos de Login/Registro (ver TeamMarquee.tsx). Cada cinta
