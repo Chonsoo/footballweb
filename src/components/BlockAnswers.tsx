@@ -76,8 +76,8 @@ function PairedResults({
     <div className="flex flex-col gap-2">
       {sortedPairs.map((legs, i) => (
         <div key={i} className="flex flex-col gap-1.5 rounded-lg bg-white/[0.67] p-2.5 shadow-sm backdrop-blur-sm">
-          <p className="truncate text-center text-[11px] font-semibold text-gray-400">
-            {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-300">vs</span>{' '}
+          <p className="truncate text-center text-[11px] font-semibold text-gray-600">
+            {shortMatchTeamName(legs[0]?.config.home_team)} <span className="text-gray-400">vs</span>{' '}
             {shortMatchTeamName(legs[0]?.config.away_team)}
           </p>
           {/* Siempre una columna (ida debajo de vuelta) -- con 2 columnas
