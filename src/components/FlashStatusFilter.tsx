@@ -8,6 +8,16 @@ const ACTIVE_CLASSES: Record<FlashStatus, string> = {
   resolved: 'bg-green-100 text-green-700 ring-2 ring-offset-1 ring-green-400',
 }
 
+// Antes, sin pulsar, los 3 botones eran grises por igual (no se distinguían
+// entre sí hasta que tocabas uno). Ahora cada uno ya lleva su propio color
+// de por sí -- más flojito que el estado activo -- y al pulsarlo se
+// intensifica y añade el anillo, en vez de "aparecer" el color de la nada.
+const INACTIVE_CLASSES: Record<FlashStatus, string> = {
+  open: 'bg-blue-50 text-blue-600',
+  closed: 'bg-amber-50 text-amber-600',
+  resolved: 'bg-green-50 text-green-600',
+}
+
 interface Props {
   value: Set<FlashStatus>
   onChange: (next: Set<FlashStatus>) => void
@@ -35,7 +45,7 @@ export default function FlashStatusFilter({ value, onChange }: Props) {
             type="button"
             onClick={() => toggle(status)}
             className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-              active ? ACTIVE_CLASSES[status] : 'bg-gray-100 text-gray-500'
+              active ? ACTIVE_CLASSES[status] : INACTIVE_CLASSES[status]
             }`}
           >
             {FLASH_STATUS_LABELS[status]}

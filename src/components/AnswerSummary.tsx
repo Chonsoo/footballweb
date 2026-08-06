@@ -30,7 +30,7 @@ export default function AnswerSummary({
   // claro "Aún sin resolver".
   emptyLabel?: string
 }) {
-  if (value == null) return <p className="text-sm text-gray-400">{emptyLabel}</p>
+  if (value == null) return <p className="text-sm text-gray-600">{emptyLabel}</p>
 
   if (question.answer_type === 'ranking') {
     return <RankingSummary config={question.config} value={value as Record<string, number>} currentResult={currentResult} />
