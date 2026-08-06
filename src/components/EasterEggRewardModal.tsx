@@ -58,7 +58,7 @@ export default function EasterEggRewardModal({ onClose }: { onClose: () => void 
       >
         <span className="text-6xl">🏆</span>
         <h2 className="mt-4 text-xl font-bold text-gold-400">¡Abueloncho Dorado conseguido!</h2>
-        <p className="mt-2 text-sm text-white/80">Has completado los 5 pasos del huevo de pascua.</p>
+        <p className="mt-2 text-sm text-white/80">Has completado los 5 pasos del Easter egg.</p>
         <p className="mt-1 text-lg font-semibold text-gold-400">🥚 +10 puntos</p>
         <p className="mt-3 text-xs text-white/50">Tu nombre brillará en dorado en la Clasificación a partir de ahora.</p>
         <button
