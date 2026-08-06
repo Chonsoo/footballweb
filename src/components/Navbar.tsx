@@ -134,6 +134,9 @@ export default function Navbar() {
             <NavLink to="/apuestas-detalladas" className={linkClass}>
               Apuestas detalladas
             </NavLink>
+            <NavLink to="/fantasy" className={linkClass}>
+              Fantasy
+            </NavLink>
             <NavLink to="/informacion" className={linkClass}>
               Información
             </NavLink>
@@ -262,6 +265,9 @@ export default function Navbar() {
             </NavLink>
             <NavLink to="/apuestas-detalladas" onClick={closeAll} className={mobileLinkClass}>
               Apuestas detalladas
+            </NavLink>
+            <NavLink to="/fantasy" onClick={closeAll} className={mobileLinkClass}>
+              Fantasy
             </NavLink>
             <NavLink to="/informacion" onClick={closeAll} className={mobileLinkClass}>
               Información
