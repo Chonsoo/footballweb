@@ -4,11 +4,14 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import TeamSelect from './TeamSelect'
-import { EASTER_EGG_HINTS, EASTER_EGG_TOTAL_STEPS, useEasterEgg } from '../lib/easterEgg'
+import { EASTER_EGG_HINTS, EASTER_EGG_TOTAL_STEPS, useCaptainInfo, useEasterEgg } from '../lib/easterEgg'
+
+const CAPTAIN_SILHOUETTE = '/badges/player-silhouette.png'
 
 export default function EditProfileModal({ onClose }: { onClose: () => void }) {
   const { profile, refreshProfile } = useAuth()
   const { progress: eggProgress } = useEasterEgg()
+  const captainInfo = useCaptainInfo(eggProgress && eggProgress.step >= 2 ? eggProgress.captainPlayerId : null)
   const [username, setUsername] = useState(profile?.username ?? '')
   const [favoriteTeam, setFavoriteTeam] = useState(profile?.favorite_team ?? '')
   const [saving, setSaving] = useState(false)
@@ -81,7 +84,22 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
                 <p className="font-semibold text-gold-700">
                   🥚 Abueloncho Dorado · Paso {eggProgress.step} de {EASTER_EGG_TOTAL_STEPS}
                 </p>
-                <p className="mt-1">{EASTER_EGG_HINTS[eggProgress.step]}</p>
+                {captainInfo && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-white/70 px-2 py-1.5">
+                    <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-gold-200">
+                      <img
+                        src={captainInfo.photoUrl ?? CAPTAIN_SILHOUETTE}
+                        alt=""
+                        className={`h-full w-full object-cover ${captainInfo.photoUrl ? '' : 'scale-110'}`}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wide text-gold-600">Capitán elegido</p>
+                      <p className="truncate text-xs font-semibold text-gray-800">{captainInfo.name}</p>
+                    </div>
+                  </div>
+                )}
+                <p className="mt-2">{EASTER_EGG_HINTS[eggProgress.step]}</p>
               </>
             )}
           </div>

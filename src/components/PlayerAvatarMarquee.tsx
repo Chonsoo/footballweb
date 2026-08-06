@@ -1,3 +1,5 @@
+import type { MouseEvent as ReactMouseEvent } from 'react'
+
 // Franja en bucle infinito con fotos de jugadores en círculo (igual que en el
 // 11 de Abuelonchos / Fantasy), pensada para el intro del asistente de
 // apuestas iniciales: en vez de los 20 escudos de LaLiga (que no dicen nada
@@ -44,7 +46,10 @@ export default function PlayerAvatarMarquee({
   // Dorado para detectar el clic en el capitán elegido, sin tocar el resto
   // de usos de este componente (Onboarding, etc.) que no lo necesitan.
   playerIds?: number[]
-  onPhotoClick?: (playerId: number) => void
+  // Recibe también el elemento pulsado (no solo el id) para poder animar
+  // justo esa copia concreta de la foto (la cinta repite la lista muchas
+  // veces en bucle) sin tener que calcular su posición a mano.
+  onPhotoClick?: (playerId: number, e: ReactMouseEvent<HTMLImageElement>) => void
   direction?: 'left' | 'right'
   size?: 'lg' | 'sm'
 }) {
@@ -103,7 +108,7 @@ export default function PlayerAvatarMarquee({
               key={i}
               src={photo}
               alt=""
-              onClick={onPhotoClick && id != null ? () => onPhotoClick(id) : undefined}
+              onClick={onPhotoClick && id != null ? (e) => onPhotoClick(id, e) : undefined}
               className={`shrink-0 rounded-full object-cover opacity-85 shadow-[0_1px_4px_rgba(0,0,0,0.4)] ring-2 ring-white/70 ${img}`}
             />
           )

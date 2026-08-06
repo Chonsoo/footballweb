@@ -160,6 +160,40 @@ export function pickFantasyTargetPlayerId(
   return sorted[idx]
 }
 
+export interface CaptainInfo {
+  name: string
+  photoUrl: string | null
+}
+
+// Datos del capitán elegido en el paso 2 (foto + nombre), para mostrarlos en
+// Mis datos junto al progreso -- se busca por id porque easter_egg_progress
+// solo guarda captain_player_id, no el resto de datos del jugador.
+export function useCaptainInfo(playerId: number | null): CaptainInfo | null {
+  const [info, setInfo] = useState<CaptainInfo | null>(null)
+
+  useEffect(() => {
+    let active = true
+    if (playerId == null) {
+      setInfo(null)
+      return
+    }
+    supabase
+      .from('fantasy_players')
+      .select('name, photo_url')
+      .eq('api_player_id', playerId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active) return
+        setInfo(data ? { name: data.name as string, photoUrl: (data.photo_url as string | null) ?? null } : null)
+      })
+    return () => {
+      active = false
+    }
+  }, [playerId])
+
+  return info
+}
+
 // Jugador objetivo del paso 4, ya resuelto: calcula el puesto actual del
 // usuario en la liga Fantasy TOTAL (independiente de la jornada que se esté
 // viendo en pantalla, para que el objetivo no cambie según la pestaña

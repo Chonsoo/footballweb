@@ -95,14 +95,19 @@ export default function Ranking() {
     // favorito, no solo los elegibles para el 11 de Abuelonchos -- por eso
     // aquí no se filtra por eligible_abuelonchos, a diferencia de otros
     // sitios de la app que sí lo hacen (el 11 en sí, el buscador de
-    // capitanes de Fantasy...).
+    // capitanes de Fantasy...). Pero SÍ hace falta foto real: el paso 3 pide
+    // encontrar la foto del capitán en la cinta de Inicio (PlayerAvatarMarquee,
+    // que ya solo pinta jugadores con photo_url) -- si se pudiera elegir a
+    // alguien sin foto, ese paso sería imposible de completar.
     const { data } = await supabase
       .from('fantasy_players')
       .select('*')
       .eq('team_id', profile.favorite_team)
       .eq('active', true)
+      .not('photo_url', 'is', null)
       .order('name')
-    setCaptainPlayers((data as FantasyPlayer[]) ?? [])
+    const withPhoto = ((data as FantasyPlayer[]) ?? []).filter((p) => p.photo_url)
+    setCaptainPlayers(withPhoto)
     setShowCaptainModal(true)
   }
 
