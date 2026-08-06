@@ -67,7 +67,7 @@ const CARDS: HomeCard[] = [
     icon: '⚽',
     title: 'Fantasy',
     description: 'Tu 11 de Abuelonchos, jornada a jornada.',
-    accent: 'bg-gray-800 text-gold-400',
+    accent: 'bg-gray-200 text-gold-600',
   },
   {
     to: '/informacion',
