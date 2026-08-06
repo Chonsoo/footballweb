@@ -67,7 +67,12 @@ const CARDS: HomeCard[] = [
     icon: '⚽',
     title: 'Fantasy',
     description: 'Tu 11 de Abuelonchos, jornada a jornada.',
-    accent: 'bg-gray-200 text-gold-600',
+    // Nota: el icono es un emoji (⚽), así que "text-*" no le afecta a él
+    // (los emoji llevan su propio color fijo) -- solo cambia el fondo de la
+    // insignia. bg-gray-200 quedaba casi blanco encima de la tarjeta de
+    // cristal; con gold-100 (el dorado propio de Fantasy) se nota como
+    // insignia, igual que el resto de tarjetas.
+    accent: 'bg-gold-100 text-gold-600',
   },
   {
     to: '/informacion',
