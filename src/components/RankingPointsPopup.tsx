@@ -184,7 +184,13 @@ export default function RankingPointsPopup({ userId, username, totalPoints, onCl
                     </button>
                     {isOpen && (
                       <div className="bg-white/95 px-3 py-3">
-                        <BlockAnswers questions={blockQuestions} answers={answers} points={pointsByQuestion} currentResults={currentResults} />
+                        <BlockAnswers
+                          questions={blockQuestions}
+                          answers={answers}
+                          points={pointsByQuestion}
+                          currentResults={currentResults}
+                          labelClassName="text-brand-600"
+                        />
                       </div>
                     )}
                   </div>

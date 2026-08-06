@@ -33,15 +33,15 @@ export default function RankingAccuracySummary({
 
   return (
     <div className="mb-2 flex flex-col gap-1 text-xs">
-      <p className="font-medium text-gray-600">
-        Aciertos exactos: <span className="font-semibold text-gray-800">{exact} / {total}</span>
+      <p className="font-medium text-gray-700">
+        Aciertos exactos: <span className="font-semibold text-gray-900">{exact} / {total}</span>
       </p>
       {zones.map((z) => (
-        <p key={z.key} className="flex items-center justify-between text-gray-600">
+        <p key={z.key} className="flex items-center justify-between text-gray-700">
           <span>
-            {z.label} ({z.from}-{z.to}): <span className="font-semibold text-gray-800">{z.matched}/{z.size}</span>
+            {z.label} ({z.from}-{z.to}): <span className="font-semibold text-gray-900">{z.matched}/{z.size}</span>
           </span>
-          <span className={`font-semibold ${z.bonus > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+          <span className={`font-semibold ${z.bonus > 0 ? 'text-green-600' : 'text-gray-600'}`}>
             {z.bonus > 0 ? '+' : ''}
             {z.bonus}
           </span>

@@ -172,7 +172,13 @@ export default function ApuestasDetalladas() {
                     <p className="text-sm text-gray-400">Cargando…</p>
                   ) : (
                     <>
-                      <BlockAnswers questions={initialQs} answers={answers ?? {}} points={userPoints ?? {}} currentResults={currentResults} />
+                      <BlockAnswers
+                        questions={initialQs}
+                        answers={answers ?? {}}
+                        points={userPoints ?? {}}
+                        currentResults={currentResults}
+                        labelClassName="text-brand-600"
+                      />
 
                       <div>
                         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-brand-600">El 11 de Abuelonchos</h3>

@@ -136,6 +136,12 @@ export default function BlockAnswers({
   currentResults = {},
   emptyLabel,
   showDates = false,
+  // Color del título "Bloque N · ...": por defecto pensado para ir
+  // directamente sobre el fondo verde de la página (como en Mis apuestas).
+  // Apuestas detalladas lo pasa oscuro porque ahí este bloque va dentro de
+  // una tarjeta de cristal clara, no sobre el verde -- con el valor por
+  // defecto (claro) casi no se vería.
+  labelClassName = 'text-brand-100',
 }: {
   questions: SeasonQuestion[]
   answers: Record<string, AnswerValue | undefined>
@@ -151,6 +157,7 @@ export default function BlockAnswers({
   // sitio de sobra en la línea (en las tarjetas estrechas no cabe junto a
   // la pastilla de puntos).
   showDates?: boolean
+  labelClassName?: string
 }) {
   const byBlock = new Map<number, SeasonQuestion[]>()
   for (const q of questions) {
@@ -166,7 +173,7 @@ export default function BlockAnswers({
         if (qs.length === 0) return null
         return (
           <div key={b} className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-brand-600">{BLOCK_LABELS[b] ?? `Bloque ${b}`}</h3>
+            <h3 className={`text-[11px] font-semibold uppercase tracking-wide ${labelClassName}`}>{BLOCK_LABELS[b] ?? `Bloque ${b}`}</h3>
 
             {b === 1 &&
               qs.map((q) => {
@@ -190,7 +197,7 @@ export default function BlockAnswers({
                 {qs.map((q) => (
                   <div key={q.id} className="rounded-lg bg-white/[0.67] p-2 shadow-sm backdrop-blur-sm">
                     <div className="mb-1 flex items-center justify-between gap-1">
-                      <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={q.question}>
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-600" title={q.question}>
                         {shortQuestionLabel(q)}
                       </p>
                       <PointsPill points={points[q.id]} />
