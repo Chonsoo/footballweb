@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 // Datos de puntuación reflejados aquí tal y como están programados hoy en la
 // app (ver src/lib/rankingScoring.ts, src/lib/scorePrediction.ts,
@@ -103,16 +103,93 @@ function Table3({ head, rows }: { head: [string, string, string]; rows: [string,
   )
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Chevron({ open }: { open: boolean }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl bg-white/[0.67] p-4 shadow-md shadow-black/10 backdrop-blur-sm">
-      <h2 className="text-base font-bold text-gray-900">{title}</h2>
-      {children}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
+
+// Cada bloque con su propio color de insignia (en vez de todas las tarjetas
+// iguales en blanco/gris) + plegable, para que la página no sea un muro de
+// tablas idéntico de arriba a abajo: se abre lo que interesa, el resto queda
+// resumido en el título.
+function Section({
+  id,
+  icon,
+  title,
+  accent,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string
+  icon: string
+  title: string
+  accent: string
+  open: boolean
+  onToggle: (id: string) => void
+  children: ReactNode
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
+      <button type="button" onClick={() => onToggle(id)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg ${accent}`}>{icon}</span>
+        <span className="flex-1 text-base font-bold text-gray-900">{title}</span>
+        <Chevron open={open} />
+      </button>
+      {open && <div className="flex flex-col gap-3 border-t border-gray-100 px-4 pb-4 pt-3">{children}</div>}
+    </section>
+  )
+}
+
+// Variante con la identidad propia de Fantasy (negro con toque verde +
+// dorado, igual que la pestaña Fantasy), para que destaque como su propio
+// bloque en vez de fundirse con el resto de tarjetas claras.
+function FantasySection({ open, onToggle, children }: { open: boolean; onToggle: (id: string) => void; children: ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-xl bg-gradient-to-br from-noir-950 via-noir-900 to-noir-800 shadow-sm ring-1 ring-white/5">
+      <button type="button" onClick={() => onToggle('fantasy')} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gold-500/20 text-lg text-gold-400">⚽</span>
+        <span className="flex-1 text-base font-bold text-white">Fantasy: cómo cuenta para la clasificación general</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="flex flex-col gap-3 border-t border-white/10 bg-white/95 px-4 pb-4 pt-3">{children}</div>}
     </section>
   )
 }
 
 export default function Reglamento() {
+  // Solo la primera sección abierta por defecto -- el resto se despliega
+  // bajo demanda, así la página no llega ya "pesada" de un tirón.
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['intro']))
+
+  function toggle(id: string) {
+    setOpenSections((s) => {
+      const next = new Set(s)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const isOpen = (id: string) => openSections.has(id)
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -120,7 +197,7 @@ export default function Reglamento() {
         <p className="text-sm text-white/80">Las normas, letra pequeña incluida.</p>
       </div>
 
-      <Section title="🎯 Cómo funciona la porra">
+      <Section id="intro" icon="🎯" title="Cómo funciona la porra" accent="bg-brand-100 text-brand-700" open={isOpen('intro')} onToggle={toggle}>
         <p className="text-sm text-gray-600">
           Antes de que empiece la temporada se rellenan las <strong>Apuestas iniciales</strong>, repartidas en 4
           bloques (Clasificación de Liga, Premios individuales, Duelos Big Three y Over/Under) y el once del{' '}
@@ -138,7 +215,14 @@ export default function Reglamento() {
         </p>
       </Section>
 
-      <Section title="📋 Bloque 1 · Clasificación de Liga">
+      <Section
+        id="b1"
+        icon="📋"
+        title="Bloque 1 · Clasificación de Liga"
+        accent="bg-gold-100 text-gold-600"
+        open={isOpen('b1')}
+        onToggle={toggle}
+      >
         <p className="text-sm text-gray-600">
           Predices la posición (1º a 20º) de los 20 equipos de LaLiga. Cuanto más cerca quedes de la posición real
           de cada equipo, más puntos ganas — no hace falta clavar toda la tabla exacta. Los puntos dependen de en
@@ -154,7 +238,14 @@ export default function Reglamento() {
         <p className="text-xs text-gray-500">Máximo teórico del bloque: 210 pts por posiciones exactas + 11 pts de bonus de zona = 221 pts.</p>
       </Section>
 
-      <Section title="🏅 Bloque 2 · Premios individuales y narrativos">
+      <Section
+        id="b2"
+        icon="🏅"
+        title="Bloque 2 · Premios individuales y narrativos"
+        accent="bg-purple-100 text-purple-700"
+        open={isOpen('b2')}
+        onToggle={toggle}
+      >
         <p className="text-sm text-gray-600">Todo o nada (aciertas exacto o no sumas nada), salvo el Podio Underdog, que reparte puntos por posición.</p>
         <Table3 head={['Pregunta', 'Qué predices', 'Puntos']} rows={B2_TABLE} />
         <p className="text-sm text-gray-600">
@@ -165,7 +256,7 @@ export default function Reglamento() {
         <p className="text-xs text-gray-500">Máximo teórico del bloque: 5 × 10 (premios fijos) + 10 (Fiasco) + 15 (oro del Underdog) = 75 pts.</p>
       </Section>
 
-      <Section title="⚔️ Bloque 3 · Duelos Big Three">
+      <Section id="b3" icon="⚔️" title="Bloque 3 · Duelos Big Three" accent="bg-red-100 text-red-700" open={isOpen('b3')} onToggle={toggle}>
         <p className="text-sm text-gray-600">
           Los 6 enfrentamientos directos entre Real Madrid, Barcelona y Atlético de Madrid (ida y vuelta de cada
           emparejamiento). Predices el marcador exacto de cada partido.
@@ -177,13 +268,13 @@ export default function Reglamento() {
         </p>
       </Section>
 
-      <Section title="📈 Bloque 4 · Over/Under">
+      <Section id="b4" icon="📈" title="Bloque 4 · Over/Under" accent="bg-blue-100 text-blue-700" open={isOpen('b4')} onToggle={toggle}>
         <p className="text-sm text-gray-600">Todo o nada: aciertas si el resultado real queda por encima o por debajo de la línea marcada.</p>
         <Table2 head={['Pregunta', 'Puntos']} rows={B4_TABLE} />
         <p className="text-xs text-gray-500">Máximo teórico del bloque: 3 × 5 pts = 15 pts.</p>
       </Section>
 
-      <Section title="⚽ Fantasy: cómo cuenta para la clasificación general">
+      <FantasySection open={isOpen('fantasy')} onToggle={toggle}>
         <p className="text-sm text-gray-600">
           El Fantasy (tu 11 de Abuelonchos) tiene su propia liga aparte, jornada a jornada — se ve en la pestaña
           Fantasy › Clasificación. No se suman los puntos de esa liga directamente a la clasificación general:
@@ -195,9 +286,9 @@ export default function Reglamento() {
           Si hay empate en la liga Fantasy, se reparte el mismo bonus a quienes empatan. La fórmula de puntos de cada
           jugador (minutos, goles, asistencias...) está en Fantasy › Cómo puntúa.
         </p>
-      </Section>
+      </FantasySection>
 
-      <Section title="⚡ Apuestas flash">
+      <Section id="flash" icon="⚡" title="Apuestas flash" accent="bg-amber-100 text-amber-700" open={isOpen('flash')} onToggle={toggle}>
         <p className="text-sm text-gray-600">
           Preguntas que el admin va creando jornada a jornada, fuera de los 4 bloques de Apuestas iniciales, con el
           mismo motor de puntuación por debajo: cada pregunta lleva su propio valor de puntos, decidido por el admin
@@ -213,21 +304,22 @@ export default function Reglamento() {
         />
       </Section>
 
-      <Section title="🛠️ Dudas, reclamaciones y funcionamiento técnico">
+      <Section
+        id="dudas"
+        icon="🛠️"
+        title="Dudas y reclamaciones"
+        accent="bg-gray-100 text-gray-600"
+        open={isOpen('dudas')}
+        onToggle={toggle}
+      >
         <p className="text-sm text-gray-600">
           Cualquier discrepancia sobre un resultado o una puntuación debe comunicarse a la organización antes del
           cierre de la siguiente jornada; pasado ese plazo, la puntuación se considera definitiva y no se revisa.
           Los empates a puntos en la clasificación general no se desempatan: se comparte la posición.
         </p>
         <p className="text-sm text-gray-600">
-          El buscador de Apuestas detalladas conserva, por motivos históricos de compatibilidad con versiones
-          antiguas de la porra, una entrada que no aparece listada en ningún filtro. No admite mayúsculas, tildes
-          ni espacios: si el texto introducido coincide exactamente con el nombre en clave con el que se bautizó
-          este proyecto, la búsqueda puede devolver algo que no está en ninguna otra parte de este reglamento.
-        </p>
-        <p className="text-sm text-gray-600">
-          Este comportamiento no afecta a la puntuación de ningún bloque ni requiere ninguna acción por parte de
-          los participantes que no quieran indagar en él.
+          Quien tenga paciencia para buscar bien encontrará algo si escribe «abuelonchodorado» en el buscador de
+          Apuestas detalladas, letra a letra y sin prisa.
         </p>
       </Section>
     </div>
