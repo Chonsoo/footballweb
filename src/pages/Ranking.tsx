@@ -125,9 +125,13 @@ export default function Ranking() {
             className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white shadow-xl shadow-black/30 ring-4 ring-white transition-transform hover:scale-105 active:scale-95"
           >
             {/* Pulso suave, solo 2 veces al aparecer (antes era infinito y
-                resultaba molesto). */}
+                resultaba molesto). Blanco, no negro: el pulso se expande
+                más allá del botón hacia el fondo verde oscuro de la
+                página, y en negro apenas se distinguía ahí (oscuro sobre
+                oscuro) -- en blanco sí se nota, a juego con el aro blanco
+                del propio botón. */}
             <span
-              className="absolute inset-0 -z-10 rounded-full bg-gray-900/40"
+              className="absolute inset-0 -z-10 rounded-full bg-white/50"
               style={{ animation: 'ranking-fab-ping 1.8s cubic-bezier(0,0,0.2,1) 2' }}
             />
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
@@ -163,7 +167,13 @@ export default function Ranking() {
                   onClick={() => setBreakdownFor(row)}
                   title="Ver de dónde salen estos puntos"
                   className={`relative flex w-full items-center gap-3 overflow-hidden rounded-xl border py-3 pl-4 pr-4 text-left shadow-sm transition-all duration-300 hover:brightness-95 ${
-                    highlightId === row.user_id ? 'scale-[1.02] shadow-lg ring-4 ring-gray-900/60' : ''
+                    // Dorado en vez de negro: el negro semitransparente
+                    // apenas se notaba sobre el fondo verde oscuro de la
+                    // página (oscuro sobre oscuro en el borde exterior). El
+                    // dorado contrasta bien tanto contra la tarjeta clara
+                    // como contra el verde, y es el mismo acento que ya usa
+                    // el resto de la app para "esto es lo importante".
+                    highlightId === row.user_id ? 'scale-[1.02] shadow-lg ring-4 ring-gold-500' : ''
                   }`}
                   // scrollMarginTop: deja hueco para la barra superior fija
                   // (logo + pestañas) al hacer scrollIntoView, si no la fila
