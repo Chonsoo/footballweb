@@ -1,4 +1,4 @@
-import { FANTASY_POSITIONS, FANTASY_POSITION_LABELS, type FantasyPosition } from '../lib/fantasyTypes'
+import { FANTASY_POSITIONS, type FantasyPosition } from '../lib/fantasyTypes'
 
 // Explica la fórmula de public.fantasy_calculate_points() (ver
 // supabase/migrations/015_fantasy_schema.sql) de forma legible -- lo que
@@ -45,12 +45,17 @@ export default function FantasyScoringRules() {
         arriba juega.
       </p>
 
-      {/* Lo que varía según la posición: tabla, para comparar de un vistazo. */}
-      <div className="overflow-hidden rounded-lg bg-white/[0.8] shadow-md shadow-black/10 backdrop-blur-sm">
+      {/* Lo que varía según la posición: tabla, para comparar de un vistazo.
+          Mismo cristal traslúcido que el resto de la app (antes iba casi
+          blanco del todo, desentonaba con el resto de tarjetas) -- las
+          franjas de cabecera/pie usan un tinte oscuro translúcido en vez de
+          gris sólido, para que no se vea como un bloque blanco opaco dentro
+          de la tarjeta de cristal. */}
+      <div className="overflow-hidden rounded-lg bg-white/[0.67] shadow-md shadow-black/10 backdrop-blur-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-3 py-2 text-left font-medium text-gray-500">Según posición</th>
+            <tr className="border-b border-black/10 bg-black/5">
+              <th className="px-3 py-2 text-left font-medium text-gray-600">Según posición</th>
               {FANTASY_POSITIONS.map((pos) => (
                 <th key={pos} className="px-2 py-2 text-center">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${POSITION_COLORS[pos]}`}>{pos}</span>
@@ -60,7 +65,7 @@ export default function FantasyScoringRules() {
           </thead>
           <tbody>
             {STAT_ROWS.map((row) => (
-              <tr key={row.label} className="border-b border-gray-50 last:border-b-0">
+              <tr key={row.label} className="border-b border-black/5 last:border-b-0">
                 <td className="px-3 py-2 text-gray-700">
                   <span className="mr-1.5">{row.icon}</span>
                   {row.label}
@@ -74,15 +79,14 @@ export default function FantasyScoringRules() {
             ))}
           </tbody>
         </table>
-        <p className="border-t border-gray-100 bg-gray-50 px-3 py-2 text-[11px] text-gray-400">
-          {FANTASY_POSITIONS.map((pos) => `${pos} = ${FANTASY_POSITION_LABELS[pos]}`).join(' · ')}. La portería a cero
-          solo cuenta si el jugador estuvo 60 minutos o más en el campo.
+        <p className="border-t border-black/10 bg-black/5 px-3 py-2 text-[11px] text-gray-600">
+          La portería a cero solo cuenta si el jugador estuvo 60 minutos o más en el campo.
         </p>
       </div>
 
       {/* Lo que es igual para cualquier jugador, sea cual sea su posición. */}
-      <div className="rounded-lg bg-white/[0.8] p-3 shadow-md shadow-black/10 backdrop-blur-sm">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Igual para todas las posiciones</p>
+      <div className="rounded-lg bg-white/[0.67] p-3 shadow-md shadow-black/10 backdrop-blur-sm">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600">Igual para todas las posiciones</p>
         <ul className="flex flex-col gap-1.5 text-sm text-gray-700">
           <li className="flex items-center justify-between">
             <span>⏱️ Jugó 60 minutos o más</span>
@@ -94,7 +98,7 @@ export default function FantasyScoringRules() {
           </li>
           <li className="flex items-center justify-between">
             <span>⏱️ No llegó a jugar</span>
-            <span className="font-semibold text-gray-400">0</span>
+            <span className="font-semibold text-gray-500">0</span>
           </li>
           <li className="flex items-center justify-between">
             <span>🟨 Tarjeta amarilla</span>
