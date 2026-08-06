@@ -46,15 +46,21 @@ export default function TeamSelect({
   // Cerrar en vez de reposicionar en cada scroll/resize -- mismo motivo que
   // en PlayerSelect: el panel usa position:fixed anclado a la posición del
   // botón en el momento de abrir, y si la página se desplaza sin cerrar, se
-  // quedaría "despegado" del botón.
+  // quedaría "despegado" del botón. Se activa con un pequeño retraso (mismo
+  // motivo que en PlayerSelect: evitar que un resize/scroll disparado justo
+  // al abrir -- p.ej. por el teclado en otro campo de la misma página --
+  // cierre el panel una fracción de segundo después de abrirse.
   useEffect(() => {
     if (!open) return
     function close() {
       setOpen(false)
     }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
+    const timer = window.setTimeout(() => {
+      window.addEventListener('scroll', close, true)
+      window.addEventListener('resize', close)
+    }, 300)
     return () => {
+      window.clearTimeout(timer)
       window.removeEventListener('scroll', close, true)
       window.removeEventListener('resize', close)
     }

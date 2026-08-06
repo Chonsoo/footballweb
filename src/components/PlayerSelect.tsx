@@ -92,14 +92,23 @@ export default function PlayerSelect({
   // (ver toggleOpen), y si la página se desplaza sin cerrar, se quedaría
   // "despegado" del botón. Cerrarlo es la solución más simple y ya es el
   // patrón que se usa en el resto de desplegables de la app.
+  //
+  // El listener se activa con un pequeño retraso a propósito: el campo de
+  // búsqueda tiene autoFocus, y en móvil eso abre el teclado justo al abrir
+  // el desplegable -- el teclado emergente dispara un resize (y a veces un
+  // scroll) inmediatamente, que sin este retraso cerraba el panel una
+  // fracción de segundo después de abrirse (parecía que "no abría").
   useEffect(() => {
     if (!open) return
     function close() {
       setOpen(false)
     }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
+    const timer = window.setTimeout(() => {
+      window.addEventListener('scroll', close, true)
+      window.addEventListener('resize', close)
+    }, 300)
     return () => {
+      window.clearTimeout(timer)
       window.removeEventListener('scroll', close, true)
       window.removeEventListener('resize', close)
     }
