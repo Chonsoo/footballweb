@@ -93,11 +93,16 @@ export default function PlayerSelect({
   // "despegado" del botón. Cerrarlo es la solución más simple y ya es el
   // patrón que se usa en el resto de desplegables de la app.
   //
-  // El listener se activa con un pequeño retraso a propósito: el campo de
-  // búsqueda tiene autoFocus, y en móvil eso abre el teclado justo al abrir
-  // el desplegable -- el teclado emergente dispara un resize (y a veces un
-  // scroll) inmediatamente, que sin este retraso cerraba el panel una
-  // fracción de segundo después de abrirse (parecía que "no abría").
+  // PERO durante un breve margen justo al abrir, en vez de cerrar, se
+  // reposiciona siguiendo al botón. El campo de búsqueda tiene autoFocus, y
+  // en móvil eso abre el teclado justo al abrir el desplegable -- el
+  // navegador desplaza la página sola para que el campo quede visible por
+  // encima del teclado. Si ese scroll cerrara el panel, parecía "no abrir";
+  // si se ignorara sin más (como antes), el panel se quedaba fijo en la
+  // posición ANTIGUA del botón mientras la página se movía debajo, y
+  // parecía salir "en otro sitio". Siguiendo al botón durante ese margen se
+  // evitan los dos problemas. Pasado el margen, un scroll ya se interpreta
+  // como el usuario desplazando la página a propósito, y ahí sí se cierra.
   //
   // Importante: 'scroll' no burbujea, pero un listener en window con fase de
   // "captura" (el `true` final) SÍ se dispara para el scroll de CUALQUIER
@@ -107,32 +112,57 @@ export default function PlayerSelect({
   // los scrolls que ocurren dentro del propio panel.
   useEffect(() => {
     if (!open) return
-    function close(e: Event) {
+    let settled = false
+    function onScrollOrResize(e: Event) {
       if (panelRef.current?.contains(e.target as Node)) return
+      if (!settled) {
+        const rect = computePanelRect()
+        if (rect) setPanelRect(rect)
+        return
+      }
       setOpen(false)
     }
+    window.addEventListener('scroll', onScrollOrResize, true)
+    window.addEventListener('resize', onScrollOrResize)
     const timer = window.setTimeout(() => {
-      window.addEventListener('scroll', close, true)
-      window.addEventListener('resize', close)
+      settled = true
     }, 300)
     return () => {
       window.clearTimeout(timer)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', onScrollOrResize, true)
+      window.removeEventListener('resize', onScrollOrResize)
     }
   }, [open])
 
+  // Compartida entre la apertura y el "seguimiento" del botón mientras la
+  // página aún se está moviendo (ver el efecto de scroll/resize más abajo).
+  function computePanelRect(): PanelRect | null {
+    if (!btnRef.current) return null
+    const rect = btnRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
+    return {
+      left: rect.left,
+      width: rect.width,
+      top: openUp ? null : rect.bottom + 4,
+      bottom: openUp ? window.innerHeight - rect.top + 4 : null,
+    }
+  }
+
   function toggleOpen() {
     if (!open && btnRef.current) {
+      // Preferimos abrir siempre hacia abajo -- si no cabe entero en el
+      // viewport actual, desplazamos la página lo justo para que quepa, en
+      // vez de abrir hacia arriba (que tapa la pregunta de encima y resulta
+      // menos intuitivo que simplemente hacer scroll).
       const rect = btnRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - rect.bottom
-      const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
-      setPanelRect({
-        left: rect.left,
-        width: rect.width,
-        top: openUp ? null : rect.bottom + 4,
-        bottom: openUp ? window.innerHeight - rect.top + 4 : null,
-      })
+      const needed = PANEL_MAX_HEIGHT + 16
+      if (spaceBelow < needed) {
+        window.scrollBy(0, needed - spaceBelow)
+      }
+      const finalRect = computePanelRect()
+      if (finalRect) setPanelRect(finalRect)
     }
     setOpen((v) => !v)
   }

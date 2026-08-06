@@ -43,46 +43,71 @@ export default function TeamSelect({
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [])
 
+  // Compartida entre la apertura y el "seguimiento" del botón mientras la
+  // página aún se está moviendo (ver el efecto de scroll/resize más abajo).
+  function computePanelRect(): PanelRect | null {
+    if (!btnRef.current) return null
+    const rect = btnRef.current.getBoundingClientRect()
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
+    return {
+      left: rect.left,
+      width: rect.width,
+      top: openUp ? null : rect.bottom + 4,
+      bottom: openUp ? window.innerHeight - rect.top + 4 : null,
+    }
+  }
+
   // Cerrar en vez de reposicionar en cada scroll/resize -- mismo motivo que
   // en PlayerSelect: el panel usa position:fixed anclado a la posición del
   // botón en el momento de abrir, y si la página se desplaza sin cerrar, se
-  // quedaría "despegado" del botón. Se activa con un pequeño retraso (mismo
-  // motivo que en PlayerSelect: evitar que un resize/scroll disparado justo
-  // al abrir -- p.ej. por el teclado en otro campo de la misma página --
-  // cierre el panel una fracción de segundo después de abrirse. También se
-  // ignoran los scrolls que ocurren dentro del propio panel (su lista tiene
-  // scroll interno, y 'scroll' con fase de captura en window se dispara
-  // igualmente para eso).
+  // quedaría "despegado" del botón.
+  //
+  // Durante un breve margen justo al abrir, en vez de cerrar, se reposiciona
+  // siguiendo al botón (por si el foco de otro campo de la misma página abre
+  // el teclado y el navegador desplaza la página sola) -- pasado ese margen,
+  // un scroll ya se interpreta como el usuario desplazando a propósito.
+  // También se ignoran los scrolls que ocurren dentro del propio panel (su
+  // lista tiene scroll interno, y 'scroll' con fase de captura en window se
+  // dispara igualmente para eso).
   useEffect(() => {
     if (!open) return
-    function close(e: Event) {
+    let settled = false
+    function onScrollOrResize(e: Event) {
       if (panelRef.current?.contains(e.target as Node)) return
+      if (!settled) {
+        const rect = computePanelRect()
+        if (rect) setPanelRect(rect)
+        return
+      }
       setOpen(false)
     }
+    window.addEventListener('scroll', onScrollOrResize, true)
+    window.addEventListener('resize', onScrollOrResize)
     const timer = window.setTimeout(() => {
-      window.addEventListener('scroll', close, true)
-      window.addEventListener('resize', close)
+      settled = true
     }, 300)
     return () => {
       window.clearTimeout(timer)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', onScrollOrResize, true)
+      window.removeEventListener('resize', onScrollOrResize)
     }
   }, [open])
 
-  // Si no cabe entero por debajo (p.ej. cerca del final de la página), se
-  // abre hacia arriba en vez de solaparse con lo que venga después.
+  // Preferimos abrir siempre hacia abajo -- si no cabe entero en el viewport
+  // actual, desplazamos la página lo justo para que quepa, en vez de abrir
+  // hacia arriba (que tapa la pregunta de encima y resulta menos intuitivo
+  // que simplemente hacer scroll).
   function toggleOpen() {
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
       const spaceBelow = window.innerHeight - rect.bottom
-      const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
-      setPanelRect({
-        left: rect.left,
-        width: rect.width,
-        top: openUp ? null : rect.bottom + 4,
-        bottom: openUp ? window.innerHeight - rect.top + 4 : null,
-      })
+      const needed = PANEL_MAX_HEIGHT + 16
+      if (spaceBelow < needed) {
+        window.scrollBy(0, needed - spaceBelow)
+      }
+      const finalRect = computePanelRect()
+      if (finalRect) setPanelRect(finalRect)
     }
     setOpen((v) => !v)
   }
