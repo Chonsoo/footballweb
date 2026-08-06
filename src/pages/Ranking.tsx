@@ -76,6 +76,12 @@ export default function Ranking() {
   // el botón ha hecho algo incluso cuando la fila ya estaba a la vista y no
   // hay scroll perceptible.
   const [highlightId, setHighlightId] = useState<string | null>(null)
+  // Cambiar la "key" del span del pulso lo vuelve a montar de cero, y con
+  // él la animación (que ya tiene su propio límite de 2 repeticiones y
+  // para sola) -- así el pulso reaparece cada rato en vez de solo una vez
+  // al entrar y quedarse quieto para siempre, pero sin caer en el bucle
+  // infinito sin pausas que ya se había probado y resultaba molesto.
+  const [pulseKey, setPulseKey] = useState(0)
 
   useEffect(() => {
     supabase
@@ -85,6 +91,11 @@ export default function Ranking() {
         setRows((data as LeaderboardRow[]) ?? [])
         setLoading(false)
       })
+  }, [])
+
+  useEffect(() => {
+    const id = setInterval(() => setPulseKey((k) => k + 1), 4500)
+    return () => clearInterval(id)
   }, [])
 
   if (loading) return <p className="text-white/80">Cargando clasificación…</p>
@@ -124,13 +135,16 @@ export default function Ranking() {
             aria-label="Ir a tu posición"
             className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white shadow-xl shadow-black/30 ring-4 ring-white transition-transform hover:scale-105 active:scale-95"
           >
-            {/* Pulso suave, solo 2 veces al aparecer (antes era infinito y
-                resultaba molesto). Blanco, no negro: el pulso se expande
-                más allá del botón hacia el fondo verde oscuro de la
-                página, y en negro apenas se distinguía ahí (oscuro sobre
+            {/* Pulso suave, 2 veces seguidas cada vez (antes era un bucle
+                infinito sin pausas y resultaba molesto) -- se repite cada
+                18s gracias a pulseKey, que al cambiar remonta este span y
+                reinicia la animación desde cero. Blanco, no negro: el pulso
+                se expande más allá del botón hacia el fondo verde oscuro de
+                la página, y en negro apenas se distinguía ahí (oscuro sobre
                 oscuro) -- en blanco sí se nota, a juego con el aro blanco
                 del propio botón. */}
             <span
+              key={pulseKey}
               className="absolute inset-0 -z-10 rounded-full bg-white/50"
               style={{ animation: 'ranking-fab-ping 1.8s cubic-bezier(0,0,0.2,1) 2' }}
             />
