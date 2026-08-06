@@ -91,11 +91,15 @@ export default function Ranking() {
 
   async function handleCrestTapComplete() {
     if (!profile?.favorite_team) return
+    // El capitán puede ser CUALQUIER jugador de la plantilla del equipo
+    // favorito, no solo los elegibles para el 11 de Abuelonchos -- por eso
+    // aquí no se filtra por eligible_abuelonchos, a diferencia de otros
+    // sitios de la app que sí lo hacen (el 11 en sí, el buscador de
+    // capitanes de Fantasy...).
     const { data } = await supabase
       .from('fantasy_players')
       .select('*')
       .eq('team_id', profile.favorite_team)
-      .eq('eligible_abuelonchos', true)
       .eq('active', true)
       .order('name')
     setCaptainPlayers((data as FantasyPlayer[]) ?? [])

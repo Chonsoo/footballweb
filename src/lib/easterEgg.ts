@@ -23,7 +23,7 @@ export interface EasterEggProgress {
 // "¿cómo vas?") para quien quiera releerlas sin esperar a que vuelva a
 // salir el modal.
 export const EASTER_EGG_HINTS: Record<number, string> = {
-  1: 'Donde sale tu nombre entre los demás, tu escudo debes contar. Tócalo tantas veces como el puesto que ocupa tu equipo en la clasificación real.',
+  1: 'Donde sale tu nombre entre los demás, tu escudo debes tocar. Tócalo tantas veces como el puesto que ocupa actualmente tu equipo favorito en la clasificación de la liga española.',
   2: 'Ahora tócalo para ponerle el brazalete. Solo tú sabrás dónde encontrarlo.',
   3: 'Mira tu puesto en la liga Fantasy. Busca en tu 11 al jugador que ocupa ESE MISMO puesto, pero contando por puntos entre los tuyos. Si vas 11º o peor, no sigas contando: es el que menos suma.',
   4: 'Cada día tiene su marcador. Alguien lo dejó apuntado donde se guarda la verdad de todo lo que pasa en esta porra.',
