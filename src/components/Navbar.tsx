@@ -64,7 +64,12 @@ export default function Navbar() {
         cristal" sobre el verde de marca (Layout), no una barra blanca sólida
         -- así el navbar no rompe la cohesión con el fondo de cada página. */}
     <nav className="sticky top-0 z-30 border-b border-white/10 bg-brand-900/70 backdrop-blur-md">
-      <div className="flex items-center justify-between px-4 py-3">
+      {/* "relative" aquí (no en <nav>) a propósito: el menú móvil se ancla
+          justo debajo de ESTA fila (con position:absolute + top-full), no
+          debajo de todo <nav> (que también incluye el TabStrip) -- así
+          flota por encima del TabStrip y del contenido de la página en vez
+          de empujarlos hacia abajo y aparecer más abajo de lo esperado. */}
+      <div className="relative flex items-center justify-between px-4 py-3">
         {isAdminRoute ? (
           <NavLink to="/" className="hidden items-center gap-1.5 px-3 py-2 text-sm font-medium text-white/80 hover:text-white md:flex">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -225,81 +230,86 @@ export default function Navbar() {
             </div>
           )}
         </div>
+        {/* Flota por encima del TabStrip y del contenido de la página (no
+            forma parte del flujo normal de <nav>) para que aparezca pegado
+            justo debajo de esta fila de cabecera, en vez de más abajo del
+            todo por ir después del TabStrip en el HTML. Fondo casi opaco
+            (no el translúcido del navbar) porque, al flotar encima de otras
+            cosas, necesita cubrirlas de verdad para leerse bien. */}
+        {open && (
+          <div className="absolute inset-x-0 top-full z-40 space-y-1 border-t border-white/10 bg-brand-900/98 px-4 py-3 shadow-lg backdrop-blur-md md:hidden">
+            <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
+              Inicio
+            </NavLink>
+            <NavLink to="/clasificacion" onClick={closeAll} className={mobileLinkClass}>
+              Clasificación
+            </NavLink>
+
+            {!initialClosed && (
+              <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
+                Apuestas iniciales
+              </NavLink>
+            )}
+            <NavLink to="/apuestas-semana" onClick={closeAll} className={mobileLinkClass}>
+              Apuestas flash
+            </NavLink>
+
+            <NavLink to="/oraculo" onClick={closeAll} className={mobileLinkClass}>
+              El oráculo
+            </NavLink>
+            <NavLink to="/mis-apuestas" onClick={closeAll} className={mobileLinkClass}>
+              Mis apuestas
+            </NavLink>
+            <NavLink to="/apuestas-detalladas" onClick={closeAll} className={mobileLinkClass}>
+              Apuestas detalladas
+            </NavLink>
+            <NavLink to="/informacion" onClick={closeAll} className={mobileLinkClass}>
+              Información
+            </NavLink>
+            <NavLink to="/reglamento" onClick={closeAll} className={mobileLinkClass}>
+              Reglamento oficial
+            </NavLink>
+
+            {/* Fila de 3 iconos (mis datos / admin / cerrar sesión) en vez de
+                botones de texto apilados -- mis datos y cerrar sesión en los
+                extremos, que siempre están; admin en medio, que es el que le
+                falta a un usuario normal (hueco vacío en medio, no a un lado). */}
+            <div className="mt-2 flex items-center justify-around border-t border-white/10 pt-3">
+              <button
+                onClick={() => {
+                  closeAll()
+                  setEditOpen(true)
+                }}
+                title="Mis datos"
+                aria-label="Mis datos"
+                className="rounded-full p-2 text-xl hover:bg-white/10"
+              >
+                👤
+              </button>
+              {profile?.is_admin ? (
+                <NavLink to="/admin" onClick={closeAll} title="Admin" aria-label="Admin" className="rounded-full p-2 text-xl hover:bg-white/10">
+                  🛠️
+                </NavLink>
+              ) : (
+                <span />
+              )}
+              <button
+                onClick={() => {
+                  closeAll()
+                  setConfirmSignOut(true)
+                }}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+                className="rounded-full p-2 text-xl hover:bg-red-500/20"
+              >
+                🚪
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {!isAdminRoute && <TabStrip />}
-
-      {open && (
-        <div className="space-y-1 border-t border-white/10 px-4 py-3 md:hidden">
-          <NavLink to="/" end onClick={closeAll} className={mobileLinkClass}>
-            Inicio
-          </NavLink>
-          <NavLink to="/clasificacion" onClick={closeAll} className={mobileLinkClass}>
-            Clasificación
-          </NavLink>
-
-          {!initialClosed && (
-            <NavLink to="/apuestas-iniciales" onClick={closeAll} className={mobileLinkClass}>
-              Apuestas iniciales
-            </NavLink>
-          )}
-          <NavLink to="/apuestas-semana" onClick={closeAll} className={mobileLinkClass}>
-            Apuestas flash
-          </NavLink>
-
-          <NavLink to="/oraculo" onClick={closeAll} className={mobileLinkClass}>
-            El oráculo
-          </NavLink>
-          <NavLink to="/mis-apuestas" onClick={closeAll} className={mobileLinkClass}>
-            Mis apuestas
-          </NavLink>
-          <NavLink to="/apuestas-detalladas" onClick={closeAll} className={mobileLinkClass}>
-            Apuestas detalladas
-          </NavLink>
-          <NavLink to="/informacion" onClick={closeAll} className={mobileLinkClass}>
-            Información
-          </NavLink>
-          <NavLink to="/reglamento" onClick={closeAll} className={mobileLinkClass}>
-            Reglamento oficial
-          </NavLink>
-
-          {/* Fila de 3 iconos (mis datos / admin / cerrar sesión) en vez de
-              botones de texto apilados -- mis datos y cerrar sesión en los
-              extremos, que siempre están; admin en medio, que es el que le
-              falta a un usuario normal (hueco vacío en medio, no a un lado). */}
-          <div className="mt-2 flex items-center justify-around border-t border-white/10 pt-3">
-            <button
-              onClick={() => {
-                closeAll()
-                setEditOpen(true)
-              }}
-              title="Mis datos"
-              aria-label="Mis datos"
-              className="rounded-full p-2 text-xl hover:bg-white/10"
-            >
-              👤
-            </button>
-            {profile?.is_admin ? (
-              <NavLink to="/admin" onClick={closeAll} title="Admin" aria-label="Admin" className="rounded-full p-2 text-xl hover:bg-white/10">
-                🛠️
-              </NavLink>
-            ) : (
-              <span />
-            )}
-            <button
-              onClick={() => {
-                closeAll()
-                setConfirmSignOut(true)
-              }}
-              title="Cerrar sesión"
-              aria-label="Cerrar sesión"
-              className="rounded-full p-2 text-xl hover:bg-red-500/20"
-            >
-              🚪
-            </button>
-          </div>
-        </div>
-      )}
     </nav>
 
     {/* Los modales van FUERA de <nav>, no dentro -- <nav> lleva
