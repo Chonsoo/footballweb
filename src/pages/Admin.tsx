@@ -656,8 +656,21 @@ function Block3Panel({
                   {savingId === q.id ? 'Guardando…' : resolved ? 'Guardado ✓' : 'Sin jugar'}
                 </span>
               </div>
-              {resolved && (
-                <div className="flex justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                <span className="flex items-center gap-2">
+                  <label htmlFor={`match-date-${q.id}`}>Fecha:</label>
+                  <input
+                    id={`match-date-${q.id}`}
+                    type="date"
+                    defaultValue={q.config.match_date ?? ''}
+                    onBlur={(e) => {
+                      if (e.target.value !== (q.config.match_date ?? '')) saveDate(q, e.target.value)
+                    }}
+                    className="rounded border border-gray-300 px-2 py-1 text-xs"
+                  />
+                  {savingDateId === q.id && <span className="text-gray-400">Guardando…</span>}
+                </span>
+                {resolved && (
                   <button
                     onClick={() => setConfirmClearId(q.id)}
                     disabled={clearingId === q.id}
@@ -665,20 +678,7 @@ function Block3Panel({
                   >
                     {clearingId === q.id ? 'Limpiando…' : 'Limpiar resultado'}
                   </button>
-                </div>
-              )}
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <label htmlFor={`match-date-${q.id}`}>Fecha:</label>
-                <input
-                  id={`match-date-${q.id}`}
-                  type="date"
-                  defaultValue={q.config.match_date ?? ''}
-                  onBlur={(e) => {
-                    if (e.target.value !== (q.config.match_date ?? '')) saveDate(q, e.target.value)
-                  }}
-                  className="rounded border border-gray-300 px-2 py-1 text-xs"
-                />
-                {savingDateId === q.id && <span className="text-gray-400">Guardando…</span>}
+                )}
               </div>
               {/* Al guardar se puntúa solo automáticamente: no hace falta elegir
                   el 1x2 aparte, se deduce del marcador. Puntos fijos (no
