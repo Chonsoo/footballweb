@@ -39,13 +39,13 @@ const SUBVIEWS: [Subview, string][] = [
 // note que es su propia sección dentro de la porra.
 function darkTrackBtn(active: boolean) {
   return `rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-    active ? 'bg-gold-500 text-neutral-950' : 'text-neutral-300 hover:bg-neutral-800/60'
+    active ? 'bg-gold-500 text-noir-950' : 'text-neutral-300 hover:bg-noir-700/60'
   }`
 }
 
 function scopeChip(active: boolean) {
   return `rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-    active ? 'bg-gold-500 text-neutral-950' : 'bg-neutral-800/60 text-neutral-300 hover:bg-neutral-800'
+    active ? 'bg-gold-500 text-noir-950' : 'bg-noir-800 text-neutral-300 hover:bg-noir-700'
   }`
 }
 
@@ -66,11 +66,15 @@ export default function Fantasy() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-xl bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 px-4 py-4 text-white shadow-sm">
+      <div className="rounded-xl bg-gradient-to-br from-noir-950 via-noir-900 to-noir-800 px-4 py-4 text-white shadow-sm ring-1 ring-white/5">
         <h1 className="text-xl font-bold">⚽ Fantasy</h1>
         <p className="text-sm text-neutral-300">Tu 11 de Abuelonchos, jornada a jornada.</p>
 
-        <div className="mt-3 flex overflow-hidden rounded-lg bg-black/20 p-1 text-sm">
+        {/* La "pista" del selector va notablemente más oscura que el
+            degradado de la tarjeta (no un simple negro semitransparente
+            encima), para que se note como una ranura hundida en vez de
+            verse "negro sobre negro" sin relieve. */}
+        <div className="mt-3 flex overflow-hidden rounded-lg bg-noir-950/80 p-1 text-sm ring-1 ring-inset ring-white/5">
           {SUBVIEWS.map(([key, label]) => (
             <button key={key} type="button" onClick={() => setSubview(key)} className={`flex-1 ${darkTrackBtn(subview === key)}`}>
               {label}
@@ -162,7 +166,7 @@ function MiEquipoView({
         ))}
       </div>
 
-      <div className="flex items-center justify-between rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 px-4 py-3 text-white shadow-sm">
+      <div className="flex items-center justify-between rounded-lg bg-gradient-to-br from-noir-900 to-noir-800 px-4 py-3 text-white shadow-sm ring-1 ring-white/5">
         <span className="text-sm text-neutral-300">
           {scope === 'total' ? 'Tus puntos fantasy (jornadas jugadas)' : `Tus puntos en la jornada ${scope}`}
         </span>

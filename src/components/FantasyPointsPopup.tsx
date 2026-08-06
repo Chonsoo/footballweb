@@ -63,7 +63,7 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm overflow-hidden rounded-xl bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-800 shadow-xl"
+        className="w-full max-w-sm overflow-hidden rounded-xl bg-gradient-to-br from-noir-950 via-noir-900 to-noir-800 shadow-xl ring-1 ring-white/5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-5 pb-3">
@@ -92,12 +92,12 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 rounded-lg bg-black/20 p-1">
+          <div className="flex flex-wrap gap-1.5 rounded-lg bg-noir-950/80 p-1 ring-1 ring-inset ring-white/5">
             <button
               type="button"
               onClick={() => setSelected('total')}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                selected === 'total' ? 'bg-gold-500 text-neutral-950' : 'text-neutral-300 hover:bg-neutral-800/60'
+                selected === 'total' ? 'bg-gold-500 text-noir-950' : 'text-neutral-300 hover:bg-noir-700/60'
               }`}
             >
               Total
@@ -108,7 +108,7 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
                 type="button"
                 onClick={() => setSelected(md.number)}
                 className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                  selected === md.number ? 'bg-gold-500 text-neutral-950' : 'text-neutral-300 hover:bg-neutral-800/60'
+                  selected === md.number ? 'bg-gold-500 text-noir-950' : 'text-neutral-300 hover:bg-noir-700/60'
                 }`}
               >
                 J{md.number}
@@ -119,8 +119,10 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
 
         {/* Tabla Cantidad · Estadística · Puntos: siempre las mismas 7 filas
             (a 0 cuando no aplica), así el popup mide siempre lo mismo tenga
-            lo que tenga el jugador. */}
-        <div className="border-y border-white/10 bg-black/10">
+            lo que tenga el jugador. Más oscura que el degradado de arriba,
+            para que se note como su propio bloque en vez de fundirse con
+            él. */}
+        <div className="border-y border-white/10 bg-noir-950/60">
           <div className={`grid ${cols} gap-2 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400`}>
             <span className="text-center">Cant.</span>
             <span>Estadística</span>
@@ -152,10 +154,10 @@ export default function FantasyPointsPopup({ player, matchdays, initialMatchday,
         </div>
 
         <div className="flex items-center justify-between bg-gold-500 px-5 py-3">
-          <span className="text-xs font-bold uppercase tracking-wide text-neutral-950">
+          <span className="text-xs font-bold uppercase tracking-wide text-noir-950">
             Total {selected === 'total' ? 'temporada' : `jornada ${selected}`}
           </span>
-          <span className="text-lg font-bold text-neutral-950">{total} pts</span>
+          <span className="text-lg font-bold text-noir-950">{total} pts</span>
         </div>
       </div>
     </div>,

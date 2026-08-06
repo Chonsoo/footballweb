@@ -21,6 +21,15 @@
   --color-gold-500: #d9ad4a;
   --color-gold-400: #f4d888;
   --color-gold-100: #fbf1d9;
+
+  /* "Noir" -- identidad propia de Fantasy: grafito casi negro pero con un
+     pelín de verde de fondo (no gris/negro puro), para que destaque frente
+     al resto de la web sin dejar de sentirse parte de la misma paleta. Solo
+     se usa dentro de Fantasy (cabecera, pestañas, popup de puntos). */
+  --color-noir-950: #0a0f0c;
+  --color-noir-900: #131c17;
+  --color-noir-800: #202a24;
+  --color-noir-700: #313d37;
 }
 
 :root {
