@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePlayers } from '../lib/usePlayers'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
@@ -24,17 +24,19 @@ function RowAvatar({ photoUrl }: { photoUrl: string | null }) {
   )
 }
 
-interface PanelRect {
-  left: number
-  width: number
-  top: number | null // solo si se abre hacia abajo
-  bottom: number | null // solo si se abre hacia arriba
-}
-
 // Selector con buscador para preguntas de jugador (Pichichi, Trofeo Zamora,
 // Máximo Asistente…). Se guarda el nombre del jugador como texto, igual que
 // hace TeamSelect con los equipos, así el resto del flujo de calificación
 // (config.options, comparación de texto) no cambia.
+//
+// Se muestra como un modal a pantalla completa (no un desplegable anclado al
+// botón) a propósito: en móvil, con el teclado abierto, "position: fixed"
+// puede quedar anclado al viewport de layout mientras el navegador desplaza
+// la página dentro del viewport visual (dos sistemas de coordenadas
+// distintos) -- cuanto más se movía la página, más se desincronizaba un
+// panel anclado al botón, sin arreglo fiable entre navegadores. Un modal a
+// pantalla completa no necesita seguir a ningún botón, así que el problema
+// desaparece por diseño.
 export default function PlayerSelect({
   value,
   onChange,
@@ -52,12 +54,8 @@ export default function PlayerSelect({
 }) {
   const { players, loading } = usePlayers()
   const [open, setOpen] = useState(false)
-  const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
   const [search, setSearch] = useState('')
   const [imgError, setImgError] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
 
   let pool = excludeTeamIds?.length ? players.filter((p) => !excludeTeamIds.includes(p.team_id ?? '')) : players
   if (position) pool = pool.filter((p) => p.player_position === position)
@@ -66,77 +64,15 @@ export default function PlayerSelect({
 
   const filtered = search.trim() ? pool.filter((p) => playerMatchesSearch(p, search)) : pool
 
-  // Cierra al hacer clic fuera -- ojo, el panel desplegado vive en un portal
-  // a document.body (ver más abajo), así que un clic DENTRO del panel no
-  // está dentro de `ref` (el botón) y hay que comprobarlo aparte, o se
-  // cerraría solo con tocar cualquier fila.
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (ref.current?.contains(target)) return
-      if (panelRef.current?.contains(target)) return
-      setOpen(false)
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    return () => document.removeEventListener('mousedown', onClickOutside)
-  }, [])
-
   useEffect(() => {
     setImgError(false)
   }, [value])
 
-  // Mientras el panel está abierto, se recalcula su posición en CADA
-  // fotograma siguiendo al botón (en vez de reaccionar a eventos de scroll
-  // o resize). Esto sustituye a un enfoque anterior basado en escuchar
-  // 'scroll'/'resize', que resultó frágil: el campo de búsqueda tiene
-  // autoFocus, y en móvil eso abre el teclado, que anima su entrada (no es
-  // instantáneo) y hace que el navegador desplace la página para mantener el
-  // campo visible -- esos eventos no siempre llegaban en el momento exacto
-  // ni con la frecuencia necesaria para mantener el panel pegado al botón
-  // durante toda la animación, así que a veces se quedaba desalineado justo
-  // al abrirse. Siguiendo la posición real del botón fotograma a fotograma
-  // el panel queda siempre bien colocado sin importar la causa del
-  // movimiento (teclado, scroll, cambio de tamaño, lo que sea).
+  // Al cerrar (elegido un jugador o cancelado), se limpia la búsqueda para
+  // la próxima vez que se abra.
   useEffect(() => {
-    if (!open) return
-    let rafId: number
-    function track() {
-      const rect = computePanelRect()
-      if (rect) {
-        setPanelRect((prev) =>
-          prev && prev.left === rect.left && prev.width === rect.width && prev.top === rect.top ? prev : rect
-        )
-      }
-      rafId = requestAnimationFrame(track)
-    }
-    rafId = requestAnimationFrame(track)
-    return () => cancelAnimationFrame(rafId)
+    if (!open) setSearch('')
   }, [open])
-
-  // Compartida entre la apertura y el seguimiento fotograma a fotograma
-  // mientras está abierto (ver el efecto de arriba). Siempre abre hacia
-  // ABAJO -- nunca hacia arriba: si no cabe entero en el viewport actual, se
-  // deja que el propio navegador/usuario haga scroll (p.ej. al enfocar el
-  // buscador en móvil), y el seguimiento fotograma a fotograma mantiene el
-  // panel pegado al botón mientras tanto.
-  function computePanelRect(): PanelRect | null {
-    if (!btnRef.current) return null
-    const rect = btnRef.current.getBoundingClientRect()
-    return {
-      left: rect.left,
-      width: rect.width,
-      top: rect.bottom + 4,
-      bottom: null,
-    }
-  }
-
-  function toggleOpen() {
-    if (!open) {
-      const finalRect = computePanelRect()
-      if (finalRect) setPanelRect(finalRect)
-    }
-    setOpen((v) => !v)
-  }
 
   function teamOf(p: FantasyPlayer) {
     return LALIGA_TEAMS_2026_27.find((t) => t.id === p.team_id)
@@ -144,12 +80,11 @@ export default function PlayerSelect({
   const selectedTeam = selected ? teamOf(selected) : undefined
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
-        ref={btnRef}
         type="button"
         disabled={disabled || loading}
-        onClick={toggleOpen}
+        onClick={() => setOpen(true)}
         className="flex w-full items-center justify-between gap-2 rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm disabled:opacity-50"
       >
         <span className="flex items-center gap-2 truncate">
@@ -163,7 +98,7 @@ export default function PlayerSelect({
         </svg>
       </button>
 
-      {selected && !open && (
+      {selected && (
         <div className="mt-2 flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white ring-1 ring-gray-200">
             {selected.photo_url && !imgError ? (
@@ -194,67 +129,71 @@ export default function PlayerSelect({
       )}
 
       {open &&
-        panelRect &&
         createPortal(
-          // Portal a document.body + position:fixed anclado a la posición del
-          // botón: si no, el panel queda ATRAPADO dentro del contexto de
-          // apilamiento de la tarjeta que lo contiene (backdrop-blur-sm crea
-          // uno nuevo, igual que un transform), y por más z-index que se le
-          // ponga nunca puede pintarse por encima de la SIGUIENTE tarjeta de
-          // pregunta -- justo lo que pasaba antes (el desplegable de
-          // "Pichichi Absoluto" se quedaba tapado detrás de "Trofeo Zamora").
           <div
-            ref={panelRef}
-            style={{
-              position: 'fixed',
-              left: panelRect.left,
-              width: panelRect.width,
-              top: panelRect.top ?? undefined,
-              bottom: panelRect.bottom ?? undefined,
-            }}
-            className="z-50 flex max-h-72 flex-col rounded border border-gray-200 bg-white shadow-lg"
+            className="fixed inset-0 z-50 flex flex-col bg-black/40 p-3 sm:items-center sm:justify-center"
+            onClick={() => setOpen(false)}
           >
-            <input
-              type="text"
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nombre del jugador…"
-              // text-base (16px) en vez de text-sm: por debajo de 16px, iOS Safari
-              // hace zoom automático de toda la página al enfocar el campo.
-              // focus:outline-none + un anillo propio en vez de dejar el foco por
-              // defecto del navegador -- sin esto, según el navegador/SO puede
-              // salir de un color que no pega con la app (p.ej. dorado, que aquí
-              // se reserva para el Abueloncho Dorado).
-              className="m-1.5 rounded border border-gray-200 px-2 py-1.5 text-base focus:border-brand-500 focus:outline-none sm:text-sm"
-            />
-            <div className="overflow-y-auto">
-              {filtered.length === 0 && <p className="px-3 py-2 text-sm text-gray-400">Sin resultados</p>}
-              {filtered.map((p) => {
-                const team = teamOf(p)
-                return (
-                  <button
-                    key={p.api_player_id}
-                    type="button"
-                    onClick={() => {
-                      onChange(p.name)
-                      setSearch('')
-                      setOpen(false)
-                    }}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                      p.name === value ? 'bg-brand-50 font-medium text-brand-800' : 'text-gray-700'
-                    }`}
-                  >
-                    <RowAvatar photoUrl={p.photo_url} />
-                    {team?.badge && <img src={team.badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}
-                    <span className="min-w-0 flex-1 truncate">{p.name}</span>
-                    <span className="shrink-0 text-xs text-gray-400">
-                      {p.player_position}
-                      {team ? ` · ${team.name}` : ''}
-                    </span>
-                  </button>
-                )
-              })}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex max-h-[85vh] w-full flex-1 flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:flex-none sm:max-w-md"
+            >
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-gray-800">Elige un jugador</h3>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Cerrar"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <input
+                type="text"
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nombre del jugador…"
+                // text-base (16px) en vez de text-sm: por debajo de 16px, iOS Safari
+                // hace zoom automático de toda la página al enfocar el campo.
+                // focus:outline-none + un anillo propio en vez de dejar el foco por
+                // defecto del navegador -- sin esto, según el navegador/SO puede
+                // salir de un color que no pega con la app (p.ej. dorado, que aquí
+                // se reserva para el Abueloncho Dorado). autoFocus aquí es seguro:
+                // al ser un modal a pantalla completa (no un desplegable anclado a
+                // un botón), no importa que el teclado desplace la página.
+                className="mx-3 mt-3 rounded border border-gray-200 px-2 py-1.5 text-base focus:border-brand-500 focus:outline-none sm:text-sm"
+              />
+              <div className="mt-2 overflow-y-auto">
+                {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">Sin resultados</p>}
+                {filtered.map((p) => {
+                  const team = teamOf(p)
+                  return (
+                    <button
+                      key={p.api_player_id}
+                      type="button"
+                      onClick={() => {
+                        onChange(p.name)
+                        setOpen(false)
+                      }}
+                      className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-gray-50 ${
+                        p.name === value ? 'bg-brand-50 font-medium text-brand-800' : 'text-gray-700'
+                      }`}
+                    >
+                      <RowAvatar photoUrl={p.photo_url} />
+                      {team?.badge && <img src={team.badge} alt="" className="h-5 w-5 shrink-0 object-contain" />}
+                      <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                      <span className="shrink-0 text-xs text-gray-400">
+                        {p.player_position}
+                        {team ? ` · ${team.name}` : ''}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>,
           document.body
