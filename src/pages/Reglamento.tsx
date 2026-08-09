@@ -444,9 +444,9 @@ export default function Reglamento() {
         </p>
         <Table2 head={['Puesto', 'Premio']} rows={PRIZE_EXAMPLE_TABLE} />
         <p className="text-sm text-gray-600">
-          Si hay empate real en zona de premios (algo muy raro, porque antes se desempata por puntos del Bloque 1 y
-          luego por la liga Fantasy — ver "Dudas y agradecimientos"), se suma el % de todos los puestos que ocupan
-          los empatados y se reparte a partes iguales entre ellos.
+          Si hay empate real en zona de premios (algo muy raro: antes se desempata por puntos del Bloque 1 y luego
+          por la liga Fantasy), se suma el % de todos los puestos que ocupan los empatados y se reparte a partes
+          iguales entre ellos.
         </p>
       </Section>
 
