@@ -112,6 +112,14 @@ export default function FantasyLineupPicker({
 
   const selectedPlayer = selected != null ? playersById.get(selected) ?? null : null
 
+  // "readOnly" no siempre significa "no se puede tocar": en Fantasy (pestaña
+  // Resumen/Jornadas/Liga) se usa readOnly=true (para desactivar la edición
+  // del once) PERO con onPlayerSelect definido, para que tocar un jugador
+  // abra su desglose de puntos -- ahí SÍ debe verse el cursor de mano. Solo
+  // en "Mis apuestas"/"Apuestas detalladas" (readOnly sin onPlayerSelect) no
+  // pasa nada al tocar, y ahí es donde no debe verse cursor de mano.
+  const clickable = !readOnly || !!onPlayerSelect
+
   function handlePlayerClick(id: number) {
     if (readOnly) {
       if (onPlayerSelect) {
@@ -239,6 +247,7 @@ export default function FantasyLineupPicker({
             selected={selected}
             selectedPlayer={selectedPlayer}
             readOnly={readOnly}
+            clickable={clickable}
             pointsByPlayer={pointsByPlayer}
             onSlotClick={handleSlotClick}
             onPlayerClick={handlePlayerClick}
@@ -414,6 +423,7 @@ function PitchView({
   selected,
   selectedPlayer,
   readOnly,
+  clickable,
   pointsByPlayer,
   onSlotClick,
   onPlayerClick,
@@ -425,6 +435,7 @@ function PitchView({
   selected: number | null
   selectedPlayer: FantasyPlayer | null
   readOnly?: boolean
+  clickable?: boolean
   pointsByPlayer?: Record<number, number>
   onSlotClick: (slot: FantasySlot) => void
   onPlayerClick: (id: number) => void
@@ -471,6 +482,7 @@ function PitchView({
                       player={occupant}
                       selected={selected === occupant.api_player_id}
                       readOnly={readOnly}
+                      clickable={clickable}
                       celebrating={celebratingPlayerId === occupant.api_player_id}
                       points={pointsByPlayer?.[occupant.api_player_id]}
                       onClick={() => {
@@ -511,6 +523,7 @@ function PitchAvatar({
   player,
   selected,
   readOnly,
+  clickable,
   points,
   celebrating,
   onClick,
@@ -519,6 +532,7 @@ function PitchAvatar({
   player: FantasyPlayer
   selected: boolean
   readOnly?: boolean
+  clickable?: boolean
   points?: number
   celebrating?: boolean
   onClick: () => void
@@ -537,7 +551,7 @@ function PitchAvatar({
         onClick()
       }}
       title={`${player.name} · ${FANTASY_POSITION_LABELS[player.player_position]}${team ? ` · ${team.name}` : ''}`}
-      className="flex w-14 cursor-pointer flex-col items-center gap-0.5"
+      className={`flex w-14 flex-col items-center gap-0.5 ${clickable ? 'cursor-pointer' : ''}`}
     >
       {/* Mismo marco circular "Abueluchos FC" que en las cartas del banquillo
           (PlayerCard), en vez del círculo simple de antes -- así el jugador
