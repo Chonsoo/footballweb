@@ -9,6 +9,7 @@ import { SCORE_PREDICTION_1X2_POINTS, SCORE_PREDICTION_EXACT_BONUS } from '../li
 import RankingAnswer from '../components/RankingAnswer'
 import PlayerSelect from '../components/PlayerSelect'
 import TeamSelect from '../components/TeamSelect'
+import ModalSelect, { type ModalSelectOption } from '../components/ModalSelect'
 import { ScoreStepper, TeamLabel } from '../components/QuestionInput'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
@@ -86,20 +87,11 @@ export default function Admin() {
 
 // ---------------- Apuestas flash: crear + resolver, cada semana según van llegando ----------------
 function FlashAdminSection() {
-  const [subtab, setSubtab] = useState<'resolve' | 'create'>('resolve')
+  const [subtab, setSubtab] = useState<'create' | 'resolve'>('create')
 
   return (
     <section className="flex flex-col gap-4">
       <div className="flex overflow-hidden rounded-lg border border-gray-200 text-sm">
-        <button
-          type="button"
-          onClick={() => setSubtab('resolve')}
-          className={`flex-1 px-3 py-2 font-medium transition-colors ${
-            subtab === 'resolve' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          Resolver
-        </button>
         <button
           type="button"
           onClick={() => setSubtab('create')}
@@ -109,9 +101,18 @@ function FlashAdminSection() {
         >
           Crear
         </button>
+        <button
+          type="button"
+          onClick={() => setSubtab('resolve')}
+          className={`flex-1 px-3 py-2 font-medium transition-colors ${
+            subtab === 'resolve' ? 'bg-brand-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          Resolver
+        </button>
       </div>
 
-      {subtab === 'resolve' ? <ResolveQuestionsSection lockedPhase="weekly" /> : <CreateQuestionSection lockedPhase="weekly" />}
+      {subtab === 'create' ? <CreateQuestionSection lockedPhase="weekly" /> : <ResolveQuestionsSection lockedPhase="weekly" />}
     </section>
   )
 }
@@ -1087,10 +1088,18 @@ function UsersSection() {
 }
 
 // ---------------- Crear apuesta ----------------
+// Solo dos tipos disponibles al crear una apuesta flash: Marcador (predicción
+// de resultado, con selector de equipo a cada lado) u Opciones (elegir entre
+// varias). El texto libre se ha quitado -- no se usa en la práctica y solo
+// añadía confusión al formulario.
+const ANSWER_TYPE_OPTIONS: ModalSelectOption<AnswerType>[] = [
+  { value: 'score_prediction', label: 'Marcador' },
+  { value: 'choice', label: 'Opciones' },
+]
+
 function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase }) {
-  const [competition, setCompetition] = useState('liga')
   const [question, setQuestion] = useState('')
-  const [answerType, setAnswerType] = useState<AnswerType>('text')
+  const [answerType, setAnswerType] = useState<AnswerType>('choice')
   const [phase, setPhase] = useState<QuestionPhase>(lockedPhase ?? 'weekly')
   const [points, setPoints] = useState(1)
   const [closesAt, setClosesAt] = useState('')
@@ -1115,7 +1124,7 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
   async function addQuestion() {
     if (!question.trim()) return
     await supabase.from('season_questions').insert({
-      competition,
+      competition: 'liga',
       question,
       answer_type: answerType,
       phase,
@@ -1128,7 +1137,7 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
     setPoints(1)
     setClosesAt('')
     setConfig({})
-    setAnswerType('text')
+    setAnswerType('choice')
     setBlock('')
     await loadRecent()
   }
@@ -1156,69 +1165,79 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
       </p>
 
       <div className="mb-4 flex flex-col gap-3 rounded border border-gray-200 bg-white p-4">
-        <div className="flex flex-wrap items-end gap-2">
-          <select value={competition} onChange={(e) => setCompetition(e.target.value)} className="rounded border border-gray-300 px-2 py-2 text-sm">
-            <option value="liga">Liga</option>
-            <option value="champions">Champions</option>
-            <option value="otros">Otros</option>
-          </select>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
           {!lockedPhase && (
-            <select
-              value={phase}
-              onChange={(e) => setPhase(e.target.value as QuestionPhase)}
-              className="rounded border border-gray-300 px-2 py-2 text-sm"
-            >
-              <option value="weekly">Semana</option>
-              <option value="initial">Inicial</option>
-            </select>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-500">Fase</label>
+              <select
+                value={phase}
+                onChange={(e) => setPhase(e.target.value as QuestionPhase)}
+                className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+              >
+                <option value="weekly">Semana</option>
+                <option value="initial">Inicial</option>
+              </select>
+            </div>
           )}
           {phase === 'initial' && (
-            <select
-              value={block}
-              onChange={(e) => setBlock(e.target.value)}
-              title="Bloque del formulario inicial"
-              className="rounded border border-gray-300 px-2 py-2 text-sm"
-            >
-              <option value="">Sin bloque</option>
-              <option value="1">Bloque 1</option>
-              <option value="2">Bloque 2</option>
-              <option value="3">Bloque 3</option>
-              <option value="4">Bloque 4</option>
-            </select>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-500">Bloque</label>
+              <select
+                value={block}
+                onChange={(e) => setBlock(e.target.value)}
+                title="Bloque del formulario inicial"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+              >
+                <option value="">Sin bloque</option>
+                <option value="1">Bloque 1</option>
+                <option value="2">Bloque 2</option>
+                <option value="3">Bloque 3</option>
+                <option value="4">Bloque 4</option>
+              </select>
+            </div>
           )}
-          <select
-            value={answerType}
-            onChange={(e) => {
-              setAnswerType(e.target.value as AnswerType)
-              setConfig({})
-            }}
-            className="rounded border border-gray-300 px-2 py-2 text-sm"
-          >
-            <option value="text">Texto libre</option>
-            <option value="choice">Elegir una opción</option>
-            <option value="score_prediction">Predicción de resultado</option>
-          </select>
-          <input
-            type="text"
-            placeholder="Pregunta"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            className="min-w-[220px] flex-1 rounded border border-gray-300 px-2 py-2 text-sm"
-          />
-          <input
-            type="number"
-            min={1}
-            value={points}
-            onChange={(e) => setPoints(Number(e.target.value))}
-            title="Puntos (orientativo, o los que se aplican automáticamente si acierta)"
-            className="w-20 rounded border border-gray-300 px-2 py-2 text-sm"
-          />
-          <input
-            type="datetime-local"
-            value={closesAt}
-            onChange={(e) => setClosesAt(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-2 text-sm"
-          />
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Tipo de pregunta</label>
+            <ModalSelect
+              options={ANSWER_TYPE_OPTIONS}
+              value={answerType}
+              onChange={(v) => {
+                setAnswerType(v)
+                setConfig({})
+              }}
+              label="Tipo de pregunta"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-gray-500">Pregunta</label>
+            <input
+              type="text"
+              placeholder="Ej: ¿Quién gana el partido?"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Puntos</label>
+            <input
+              type="number"
+              min={1}
+              value={points}
+              onChange={(e) => setPoints(Number(e.target.value))}
+              title="Puntos (orientativo, o los que se aplican automáticamente si acierta)"
+              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Cierra</label>
+            <input
+              type="datetime-local"
+              value={closesAt}
+              onChange={(e) => setClosesAt(e.target.value)}
+              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+            />
+          </div>
         </div>
 
         <ConfigBuilder answerType={answerType} config={config} onChange={setConfig} />
@@ -1269,6 +1288,7 @@ function ConfigBuilder({
   if (answerType === 'choice') {
     return (
       <div className="flex flex-col gap-2">
+        <label className="mb-1 block text-xs font-medium text-gray-500">Opciones</label>
         <label className="flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
@@ -1327,23 +1347,33 @@ function ConfigBuilder({
   }
 
   if (answerType === 'score_prediction') {
+    // El nombre del equipo (no el id) es lo que se guarda en home_team/away_team
+    // -- es el formato que ya usa el resto de la app para buscar el escudo
+    // (ver lib/teamBadge.ts), así que no hace falta tocar nada más para que
+    // salga el escudo en el resto de pantallas.
+    const homeId = LALIGA_TEAMS_2026_27.find((t) => t.name === config.home_team)?.id ?? ''
+    const awayId = LALIGA_TEAMS_2026_27.find((t) => t.name === config.away_team)?.id ?? ''
     return (
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="text"
-          placeholder="Equipo local"
-          value={config.home_team ?? ''}
-          onChange={(e) => onChange({ ...config, home_team: e.target.value })}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        />
-        <span className="text-gray-400">vs</span>
-        <input
-          type="text"
-          placeholder="Equipo visitante"
-          value={config.away_team ?? ''}
-          onChange={(e) => onChange({ ...config, away_team: e.target.value })}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
-        />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+        <div className="flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-500">Equipo local</label>
+          <TeamSelect
+            teams={LALIGA_TEAMS_2026_27}
+            value={homeId}
+            onChange={(id) => onChange({ ...config, home_team: LALIGA_TEAMS_2026_27.find((t) => t.id === id)?.name ?? '' })}
+            label="Equipo local"
+          />
+        </div>
+        <span className="hidden pb-2 text-gray-400 sm:block">vs</span>
+        <div className="flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-500">Equipo visitante</label>
+          <TeamSelect
+            teams={LALIGA_TEAMS_2026_27}
+            value={awayId}
+            onChange={(id) => onChange({ ...config, away_team: LALIGA_TEAMS_2026_27.find((t) => t.id === id)?.name ?? '' })}
+            label="Equipo visitante"
+          />
+        </div>
       </div>
     )
   }
