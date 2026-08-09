@@ -126,12 +126,21 @@ export default function Home() {
     supabase
       .from('leaderboard')
       .select('*')
-      // Desempate estable por nombre: con todos a 0 puntos al principio de
-      // temporada, sin un segundo criterio el orden (y por tanto "tu
-      // puesto") puede variar de una carga a otra sin motivo aparente.
+      // Desempate estable por nombre PRIMERO (antes de ordenar por puntos):
+      // con todos a 0 puntos al principio de temporada -- y hasta en 0 en
+      // block1_points/fantasy_points -- sin un último criterio el orden (y
+      // por tanto "tu puesto") puede variar de una carga a otra sin motivo
+      // aparente. Como el sort de JS es estable, este orden alfabético solo
+      // se nota cuando los 3 criterios de desempate de abajo también empatan.
       .order('username', { ascending: true })
       .then(({ data }) => {
-        const sorted = ((data as LeaderboardRow[]) ?? []).sort((a, b) => b.total_points - a.total_points)
+        // Mismo criterio de desempate que la vista `leaderboard` (ver
+        // supabase/migrations/040_leaderboard_tiebreak.sql): total_points,
+        // luego block1_points, luego fantasy_points -- computeRanks (más
+        // abajo) necesita que las filas ya vengan en este orden exacto.
+        const sorted = ((data as LeaderboardRow[]) ?? []).sort(
+          (a, b) => b.total_points - a.total_points || b.block1_points - a.block1_points || b.fantasy_points - a.fantasy_points
+        )
         setRows(sorted)
         setLoading(false)
       })

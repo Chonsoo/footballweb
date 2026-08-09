@@ -688,14 +688,18 @@ $$;
 -- flash) más un bonus por puesto en la Liga fantasy (no los puntos fantasy
 -- en sí, sino puntos de premio según el puesto: 1º 25, 2º 21, 3º 17, 4º 12,
 -- 5º 7, 6º 5, 7º 3, 8º 2, 9º 1, el resto 0) más el bonus fijo de +10 del
--- huevo de pascua si están los 5 pasos hechos. Empates comparten puesto
--- ("1224") y el siguiente salta el hueco, vía rank() sobre fantasy_leaderboard.
--- "egg_completed" se expone aparte (no solo sumado al total) para pintar el
--- nombre en dorado en Clasificación y la línea del huevo en el desglose.
+-- huevo de pascua si están los 5 pasos hechos. Empates en total_points
+-- desempatan por block1_points y luego por fantasy_points (puntos reales de
+-- la liga Fantasy, no el bonus) -- solo si coinciden en los tres se
+-- comparte puesto ("1224"), vía computeRanks en el cliente (ver
+-- src/lib/ranking.ts). "egg_completed" se expone aparte (no solo sumado al
+-- total) para pintar el nombre en dorado en Clasificación y la línea del
+-- huevo en el desglose.
 create or replace view public.leaderboard as
 with fantasy_ranked as (
   select
     user_id,
+    total_points as fantasy_points,
     rank() over (order by total_points desc) as fantasy_rank
   from public.fantasy_leaderboard
   where mode = 'abuelonchos'
@@ -703,6 +707,7 @@ with fantasy_ranked as (
 fantasy_bonus as (
   select
     user_id,
+    fantasy_points,
     case fantasy_rank
       when 1 then 25
       when 2 then 21
@@ -721,13 +726,22 @@ egg_bonus as (
   select user_id, 10 as bonus_points
   from public.easter_egg_progress
   where completed_at is not null
+),
+block1_points as (
+  select sa.user_id, sum(sa.points) as points
+  from public.season_answers sa
+  join public.season_questions sq on sq.id = sa.question_id
+  where sq.block = 1 and sa.points is not null
+  group by sa.user_id
 )
 select
   p.id as user_id,
   p.username,
   coalesce(sa.total, 0) + coalesce(fb.bonus_points, 0) + coalesce(eb.bonus_points, 0) as total_points,
   p.favorite_team,
-  (eb.user_id is not null) as egg_completed
+  (eb.user_id is not null) as egg_completed,
+  coalesce(b1.points, 0) as block1_points,
+  coalesce(fb.fantasy_points, 0) as fantasy_points
 from public.profiles p
 left join (
   select user_id, sum(points) as total
@@ -737,8 +751,9 @@ left join (
 ) sa on sa.user_id = p.id
 left join fantasy_bonus fb on fb.user_id = p.id
 left join egg_bonus eb on eb.user_id = p.id
+left join block1_points b1 on b1.user_id = p.id
 where p.email_confirmed = true
-order by total_points desc;
+order by total_points desc, block1_points desc, fantasy_points desc;
 
 -- =========================================================
 -- Para convertirte en el primer admin, ejecuta esto tras

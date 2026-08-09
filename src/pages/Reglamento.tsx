@@ -270,8 +270,9 @@ export default function Reglamento() {
           abajo). Cada apuesta se puntúa en cuanto el admin fija el resultado real; hasta entonces no suma nada.
         </p>
         <p className="text-sm text-gray-600">
-          Si dos o más participantes empatan a puntos en la clasificación general, comparten posición: no hay
-          ningún criterio de desempate adicional.
+          Si dos o más participantes empatan a puntos en la clasificación general, desempata quien tenga más puntos
+          en el Bloque 1 (Clasificación de Liga); si también empatan ahí, desempata quien tenga más puntos en la
+          liga Fantasy. Si coinciden en los tres, ahí sí comparten posición.
         </p>
       </Section>
 
@@ -413,7 +414,8 @@ export default function Reglamento() {
         <p className="text-sm text-gray-600">
           Cualquier discrepancia sobre un resultado o una puntuación debe comunicarse a la organización antes del
           cierre de la siguiente jornada; pasado ese plazo, la puntuación se considera definitiva y no se revisa.
-          Los empates a puntos en la clasificación general no se desempatan: se comparte la posición.
+          Los empates a puntos en la clasificación general se desempatan primero por puntos en el Bloque 1 y luego
+          por puntos en la liga Fantasy (ver "Cómo se juega" al principio).
         </p>
         <h3 className="text-sm font-semibold text-gray-800">Agradecimientos</h3>
         <p className="text-sm text-gray-600">

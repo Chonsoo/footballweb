@@ -86,6 +86,11 @@ export interface LeaderboardRow {
   username: string
   favorite_team: string | null
   total_points: number
+  // Desempate de la clasificación general (ver supabase/migrations/040_
+  // leaderboard_tiebreak.sql): a igual total_points, gana quien tenga más
+  // block1_points, y si también empatan ahí, más fantasy_points.
+  block1_points: number
+  fantasy_points: number
   // "Abueloncho Dorado" (huevo de pascua de 5 pasos) completado -- ver
   // src/lib/easterEgg.ts y supabase/migrations/037_easter_egg.sql.
   egg_completed: boolean
