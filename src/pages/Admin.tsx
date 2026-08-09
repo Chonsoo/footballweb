@@ -244,6 +244,8 @@ function Block1Panel({
   const [resultDraft, setResultDraftState] = useState<Record<string, number>>((result?.result as Record<string, number>) ?? {})
   const [saving, setSaving] = useState(false)
   const [laligaLoading, setLaligaLoading] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [status, setStatus] = useState<Status>(null)
   // "Sucio" = hay cambios del usuario sin guardar todavía. Se distingue de
   // "el prop result cambió" (recarga desde el servidor tras guardar) para no
@@ -323,6 +325,27 @@ function Block1Panel({
     await onChanged()
   }
 
+  // Igual que en Bloque 2/4: clear_season_result borra el resultado fijado y
+  // resetea los puntos de todos los participantes a null (no a 0), que es la
+  // única forma de dejar la pregunta realmente "sin resolver" -- vaciar el
+  // draft a mano y dejar que se autoguarde pondría un resultado real vacío
+  // ({}) y 0 puntos a todo el mundo, que no es lo mismo.
+  async function clearAll() {
+    setConfirmClear(false)
+    setStatus(null)
+    setClearing(true)
+    const { error } = await supabase.rpc('clear_season_result', { p_question_id: question!.id })
+    if (error) {
+      setStatus({ type: 'error', text: `No se pudo limpiar: ${error.message}` })
+      setClearing(false)
+      return
+    }
+    dirtyRef.current = false
+    setClearing(false)
+    setStatus({ type: 'ok', text: 'Resultado del Bloque 1 limpiado ✓' })
+    await onChanged()
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <StatusBanner status={saving ? { type: 'ok', text: 'Guardando…' } : status} />
@@ -343,6 +366,13 @@ function Block1Panel({
           >
             {laligaLoading ? 'Trayendo…' : 'Actualizar desde LaLiga.com'}
           </button>
+          <button
+            onClick={() => setConfirmClear(true)}
+            disabled={clearing || !result}
+            className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
+          >
+            {clearing ? 'Limpiando…' : 'Limpiar resultados'}
+          </button>
         </div>
         <p className="mt-2 text-xs text-gray-400">
           Se guarda solo en cuanto colocas o cambias un equipo (se ve en Información › Clasificación actual y en los
@@ -350,6 +380,16 @@ function Block1Panel({
           el bonus de zona incluido (Champions +3, Europa League +3, Descenso +5).
         </p>
       </div>
+      {confirmClear && (
+        <ConfirmDialog
+          title="Limpiar resultados"
+          message="¿Borrar la clasificación real fijada del Bloque 1? Nadie tendrá puntos de este bloque hasta que se vuelva a fijar."
+          confirmLabel="Limpiar"
+          danger
+          onConfirm={clearAll}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
     </div>
   )
 }
@@ -372,6 +412,8 @@ function Block2Panel({
 
   const [drafts, setDraftsState] = useState<Record<string, AnswerValue>>({})
   const [saving, setSaving] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const [status, setStatus] = useState<Status>(null)
   const dirtyRef = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -481,6 +523,30 @@ function Block2Panel({
     await onChanged()
   }
 
+  // Igual que clearAll en Block4Panel: borra el resultado fijado (y resetea
+  // a null los puntos ya calculados) de cada pregunta que tenga uno --
+  // clear_season_result ya se encarga de las dos cosas en una sola llamada,
+  // sea cual sea el tipo de pregunta (normal o "podio" como Underdog/
+  // Carnicero, cuyos puntos se guardaron con set_answer_points en vez de
+  // apply_season_result_points).
+  async function clearAll() {
+    setConfirmClear(false)
+    setStatus(null)
+    setClearing(true)
+    for (const q of questions) {
+      if (!resultFor(q.id)) continue
+      const { error } = await supabase.rpc('clear_season_result', { p_question_id: q.id })
+      if (error) {
+        setStatus({ type: 'error', text: `No se pudo limpiar "${q.question.split(':')[0]}": ${error.message}` })
+        setClearing(false)
+        return
+      }
+    }
+    setClearing(false)
+    setStatus({ type: 'ok', text: 'Resultados del Bloque 2 limpiados ✓' })
+    await onChanged()
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <StatusBanner status={saving ? { type: 'ok', text: 'Guardando…' } : status} />
@@ -544,6 +610,13 @@ function Block2Panel({
           >
             Calcular Fiasco / Underdog desde la clasificación
           </button>
+          <button
+            onClick={() => setConfirmClear(true)}
+            disabled={clearing}
+            className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
+          >
+            {clearing ? 'Limpiando…' : 'Limpiar resultados'}
+          </button>
         </div>
         <p className="text-xs text-gray-400">
           Se guarda solo en cuanto rellenas o cambias un campo. El Fiasco Europeo se calcula como el peor colocado de
@@ -554,6 +627,17 @@ function Block2Panel({
           la app (amarilla = 1 punto, roja = 2 puntos) y pon aquí quién quedó 1º, 2º y 3º.
         </p>
       </div>
+
+      {confirmClear && (
+        <ConfirmDialog
+          title="Limpiar resultados"
+          message="¿Borrar los resultados fijados de las preguntas del Bloque 2? Nadie aparecerá como acertante hasta que se vuelvan a fijar."
+          confirmLabel="Limpiar"
+          danger
+          onConfirm={clearAll}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
     </div>
   )
 }
