@@ -113,7 +113,7 @@ export default function Navbar() {
 
         <NavLink to="/" end className="flex min-w-0 items-center gap-2 md:hidden">
           {favoriteTeam?.badge && <img src={favoriteTeam.badge} alt="" className="h-7 w-7 shrink-0 object-contain" />}
-          <span className="truncate text-sm font-semibold text-white">🏆 Porra Abueloncha 2026 LaLiga</span>
+          <span className="truncate text-sm font-semibold text-white">Porra Abueloncha</span>
         </NavLink>
 
         <button
