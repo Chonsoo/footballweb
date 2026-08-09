@@ -773,7 +773,7 @@ function Block3Panel({
                     onBlur={(e) => {
                       if (e.target.value !== (q.config.match_date ?? '')) saveDate(q, e.target.value)
                     }}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs"
+                    className="rounded border border-gray-300 px-2 py-1 text-base sm:text-xs"
                   />
                   {savingDateId === q.id && <span className="text-gray-400">Guardando…</span>}
                 </span>
@@ -1097,6 +1097,36 @@ const ANSWER_TYPE_OPTIONS: ModalSelectOption<AnswerType>[] = [
   { value: 'choice', label: 'Opciones' },
 ]
 
+// Igual que ScoreStepper (QuestionInput.tsx) pero para "Puntos": empieza en 1
+// (no en 0) y no tiene tope, así que el número necesita más ancho (puede
+// llegar a dos cifras, p.ej. 15 o 50).
+function PointsStepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex w-full items-stretch overflow-hidden rounded border border-gray-300">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(1, value - 1))}
+        disabled={value <= 1}
+        aria-label="Restar"
+        className="w-10 shrink-0 bg-gray-50 text-base font-bold leading-none text-gray-700 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-300"
+      >
+        −
+      </button>
+      <span className="flex flex-1 select-none items-center justify-center border-x border-gray-300 bg-white py-2 text-center text-base font-semibold text-gray-800 sm:text-sm">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(value + 1)}
+        aria-label="Sumar"
+        className="w-10 shrink-0 bg-gray-50 text-base font-bold leading-none text-gray-700 hover:bg-gray-100"
+      >
+        +
+      </button>
+    </div>
+  )
+}
+
 function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase }) {
   const [question, setQuestion] = useState('')
   const [answerType, setAnswerType] = useState<AnswerType>('choice')
@@ -1172,7 +1202,7 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
               <select
                 value={phase}
                 onChange={(e) => setPhase(e.target.value as QuestionPhase)}
-                className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-base sm:text-sm"
               >
                 <option value="weekly">Semana</option>
                 <option value="initial">Inicial</option>
@@ -1186,7 +1216,7 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
                 value={block}
                 onChange={(e) => setBlock(e.target.value)}
                 title="Bloque del formulario inicial"
-                className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+                className="w-full rounded border border-gray-300 px-2 py-2 text-base sm:text-sm"
               >
                 <option value="">Sin bloque</option>
                 <option value="1">Bloque 1</option>
@@ -1215,19 +1245,12 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
               placeholder="Ej: ¿Quién gana el partido?"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+              className="w-full rounded border border-gray-300 px-2 py-2 text-base sm:text-sm"
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">Puntos</label>
-            <input
-              type="number"
-              min={1}
-              value={points}
-              onChange={(e) => setPoints(Number(e.target.value))}
-              title="Puntos (orientativo, o los que se aplican automáticamente si acierta)"
-              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
-            />
+            <PointsStepper value={points} onChange={setPoints} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-500">Cierra</label>
@@ -1235,7 +1258,7 @@ function CreateQuestionSection({ lockedPhase }: { lockedPhase?: QuestionPhase })
               type="datetime-local"
               value={closesAt}
               onChange={(e) => setClosesAt(e.target.value)}
-              className="w-full rounded border border-gray-300 px-2 py-2 text-sm"
+              className="w-full rounded border border-gray-300 px-2 py-2 text-base sm:text-sm"
             />
           </div>
         </div>
@@ -1312,14 +1335,14 @@ function ConfigBuilder({
                     .filter(Boolean),
                 })
               }
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded border border-gray-300 px-2 py-1.5 text-base sm:text-sm"
             />
             <select
               value={config.player_position ?? ''}
               onChange={(e) =>
                 onChange({ ...config, player_position: (e.target.value || undefined) as QuestionConfig['player_position'] })
               }
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded border border-gray-300 px-2 py-1.5 text-base sm:text-sm"
             >
               <option value="">Cualquier posición</option>
               <option value="POR">Solo porteros</option>
@@ -1391,7 +1414,7 @@ function OptionsBuilder({ options, onChange }: { options: string[]; onChange: (o
           placeholder="Nueva opción"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded border border-gray-300 px-2 py-1.5 text-base sm:text-sm"
         />
         <button
           type="button"
@@ -1690,7 +1713,7 @@ function GradingPanel({
                     home: Math.max(0, Number(e.target.value) || 0),
                   }))
                 }
-                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-base sm:text-sm"
               />
               <span>-</span>
               <input
@@ -1703,7 +1726,7 @@ function GradingPanel({
                     away: Math.max(0, Number(e.target.value) || 0),
                   }))
                 }
-                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-sm"
+                className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-base sm:text-sm"
               />
             </div>
           ) : question.answer_type === 'choice' && question.config.player_choice ? (
@@ -1718,7 +1741,7 @@ function GradingPanel({
             <select
               value={(resultDraft as string) ?? ''}
               onChange={(e) => setResultDraft(e.target.value)}
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded border border-gray-300 px-2 py-1.5 text-base sm:text-sm"
             >
               <option value="">Elige…</option>
               {(question.config.options ?? []).map((opt) => (
@@ -1732,7 +1755,7 @@ function GradingPanel({
               type="text"
               value={(resultDraft as string) ?? ''}
               onChange={(e) => setResultDraft(e.target.value)}
-              className="rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded border border-gray-300 px-2 py-1.5 text-base sm:text-sm"
             />
           )}
           <div className="mt-2 flex gap-2">
@@ -1768,7 +1791,7 @@ function GradingPanel({
                   placeholder={a.points != null ? String(a.points) : 'pts'}
                   value={pointsDrafts[a.id] ?? ''}
                   onChange={(e) => setPointsDrafts((d) => ({ ...d, [a.id]: e.target.value }))}
-                  className="w-16 rounded border border-gray-300 px-2 py-1 text-center"
+                  className="w-16 rounded border border-gray-300 px-2 py-1 text-center text-base sm:text-sm"
                 />
                 <button onClick={() => saveAnswerPoints(a.id)} className="text-brand-700 hover:underline">
                   Guardar

@@ -6,7 +6,7 @@ import FantasyLineupPicker from '../components/FantasyLineupPicker'
 import BlockAnswers from '../components/BlockAnswers'
 import FlashAnswerCard from '../components/FlashAnswerCard'
 import FlashStatusFilter from '../components/FlashStatusFilter'
-import { getFlashStatus, type FlashStatus } from '../lib/flashStatus'
+import { getFlashStatus, sortByClosesAt, type FlashStatus } from '../lib/flashStatus'
 import type { AnswerValue, QuestionPhase, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
 
 const TABS: { id: QuestionPhase; label: string }[] = [
@@ -55,7 +55,7 @@ export default function MisApuestas() {
   if (loading) return <p className="text-white/80">Cargando…</p>
 
   const initialQuestions = questions.filter((q) => q.phase === 'initial')
-  const weeklyQuestions = questions.filter((q) => q.phase === 'weekly')
+  const weeklyQuestions = sortByClosesAt(questions.filter((q) => q.phase === 'weekly'))
   const visibleWeeklyQuestions =
     statusFilter.size > 0
       ? weeklyQuestions.filter((q) => statusFilter.has(getFlashStatus(q, resolvedIds.has(q.id))))

@@ -22,3 +22,16 @@ export function getFlashStatus(question: SeasonQuestion, resolved: boolean): Fla
   const isClosed = !!question.closes_at && new Date(question.closes_at).getTime() < Date.now()
   return isClosed ? 'closed' : 'open'
 }
+
+// Orden para listas de apuestas flash (Mis apuestas, Apuestas detalladas): la
+// que menos tiempo le quede va arriba, en vez del orden de creación. Las que
+// no llevan closes_at (no debería pasar en flash, pero por si acaso) van al
+// final.
+export function sortByClosesAt(questions: SeasonQuestion[]): SeasonQuestion[] {
+  return [...questions].sort((a, b) => {
+    if (!a.closes_at && !b.closes_at) return 0
+    if (!a.closes_at) return 1
+    if (!b.closes_at) return -1
+    return new Date(a.closes_at).getTime() - new Date(b.closes_at).getTime()
+  })
+}

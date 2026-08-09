@@ -6,7 +6,7 @@ import FlashAnswerCard from '../components/FlashAnswerCard'
 import FlashStatusFilter from '../components/FlashStatusFilter'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { DEFAULT_FANTASY_FORMATION, type FantasyFormation, type FantasyPlayer } from '../lib/fantasyTypes'
-import { getFlashStatus, type FlashStatus } from '../lib/flashStatus'
+import { getFlashStatus, sortByClosesAt, type FlashStatus } from '../lib/flashStatus'
 import { EASTER_EGG_HINTS, EASTER_EGG_SECRET_WORD, useEasterEgg } from '../lib/easterEgg'
 import EasterEggStepModal from '../components/EasterEggStepModal'
 import type { AnswerValue, LeaderboardRow, SeasonAnswer, SeasonQuestion } from '../lib/database.types'
@@ -144,7 +144,7 @@ export default function ApuestasDetalladas() {
           const userPoints = pointsByUser[r.user_id]
           const team = LALIGA_TEAMS_2026_27.find((t) => t.id === r.favorite_team)
           const initialQs = questions.filter((q) => q.phase === 'initial')
-          const weeklyQs = questions.filter((q) => q.phase === 'weekly')
+          const weeklyQs = sortByClosesAt(questions.filter((q) => q.phase === 'weekly'))
           const visibleWeeklyQs =
             statusFilter.size > 0
               ? weeklyQs.filter((q) => statusFilter.has(getFlashStatus(q, resolvedIds.has(q.id))))

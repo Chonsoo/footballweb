@@ -25,7 +25,11 @@ export default function FlashAnswerCard({ question, value, points, resolved }: P
           {FLASH_STATUS_LABELS[status]}
         </span>
       </div>
-      <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-400" title={question.question}>
+      {/* Antes era una sola línea con truncate (cortaba la pregunta a media
+          palabra, tipo "¿COMO CREA EL PARTIDO DE LA JO…") -- con line-clamp-2
+          se ve el enunciado completo (o casi) en dos líneas en vez de
+          ilegible. */}
+      <p className="line-clamp-2 text-[11px] font-semibold uppercase leading-tight tracking-wide text-gray-500" title={question.question}>
         {shortQuestionLabel(question)}
       </p>
       {value != null ? (
