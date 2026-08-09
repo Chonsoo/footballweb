@@ -4,7 +4,6 @@ import { usePlayers } from '../lib/usePlayers'
 import { findTeamBadge } from '../lib/teamBadge'
 import { MEDIA_TIER_ID, MEDIA_TIER_LABEL, type SeasonQuestion } from '../lib/database.types'
 import { zoneForPosition, type ZoneInfo } from '../lib/rankingZones'
-import { shortQuestionLabel } from '../lib/questionLabel'
 import { CHART_PALETTE, ChartLegend, DonutChart, RankedBars, SplitBar, VerticalBars, type ChartSlice } from '../components/OracleCharts'
 
 interface AnswerCountRow {
@@ -80,7 +79,19 @@ export default function Oraculo() {
 
   useEffect(() => {
     async function load() {
-      const { data: qs } = await supabase.from('season_questions').select('*').order('created_at', { ascending: true })
+      // Se ordena por bloque (1→4) y no solo por fecha de creación: antes
+      // "coincidía" que las preguntas de bloques más altos se habían creado
+      // más tarde, así que salían después, pero es frágil -- en cuanto se
+      // recrea una pregunta (borrar + volver a insertar, como al cambiar las
+      // del Bloque 4), su fecha de creación pasa a ser la más reciente de
+      // todas y se cuela al final, descuadrando el orden 1-2-3-4 esperado.
+      // Las preguntas de "Apuestas flash" (sin bloque, phase='weekly') no
+      // tienen block, así que quedan al final con nullsFirst: false.
+      const { data: qs } = await supabase
+        .from('season_questions')
+        .select('*')
+        .order('block', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true })
       // Los duelos de marcador (Big Three) no encajan bien en ningún gráfico
       // de "respuesta más votada" -- se quedan fuera de El Oráculo.
       const list = ((qs as SeasonQuestion[]) ?? []).filter((q) => q.answer_type !== 'score_prediction')
@@ -211,10 +222,15 @@ export default function Oraculo() {
               {/* Antes iba "LIGA" (la competición) arriba en mayúsculas junto
                   a un icono según el tipo de pregunta -- de momento TODAS las
                   preguntas son de Liga (no aportaba nada) y el icono al lado
-                  del título tampoco aclaraba nada, así que fuera los dos. */}
-              <p className="mb-3 text-sm font-medium text-gray-800" title={q.question}>
-                {shortQuestionLabel(q)}
-              </p>
+                  del título tampoco aclaraba nada, así que fuera los dos.
+
+                  Aquí se muestra el enunciado COMPLETO (no el título corto de
+                  shortQuestionLabel que se usa en el resto de la app) --
+                  esta tarjeta es el único sitio donde se ve la pregunta, así
+                  que hace falta el enunciado entero para que se entienda qué
+                  se está votando (p.ej. en las de Sí/No, el título solo
+                  -- "Pichichi Absoluto" -- no dice nada sobre el umbral). */}
+              <p className="mb-3 text-sm font-medium text-gray-800">{q.question}</p>
 
               {isZoneType ? (
                 teamRows.length === 0 ? (
