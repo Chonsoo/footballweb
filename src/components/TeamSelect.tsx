@@ -47,7 +47,7 @@ export default function TeamSelect({
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex max-h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
+              className="flex h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-gray-800">Elige un equipo</h3>
@@ -62,7 +62,7 @@ export default function TeamSelect({
                   </svg>
                 </button>
               </div>
-              <div className="overflow-y-auto py-1">
+              <div className="flex-1 overflow-y-auto py-1">
                 {teams.map((t) => (
                   <button
                     key={t.id}

@@ -136,7 +136,7 @@ export default function PlayerSelect({
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex max-h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
+              className="flex h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-gray-800">Elige un jugador</h3>
@@ -167,7 +167,7 @@ export default function PlayerSelect({
                 // un botón), no importa que el teclado desplace la página.
                 className="mx-3 mt-3 rounded border border-gray-200 px-2 py-1.5 text-base focus:border-brand-500 focus:outline-none sm:text-sm"
               />
-              <div className="mt-2 overflow-y-auto">
+              <div className="mt-2 flex-1 overflow-y-auto">
                 {filtered.length === 0 && <p className="px-4 py-3 text-sm text-gray-400">Sin resultados</p>}
                 {filtered.map((p) => {
                   const team = teamOf(p)
