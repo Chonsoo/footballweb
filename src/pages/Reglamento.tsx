@@ -473,6 +473,15 @@ export default function Reglamento() {
           buscas «abuelonchodorado» en el buscador donde se ve lo que ha puesto cada participante? Dicho esto, que
           disfrutéis la temporada y que gane el mejor abueloncho (o el que más suerte tenga).
         </p>
+        <p className="text-sm text-gray-600">
+          Gracias a David Parra y Álvaro Ledrado por ayudarme a dar forma a las preguntas, las apuestas y la
+          puntuación de esta porra.
+          <br />
+          A partir de ahí, la web la he desarrollado en mis ratos libres. Si algo falla o se te ocurre cómo
+          mejorarlo, dímelo sin problema.
+          <br />
+          — Alejandro Alonso
+        </p>
       </Section>
     </div>
   )

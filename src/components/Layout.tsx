@@ -95,13 +95,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           {children}
         </main>
-        <footer className="mt-auto flex flex-col gap-0.5 bg-brand-950 px-4 py-4 text-center text-xs text-brand-300">
-          <p>
-            © {COPYRIGHT_YEAR} Porra Abueloncha LaLiga. Que gane el mejor abueloncho.
-          </p>
-          <p className="text-brand-400">
-            Realizado y desarrollado por Alejandro Alonso. Todos los derechos reservados.
-          </p>
+        <footer className="mt-auto bg-brand-950 px-4 py-4 text-center text-xs text-brand-300">
+          © {COPYRIGHT_YEAR} Porra Abueloncha LaLiga. Que gane el mejor abueloncho.
         </footer>
       </div>
     </div>
