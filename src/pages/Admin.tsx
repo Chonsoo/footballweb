@@ -151,6 +151,22 @@ function isUnderdogQuestion(q: SeasonQuestion) {
   return q.question.toLowerCase().includes('underdog')
 }
 
+// "Equipo Más Carnicero": misma mecánica de podio (una pregunta, cada
+// participante elige un equipo, se puntúa comparando contra un oro/plata/
+// bronce real) que el Podio Underdog -- pero a diferencia de Underdog, aquí
+// NO hay forma de calcular el resultado real automáticamente (la app no
+// guarda datos de tarjetas), así que el admin lo introduce a mano en vez de
+// pulsar "Calcular desde la clasificación".
+function isCarniceroQuestion(q: SeasonQuestion) {
+  return q.question.toLowerCase().includes('carnicero')
+}
+
+// Cualquier pregunta que se resuelve como "podio" (oro/plata/bronce en vez
+// de una única respuesta) -- de momento Underdog y Carnicero.
+function isPodiumQuestion(q: SeasonQuestion) {
+  return isUnderdogQuestion(q) || isCarniceroQuestion(q)
+}
+
 function InitialBlocksSection() {
   const [questions, setQuestions] = useState<SeasonQuestion[]>([])
   const [answers, setAnswers] = useState<AnswerWithProfile[]>([])
@@ -363,7 +379,7 @@ function Block2Panel({
   useEffect(() => {
     const init: Record<string, AnswerValue> = {}
     for (const q of questions) {
-      init[q.id] = resultFor(q.id) ?? (isUnderdogQuestion(q) ? { gold: '', silver: '', bronze: '' } : '')
+      init[q.id] = resultFor(q.id) ?? (isPodiumQuestion(q) ? { gold: '', silver: '', bronze: '' } : '')
     }
     setDraftsState(init)
     dirtyRef.current = false
@@ -396,6 +412,10 @@ function Block2Panel({
     const next = { ...drafts }
     for (const q of questions) {
       if (!q.config.team_ids) continue
+      // Carnicero es también un "podio", pero sin ningún dato real que la
+      // app pueda mirar (no se guardan tarjetas) -- se salta del cálculo
+      // automático, el admin lo rellena a mano en los 3 desplegables.
+      if (isCarniceroQuestion(q)) continue
       if (isUnderdogQuestion(q)) {
         const qAnswers = answers.filter((a) => a.question_id === q.id)
         const pickedIds = qAnswers
@@ -417,8 +437,8 @@ function Block2Panel({
     setSaving(true)
     for (const q of questions) {
       const draft = drafts[q.id]
-      const underdog = isUnderdogQuestion(q)
-      const isEmpty = underdog ? !(draft as { gold?: string })?.gold : !draft
+      const podiumQuestion = isPodiumQuestion(q)
+      const isEmpty = podiumQuestion ? !(draft as { gold?: string })?.gold : !draft
       if (isEmpty) continue
 
       const { error: e1 } = await supabase.rpc('set_season_result', { p_question_id: q.id, p_result: draft })
@@ -428,7 +448,7 @@ function Block2Panel({
         return
       }
 
-      if (underdog) {
+      if (podiumQuestion) {
         const names = draft as { gold: string; silver: string; bronze: string }
         const podium: UnderdogPodium = {
           gold: LALIGA_TEAMS_2026_27.find((t) => t.name === names.gold)?.id ?? null,
@@ -467,7 +487,7 @@ function Block2Panel({
       <div className="flex flex-col gap-4 rounded bg-gray-50 p-3">
         {questions.map((q) => {
           const teams = teamOptionsFor(q.config)
-          const underdog = isUnderdogQuestion(q)
+          const podiumQuestion = isPodiumQuestion(q)
           return (
             <div key={q.id} className="flex flex-col gap-1.5">
               <p className="text-xs font-medium text-gray-500">{q.question.split(':')[0]}</p>
@@ -479,7 +499,7 @@ function Block2Panel({
                   position={q.config.player_position}
                   nationality={q.config.player_nationality}
                 />
-              ) : q.config.team_ids && underdog ? (
+              ) : q.config.team_ids && podiumQuestion ? (
                 <div className="flex flex-wrap gap-3">
                   {(['gold', 'silver', 'bronze'] as const).map((tier) => {
                     const draft = (drafts[q.id] as { gold: string; silver: string; bronze: string }) ?? {
@@ -529,7 +549,9 @@ function Block2Panel({
           Se guarda solo en cuanto rellenas o cambias un campo. El Fiasco Europeo se calcula como el peor colocado de
           los equipos con Europa la temporada pasada. El Podio Underdog se calcula solo entre los equipos que algún
           participante haya elegido: si nadie eligió al que quedó mejor, el oro pasa al siguiente que sí haya elegido
-          alguien (15 / 8 / 3 pts).
+          alguien (15 / 8 / 3 pts). El Equipo Más Carnicero puntúa igual (15 / 8 / 3 pts) pero su oro/plata/bronce hay
+          que rellenarlo a mano (el botón de calcular no lo toca): mira el total de tarjetas de cada equipo fuera de
+          la app (amarilla = 1 punto, roja = 2 puntos) y pon aquí quién quedó 1º, 2º y 3º.
         </p>
       </div>
     </div>

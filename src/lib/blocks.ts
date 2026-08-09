@@ -35,7 +35,8 @@ export const BLOCK_SCORING_HINTS: Record<number, string[]> = {
     'Pichichi "Clase Media": máximo goleador sin contar jugadores del Real Madrid, Barcelona o Atlético.',
     'El Fiasco Europeo: de los equipos con competición europea la temporada pasada, cuál acabará peor esta liga.',
     'Podio Underdog: un equipo revelación (sin competición europea previa) que crees que acabará arriba.',
-    'Todos puntúan todo o nada (aciertas exacto o no sumas nada), menos Podio Underdog: ahí se compara tu equipo elegido con el de todos los demás participantes, y puntúa según qué tan bien quede en la clasificación real.',
+    'Equipo Más Carnicero: un equipo que crees que acabará sumando más puntos de tarjetas (amarilla = 1 punto, roja = 2 puntos).',
+    'Todos puntúan todo o nada (aciertas exacto o no sumas nada), menos Podio Underdog y Equipo Más Carnicero: en esas dos se compara tu equipo elegido con el de todos los demás participantes, y puntúa según qué tan bien quede (15 / 8 / 3 pts).',
   ],
   3: [
     '5 pts por acertar el 1x2 (quién gana o si es empate).',

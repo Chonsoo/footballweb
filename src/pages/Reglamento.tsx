@@ -28,6 +28,7 @@ const B2_TABLE: [string, string, string][] = [
   ['Pichichi "Clase Media"', 'Máx. goleador sin Real Madrid / Barça / Atleti', '10 pts'],
   ['El Fiasco Europeo', 'Peor colocado de los equipos con Europa la temporada pasada', '10 pts'],
   ['Podio Underdog', 'Equipo revelación (sin Europa previa) que acabará más arriba', '15 / 8 / 3 pts'],
+  ['Equipo Más Carnicero', 'Equipo con más puntos de tarjetas (amarilla = 1 pto, roja = 2 ptos)', '15 / 8 / 3 pts'],
 ]
 
 const B3_TABLE: [string, string][] = [
@@ -307,14 +308,25 @@ export default function Reglamento() {
         onToggle={toggle}
         buttonRef={refFor('b2')}
       >
-        <p className="text-sm text-gray-600">Todo o nada (aciertas exacto o no sumas nada), salvo el Podio Underdog, que reparte puntos por posición.</p>
+        <p className="text-sm text-gray-600">
+          Todo o nada (aciertas exacto o no sumas nada), salvo el Podio Underdog, que reparte puntos por posición.
+        </p>
         <Table3 head={['Pregunta', 'Qué predices', 'Puntos']} rows={B2_TABLE} />
         <p className="text-sm text-gray-600">
           El Podio Underdog es una única pregunta (eliges un equipo). Al resolverla, se comparan los equipos
           elegidos por todos los participantes contra la clasificación real: quien eligió el que mejor quedó (de
           entre los elegidos) se lleva 15 pts, el siguiente mejor 8 pts, el siguiente 3 pts, y el resto 0.
         </p>
-        <p className="text-xs text-gray-500">Máximo teórico del bloque: 5 × 10 (premios fijos) + 10 (Fiasco) + 15 (oro del Underdog) = 75 pts.</p>
+        <p className="text-sm text-gray-600">
+          Equipo Más Carnicero funciona igual que el Podio Underdog: es una única pregunta (eliges un equipo). Al
+          final de temporada se suman las tarjetas de cada equipo (amarilla = 1 punto, roja = 2 puntos) para saber
+          quién quedó 1º, 2º y 3º en esa cuenta, y quien eligió el equipo que resultó 1º se lleva 15 pts, el que
+          eligió el 2º 8 pts, el que eligió el 3º 3 pts, y el resto 0.
+        </p>
+        <p className="text-xs text-gray-500">
+          Máximo teórico del bloque: 5 × 10 (premios fijos) + 10 (Fiasco) + 15 (oro del Underdog) + 15 (oro del
+          Carnicero) = 100 pts.
+        </p>
       </Section>
 
       <Section

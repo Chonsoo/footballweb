@@ -41,10 +41,16 @@ export function computeUnderdogPodium(block1Result: Record<string, number>, pick
   return { gold: ranked[0]?.id ?? null, silver: ranked[1]?.id ?? null, bronze: ranked[2]?.id ?? null }
 }
 
-// Reparto de puntos del Podio Underdog (pregunta de 15 pts en total):
-// acertar el equipo que queda oro vale el total, plata y bronce valen menos.
+// Reparto de puntos de una pregunta de "podio" (Podio Underdog, y también
+// Equipo Más Carnicero, que reutiliza este mismo mecanismo de puntuación
+// aunque su oro/plata/bronce se calcula distinto -- ver isCarniceroQuestion
+// en Admin.tsx): acertar el equipo que queda oro vale el total, plata y
+// bronce valen menos.
 const UNDERDOG_POINTS = { gold: 15, silver: 8, bronze: 3 }
 
+// A pesar del nombre, se usa para cualquier pregunta de podio (Underdog y
+// Carnicero): el "podium" pasado ya trae el oro/plata/bronce real, calculado
+// distinto según la pregunta, pero el reparto de puntos es el mismo.
 export function scoreUnderdogAnswer(podium: UnderdogPodium, answerTeamName: string | undefined): number {
   if (!answerTeamName) return 0
   const teamId = LALIGA_TEAMS_2026_27.find((t) => t.name === answerTeamName)?.id
