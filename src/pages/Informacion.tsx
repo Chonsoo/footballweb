@@ -180,7 +180,7 @@ export default function Informacion() {
                       {FLASH_STATUS_LABELS[status]}
                     </span>
                   </div>
-                  <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-600" title={q.question}>
+                  <p className="line-clamp-2 text-[11px] font-semibold uppercase leading-tight tracking-wide text-gray-600" title={q.question}>
                     {shortQuestionLabel(q)}
                   </p>
                   <AnswerSummary question={q} value={resultsMap[q.id]} emptyLabel={EMPTY_RESULT_LABEL} />
