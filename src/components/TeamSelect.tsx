@@ -42,12 +42,12 @@ export default function TeamSelect({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex flex-col bg-black/40 p-3 sm:items-center sm:justify-center"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40 p-3"
             onClick={() => setOpen(false)}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="flex max-h-[85vh] w-full flex-1 flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:flex-none sm:max-w-md"
+              className="flex max-h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-gray-800">Elige un equipo</h3>
