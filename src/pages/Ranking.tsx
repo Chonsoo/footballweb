@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { getTeamColor } from '../lib/teamColors'
 import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
+import { computePrizes, formatEuros } from '../lib/prizePool'
 import RankingPointsPopup from '../components/RankingPointsPopup'
 import { fetchTeamRealPosition, useEasterEgg, useTapCounter } from '../lib/easterEgg'
 import EasterEggCaptainModal from '../components/EasterEggCaptainModal'
@@ -212,8 +213,10 @@ export default function Ranking() {
           {(() => {
             const ranks = computeRanks(rows)
             const tierCount = uniqueTierCount(rows)
+            const prizes = computePrizes(rows)
             return rows.map((row, i) => {
               const rank = ranks[i]
+              const prize = prizes[i]
               const tierFromLast = distFromLastTier(row.total_points, rows)
               const isLastTier = tierFromLast === 0 && rows.length > 1 && tierCount > 1
               const style = rowStyleFor(rank, tierFromLast, tierCount, isLastTier)
@@ -296,9 +299,20 @@ export default function Ranking() {
                       </span>
                     )}
                   </p>
-                  {style.chip && (
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.chip.bg}`}>
-                      {style.chip.label}
+                  {(style.chip || prize > 0) && (
+                    <span className="flex flex-wrap items-center gap-1">
+                      {style.chip && (
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${style.chip.bg}`}>
+                          {style.chip.label}
+                        </span>
+                      )}
+                      {/* Ver Reglamento > Premios: % del bote para el top 5,
+                          calculado en vivo según nº de participantes actual. */}
+                      {prize > 0 && (
+                        <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          💶 {formatEuros(prize)}
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>

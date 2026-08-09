@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { computeRanks, distFromLastTier, uniqueTierCount } from '../lib/ranking'
+import { computePrizes, computeTotalPool, formatEuros } from '../lib/prizePool'
 import { isInitialPhaseClosed } from '../lib/deadlines'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import PlayerAvatarMarquee from '../components/PlayerAvatarMarquee'
@@ -174,6 +175,11 @@ export default function Home() {
   // farolillo.
   const myIsLast =
     myRow != null && rows.length > 1 && distFromLastTier(myRow.total_points, rows) === 0 && uniqueTierCount(rows) > 1
+  // Ver Reglamento > Premios: bote = participantes × 10€, repartido entre el
+  // top 5. Se calcula en vivo con el mismo nº de participantes que ya se
+  // muestra arriba, así que sube según se va confirmando más gente.
+  const pool = computeTotalPool(rows.length)
+  const myPrize = myIndex >= 0 ? computePrizes(rows)[myIndex] : 0
 
   return (
     // Ya no hace falta una caja verde propia para la cabecera -- el fondo
@@ -205,6 +211,9 @@ export default function Home() {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700">Participantes</p>
               <p className="text-xl font-bold text-brand-950">{loading ? '…' : rows.length}</p>
+              {!loading && rows.length > 0 && (
+                <p className="text-[10px] font-semibold text-amber-600">💶 Bote: {formatEuros(pool)}</p>
+              )}
             </div>
             {myRow && myRank != null && (
               <div className="border-l border-brand-900/10 pl-4">
@@ -218,6 +227,7 @@ export default function Home() {
                     </span>
                   )}
                   <span className="text-sm font-medium text-brand-700">· {myRow.total_points} pts</span>
+                  {myPrize > 0 && <span className="text-sm font-semibold text-amber-600">· 💶 {formatEuros(myPrize)}</span>}
                 </p>
               </div>
             )}

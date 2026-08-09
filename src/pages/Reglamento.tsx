@@ -1,4 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { ENTRY_FEE_EUR, PRIZE_PERCENTAGES, computePrizes, computeTotalPool, formatEuros } from '../lib/prizePool'
+
+const ENTRY_FEE_LABEL = formatEuros(ENTRY_FEE_EUR)
 
 // Datos de puntuación reflejados aquí tal y como están programados hoy en la
 // app (ver src/lib/rankingScoring.ts, src/lib/scorePrediction.ts,
@@ -49,6 +52,21 @@ const B4_TABLE: [string, string][] = [
   ['¿Habrá algún partido en la liga con más de 8.5 goles entre los dos equipos?', '3 pts'],
   ['¿Habrá más de 3.5 jugadores españoles entre los 10 máximos goleadores?', '3 pts'],
 ]
+
+// Ver src/lib/prizePool.ts -- misma fuente que usan Clasificación e Inicio
+// para calcular el reparto en vivo, así que esta tabla nunca se puede
+// desincronizar del código.
+const PRIZE_TABLE: [string, string][] = PRIZE_PERCENTAGES.map((pct, i) => [`${i + 1}º`, `${pct}%`])
+
+const PRIZE_EXAMPLE_PARTICIPANTS = 14
+const PRIZE_EXAMPLE_POOL = computeTotalPool(PRIZE_EXAMPLE_PARTICIPANTS)
+// Filas ficticias solo para pasar por computePrizes (sin empates entre
+// ellas), así el ejemplo sale con el mismo redondeo que se ve de verdad en
+// Clasificación/Inicio en vez de recalcular el % a mano aquí.
+const PRIZE_EXAMPLE_AMOUNTS = computePrizes(
+  Array.from({ length: PRIZE_EXAMPLE_PARTICIPANTS }, (_, i) => ({ total_points: PRIZE_EXAMPLE_PARTICIPANTS - i }))
+)
+const PRIZE_EXAMPLE_TABLE: [string, string][] = PRIZE_PERCENTAGES.map((_, i) => [`${i + 1}º`, formatEuros(PRIZE_EXAMPLE_AMOUNTS[i])])
 
 const FANTASY_BONUS_TABLE: [string, number][] = [
   ['1º', 45],
@@ -404,6 +422,31 @@ export default function Reglamento() {
         <p className="text-sm text-gray-600">
           El admin publica las preguntas de cada tanda el martes o miércoles previo a esa jornada. El plazo para
           responder cierra en el minuto 1 del primer partido de la jornada correspondiente.
+        </p>
+      </Section>
+
+      <Section
+        id="premios"
+        icon="💶"
+        title="Premios"
+        accent="bg-amber-100 text-amber-700"
+        open={isOpen('premios')}
+        onToggle={toggle}
+        buttonRef={refFor('premios')}
+      >
+        <p className="text-sm text-gray-600">
+          Cada participante pone {ENTRY_FEE_LABEL} para entrar en la porra. El bote (nº de participantes ×{' '}
+          {ENTRY_FEE_LABEL}) se reparte entre los 5 primeros de la clasificación general, en estos porcentajes:
+        </p>
+        <Table2 head={['Puesto', '% del bote']} rows={PRIZE_TABLE} />
+        <p className="text-sm text-gray-600">
+          Ejemplo con {PRIZE_EXAMPLE_PARTICIPANTS} participantes (bote de {formatEuros(PRIZE_EXAMPLE_POOL)}):
+        </p>
+        <Table2 head={['Puesto', 'Premio']} rows={PRIZE_EXAMPLE_TABLE} />
+        <p className="text-sm text-gray-600">
+          Si hay empate real en zona de premios (algo muy raro, porque antes se desempata por puntos del Bloque 1 y
+          luego por la liga Fantasy — ver "Dudas y agradecimientos"), se suma el % de todos los puestos que ocupan
+          los empatados y se reparte a partes iguales entre ellos.
         </p>
       </Section>
 
