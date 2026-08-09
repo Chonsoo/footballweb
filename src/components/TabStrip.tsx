@@ -18,8 +18,13 @@ export default function TabStrip() {
   }, [activeIndex])
 
   return (
+    // Sin fondo/blur propio: vive dentro de <nav> (ver Navbar.tsx), que ya
+    // lleva su propio bg-brand-900/70 + backdrop-blur-md cubriendo tanto la
+    // fila de arriba como esta. Ponerle aquí OTRO fondo encima sumaba las dos
+    // capas de opacidad y el resultado se veía plano/sólido, sin el efecto
+    // de cristal que sí se nota en la fila de arriba (que solo tiene una).
     <div
-      className="flex gap-1.5 overflow-x-auto border-b border-white/10 bg-brand-900/70 px-3 py-2 backdrop-blur-md md:hidden"
+      className="flex gap-1.5 overflow-x-auto border-b border-white/10 px-3 py-2 md:hidden"
       style={{ scrollbarWidth: 'none' }}
     >
       {tabs.map((tab, i) => (
