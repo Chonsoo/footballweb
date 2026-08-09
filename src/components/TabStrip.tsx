@@ -19,7 +19,7 @@ export default function TabStrip() {
 
   return (
     <div
-      className="flex gap-1.5 overflow-x-auto border-b border-white/10 bg-brand-900/40 px-3 py-2 backdrop-blur-md md:hidden"
+      className="flex gap-1.5 overflow-x-auto border-b border-white/10 bg-brand-900/70 px-3 py-2 backdrop-blur-md md:hidden"
       style={{ scrollbarWidth: 'none' }}
     >
       {tabs.map((tab, i) => (
