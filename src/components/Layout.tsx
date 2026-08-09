@@ -11,6 +11,14 @@ import { getNavTabs, activeTabIndex } from '../lib/navTabs'
 // scroll normal de la página.
 const SWIPE_THRESHOLD = 60
 
+// Año de creación de la app -- el © del footer se calcula solo a partir de
+// aquí (2026 mientras estemos en 2026, "2026–2027" en cuanto cambie el año,
+// etc.), así nunca se queda desactualizado por olvido de tocarlo a mano cada
+// temporada.
+const FIRST_YEAR = 2026
+const CURRENT_YEAR = new Date().getFullYear()
+const COPYRIGHT_YEAR = CURRENT_YEAR > FIRST_YEAR ? `${FIRST_YEAR}–${CURRENT_YEAR}` : `${FIRST_YEAR}`
+
 export default function Layout({ children }: { children: ReactNode }) {
   const { profile } = useAuth()
   const [dismissed, setDismissed] = useState(false)
@@ -87,8 +95,13 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           {children}
         </main>
-        <footer className="mt-auto bg-brand-950 px-4 py-4 text-center text-xs text-brand-300">
-          © 2026 Porra Abueloncha LaLiga. Que gane el mejor abueloncho.
+        <footer className="mt-auto flex flex-col gap-0.5 bg-brand-950 px-4 py-4 text-center text-xs text-brand-300">
+          <p>
+            © {COPYRIGHT_YEAR} Porra Abueloncha LaLiga. Que gane el mejor abueloncho.
+          </p>
+          <p className="text-brand-400">
+            Realizado y desarrollado por Alejandro Alonso. Todos los derechos reservados.
+          </p>
         </footer>
       </div>
     </div>
