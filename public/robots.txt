@@ -1,0 +1,5 @@
+# Porra privada entre amigos/familia -- casi todo está detrás de login y no
+# hay contenido público que interese indexar ni raspar para entrenar
+# modelos. Cerrado a todos los rastreadores a propósito.
+User-agent: *
+Disallow: /
