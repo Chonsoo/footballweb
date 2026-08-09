@@ -31,6 +31,16 @@ export function computePrizes(rows: RankableRow[]): number[] {
   const totalPool = computeTotalPool(rows.length)
   const prizes = new Array(rows.length).fill(0)
 
+  // Si hay menos de 5 participantes, algún puesto premiado directamente no
+  // existe (con 4 participantes no hay "5º") y su % se quedaría sin repartir
+  // -- el bote pagado sería menor que el bote real. Se reescalan los % de
+  // los puestos que SÍ existen para que sigan sumando 100% entre ellos, así
+  // el bote se reparte siempre entero (con 5+ participantes esto no cambia
+  // nada: el factor de escala es 1).
+  const maxPaidPositions = Math.min(rows.length, PRIZE_PERCENTAGES.length)
+  const availablePctSum = PRIZE_PERCENTAGES.slice(0, maxPaidPositions).reduce((a, b) => a + b, 0)
+  const scale = availablePctSum > 0 ? 100 / availablePctSum : 0
+
   let i = 0
   while (i < rows.length) {
     const rank = ranks[i]
@@ -40,7 +50,7 @@ export function computePrizes(rows: RankableRow[]): number[] {
 
     let pctSum = 0
     for (let pos = rank; pos < rank + groupSize; pos++) {
-      if (pos >= 1 && pos <= PRIZE_PERCENTAGES.length) pctSum += PRIZE_PERCENTAGES[pos - 1]
+      if (pos >= 1 && pos <= maxPaidPositions) pctSum += PRIZE_PERCENTAGES[pos - 1] * scale
     }
     if (pctSum > 0) {
       // Los % oficiales (ver Reglamento > Premios) no cambian, pero el
