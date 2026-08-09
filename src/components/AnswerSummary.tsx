@@ -41,14 +41,21 @@ export default function AnswerSummary({
   }
 
   if (question.answer_type === 'score_prediction') {
+    // Antes local-marcador-visitante en una sola línea -- en las tarjetas
+    // estrechas de Apuestas flash (2 columnas) los nombres se cortaban a
+    // media palabra ("Real ... 4 - 1 Rayo Vall..."). Un equipo por línea, con
+    // su marcador a la derecha, deja sitio de sobra para el nombre completo.
     const v = value as { home: number; away: number }
     return (
-      <div className="flex items-center gap-2 text-sm">
-        <TeamBadgeLabel name={question.config.home_team} />
-        <span className="font-bold text-gray-800">
-          {v.home} - {v.away}
-        </span>
-        <TeamBadgeLabel name={question.config.away_team} />
+      <div className="flex flex-col gap-1 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <TeamBadgeLabel name={question.config.home_team} />
+          <span className="shrink-0 font-bold text-gray-800">{v.home}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <TeamBadgeLabel name={question.config.away_team} />
+          <span className="shrink-0 font-bold text-gray-800">{v.away}</span>
+        </div>
       </div>
     )
   }
