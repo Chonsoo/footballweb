@@ -44,6 +44,7 @@ export default function PlayerSelect({
   position,
   nationality,
   disabled,
+  label,
 }: {
   value: string
   onChange: (name: string) => void
@@ -51,6 +52,10 @@ export default function PlayerSelect({
   position?: FantasyPosition
   nationality?: string
   disabled?: boolean
+  // Título del modal (p.ej. "Pichichi Absoluto") -- para que se sepa de un
+  // vistazo qué pregunta se está respondiendo, en vez de un genérico "Elige
+  // un jugador" igual en todas.
+  label?: string
 }) {
   const { players, loading } = usePlayers()
   const [open, setOpen] = useState(false)
@@ -139,7 +144,7 @@ export default function PlayerSelect({
               className="flex h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-gray-800">Elige un jugador</h3>
+                <h3 className="text-sm font-semibold text-gray-800">{label ?? 'Elige un jugador'}</h3>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}

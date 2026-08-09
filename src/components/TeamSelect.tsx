@@ -13,10 +13,15 @@ export default function TeamSelect({
   teams,
   value,
   onChange,
+  label,
 }: {
   teams: TierItem[]
   value: string
   onChange: (id: string) => void
+  // Título del modal (p.ej. "Fiasco Europeo") -- para que se sepa de un
+  // vistazo qué pregunta se está respondiendo, en vez de un genérico "Elige
+  // un equipo" igual en todas.
+  label?: string
 }) {
   const [open, setOpen] = useState(false)
   const selected = teams.find((t) => t.id === value)
@@ -50,7 +55,7 @@ export default function TeamSelect({
               className="flex h-[60vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-w-md"
             >
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-gray-800">Elige un equipo</h3>
+                <h3 className="text-sm font-semibold text-gray-800">{label ?? 'Elige un equipo'}</h3>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}

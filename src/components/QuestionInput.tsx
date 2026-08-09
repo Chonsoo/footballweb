@@ -6,6 +6,7 @@ import PlayerSelect from './PlayerSelect'
 import { findTeamBadge } from '../lib/teamBadge'
 import { LALIGA_TEAMS_2026_27 } from '../lib/teamData'
 import { isAnswerComplete } from '../lib/isAnswerComplete'
+import { shortQuestionLabel } from '../lib/questionLabel'
 import type { AnswerValue, QuestionConfig, SeasonQuestion } from '../lib/database.types'
 
 // Color del botón "Guardar", tipo semáforo (antes "sin contestar" usaba el
@@ -149,13 +150,21 @@ export function QuestionDraftInput({
           excludeTeamIds={question.config.exclude_team_ids}
           position={question.config.player_position}
           nationality={question.config.player_nationality}
+          label={shortQuestionLabel(question)}
         />
       )
     }
     if (question.config.team_ids) {
       const teams = teamOptionsFor(question.config)
       const currentId = teams.find((t) => t.name === value)?.id ?? ''
-      return <TeamSelect teams={teams} value={currentId} onChange={(id) => onChange(teams.find((t) => t.id === id)?.name ?? '')} />
+      return (
+        <TeamSelect
+          teams={teams}
+          value={currentId}
+          onChange={(id) => onChange(teams.find((t) => t.id === id)?.name ?? '')}
+          label={shortQuestionLabel(question)}
+        />
+      )
     }
     const options = question.config.options ?? []
     return (
@@ -250,6 +259,7 @@ export function QuestionInput({
             excludeTeamIds={question.config.exclude_team_ids}
             position={question.config.player_position}
             nationality={question.config.player_nationality}
+            label={shortQuestionLabel(question)}
           />
         </div>
       )
@@ -259,7 +269,12 @@ export function QuestionInput({
       const currentId = teams.find((t) => t.name === value)?.id ?? ''
       return (
         <div className={saving ? 'pointer-events-none opacity-50' : ''}>
-          <TeamSelect teams={teams} value={currentId} onChange={(id) => onSave(teams.find((t) => t.id === id)?.name ?? '')} />
+          <TeamSelect
+            teams={teams}
+            value={currentId}
+            onChange={(id) => onSave(teams.find((t) => t.id === id)?.name ?? '')}
+            label={shortQuestionLabel(question)}
+          />
         </div>
       )
     }
