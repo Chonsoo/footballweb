@@ -85,64 +85,40 @@ export default function PlayerSelect({
     setImgError(false)
   }, [value])
 
-  // Cerrar en vez de reposicionar en cada scroll/resize -- el panel usa
-  // position:fixed anclado a la posición del botón en el momento de abrir
-  // (ver toggleOpen), y si la página se desplaza sin cerrar, se quedaría
-  // "despegado" del botón. Cerrarlo es la solución más simple y ya es el
-  // patrón que se usa en el resto de desplegables de la app.
-  //
-  // PERO durante un breve margen justo al abrir, en vez de cerrar, se
-  // reposiciona siguiendo al botón. El campo de búsqueda tiene autoFocus, y
-  // en móvil eso abre el teclado justo al abrir el desplegable -- el
-  // navegador desplaza la página sola para que el campo quede visible por
-  // encima del teclado. Si ese scroll cerrara el panel, parecía "no abrir";
-  // si se ignorara sin más (como antes), el panel se quedaba fijo en la
-  // posición ANTIGUA del botón mientras la página se movía debajo, y
-  // parecía salir "en otro sitio". Siguiendo al botón durante ese margen se
-  // evitan los dos problemas. Pasado el margen, un scroll ya se interpreta
-  // como el usuario desplazando la página a propósito, y ahí sí se cierra.
-  //
-  // Importante: 'scroll' no burbujea, pero un listener en window con fase de
-  // "captura" (el `true` final) SÍ se dispara para el scroll de CUALQUIER
-  // elemento dentro de la página, incluida la propia lista de jugadores
-  // (que tiene su scroll interno). Sin comprobar el origen, desplazar la
-  // lista con el dedo cerraba el desplegable en el acto -- hay que ignorar
-  // los scrolls que ocurren dentro del propio panel.
+  // Mientras el panel está abierto, se recalcula su posición en CADA
+  // fotograma siguiendo al botón (en vez de reaccionar a eventos de scroll
+  // o resize). Esto sustituye a un enfoque anterior basado en escuchar
+  // 'scroll'/'resize', que resultó frágil: el campo de búsqueda tiene
+  // autoFocus, y en móvil eso abre el teclado, que anima su entrada (no es
+  // instantáneo) y hace que el navegador desplace la página para mantener el
+  // campo visible -- esos eventos no siempre llegaban en el momento exacto
+  // ni con la frecuencia necesaria para mantener el panel pegado al botón
+  // durante toda la animación, así que a veces se quedaba desalineado justo
+  // al abrirse. Siguiendo la posición real del botón fotograma a fotograma
+  // el panel queda siempre bien colocado sin importar la causa del
+  // movimiento (teclado, scroll, cambio de tamaño, lo que sea).
   useEffect(() => {
     if (!open) return
-    let settled = false
-    function onScrollOrResize(e: Event) {
-      if (panelRef.current?.contains(e.target as Node)) return
-      if (!settled) {
-        const rect = computePanelRect()
-        if (rect) setPanelRect(rect)
-        return
+    let rafId: number
+    function track() {
+      const rect = computePanelRect()
+      if (rect) {
+        setPanelRect((prev) =>
+          prev && prev.left === rect.left && prev.width === rect.width && prev.top === rect.top ? prev : rect
+        )
       }
-      setOpen(false)
+      rafId = requestAnimationFrame(track)
     }
-    window.addEventListener('scroll', onScrollOrResize, true)
-    window.addEventListener('resize', onScrollOrResize)
-    const timer = window.setTimeout(() => {
-      settled = true
-    }, 300)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('scroll', onScrollOrResize, true)
-      window.removeEventListener('resize', onScrollOrResize)
-    }
+    rafId = requestAnimationFrame(track)
+    return () => cancelAnimationFrame(rafId)
   }, [open])
 
-  // Compartida entre la apertura y el "seguimiento" del botón mientras la
-  // página aún se está moviendo (ver el efecto de scroll/resize más abajo).
-  // Siempre abre hacia ABAJO -- nunca hacia arriba: probamos antes a
-  // desplazar la página nosotros mismos al abrir para dejar hueco, pero eso
-  // se sumaba al scroll que hace el propio navegador al enfocar el buscador
-  // (autoFocus abre el teclado y el navegador desplaza la página solo para
-  // que el campo quede visible por encima), y las dos correcciones no
-  // cuadraban entre sí. Ahora no tocamos el scroll nosotros: el panel se
-  // coloca donde esté el botón en ese momento y, si el navegador desplaza la
-  // página después por el teclado, el efecto de "seguimiento" de abajo lo
-  // realinea solo.
+  // Compartida entre la apertura y el seguimiento fotograma a fotograma
+  // mientras está abierto (ver el efecto de arriba). Siempre abre hacia
+  // ABAJO -- nunca hacia arriba: si no cabe entero en el viewport actual, se
+  // deja que el propio navegador/usuario haga scroll (p.ej. al enfocar el
+  // buscador en móvil), y el seguimiento fotograma a fotograma mantiene el
+  // panel pegado al botón mientras tanto.
   function computePanelRect(): PanelRect | null {
     if (!btnRef.current) return null
     const rect = btnRef.current.getBoundingClientRect()

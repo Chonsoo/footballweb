@@ -59,40 +59,28 @@ export default function TeamSelect({
     }
   }
 
-  // Cerrar en vez de reposicionar en cada scroll/resize -- mismo motivo que
-  // en PlayerSelect: el panel usa position:fixed anclado a la posición del
-  // botón en el momento de abrir, y si la página se desplaza sin cerrar, se
-  // quedaría "despegado" del botón.
-  //
-  // Durante un breve margen justo al abrir, en vez de cerrar, se reposiciona
-  // siguiendo al botón (por si el foco de otro campo de la misma página abre
-  // el teclado y el navegador desplaza la página sola) -- pasado ese margen,
-  // un scroll ya se interpreta como el usuario desplazando a propósito.
-  // También se ignoran los scrolls que ocurren dentro del propio panel (su
-  // lista tiene scroll interno, y 'scroll' con fase de captura en window se
-  // dispara igualmente para eso).
+  // Mientras el panel está abierto, se recalcula su posición en CADA
+  // fotograma siguiendo al botón (en vez de reaccionar a eventos de scroll o
+  // resize) -- mismo motivo que en PlayerSelect: los eventos de scroll/resize
+  // no siempre llegan en el momento exacto ni con la frecuencia necesaria
+  // para mantener el panel pegado al botón mientras la página se mueve
+  // (p.ej. por el teclado al enfocar otro campo cercano), así que a veces se
+  // quedaba desalineado. Siguiendo la posición real fotograma a fotograma
+  // queda siempre bien colocado sin importar la causa del movimiento.
   useEffect(() => {
     if (!open) return
-    let settled = false
-    function onScrollOrResize(e: Event) {
-      if (panelRef.current?.contains(e.target as Node)) return
-      if (!settled) {
-        const rect = computePanelRect()
-        if (rect) setPanelRect(rect)
-        return
+    let rafId: number
+    function track() {
+      const rect = computePanelRect()
+      if (rect) {
+        setPanelRect((prev) =>
+          prev && prev.left === rect.left && prev.width === rect.width && prev.top === rect.top ? prev : rect
+        )
       }
-      setOpen(false)
+      rafId = requestAnimationFrame(track)
     }
-    window.addEventListener('scroll', onScrollOrResize, true)
-    window.addEventListener('resize', onScrollOrResize)
-    const timer = window.setTimeout(() => {
-      settled = true
-    }, 300)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('scroll', onScrollOrResize, true)
-      window.removeEventListener('resize', onScrollOrResize)
-    }
+    rafId = requestAnimationFrame(track)
+    return () => cancelAnimationFrame(rafId)
   }, [open])
 
   function toggleOpen() {
