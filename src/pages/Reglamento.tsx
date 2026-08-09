@@ -388,18 +388,22 @@ export default function Reglamento() {
         buttonRef={refFor('flash')}
       >
         <p className="text-sm text-gray-600">
-          Preguntas que el admin va creando jornada a jornada, fuera de los 4 bloques de Apuestas iniciales, con el
-          mismo motor de puntuación por debajo: cada pregunta lleva su propio valor de puntos, decidido por el admin
-          al crearla, así que no hay un valor ni un máximo fijos: depende de cuántas cree y cuántos puntos le ponga
-          a cada una.
+          Preguntas de Sí/No sobre la actualidad de LaLiga, fuera de los 4 bloques de Apuestas iniciales: 5 pts cada
+          acierto, 10 preguntas en total repartidas en 8 tandas a lo largo de la temporada (50 pts máximos en juego,
+          un ~10% del total de la porra).
         </p>
         <Table2
-          head={['Tipo de pregunta', 'Cómo puntúa']}
+          head={['Tanda', 'Preguntas']}
           rows={[
-            ['Texto / opción (Sí-No, elegir equipo o jugador...)', 'Todo o nada: los puntos de la pregunta si aciertas exacto, 0 si no'],
-            ['Marcador (predicción de resultado)', 'Igual que los Duelos Big Three: 5 pts por el 1x2 + 7 extra si el marcador es exacto (12 en total)'],
+            ['Jornadas 5, 10, 15, 25, 30 y 35', '1 pregunta (5 pts)'],
+            ['Jornada 20 · Especial Mercado de Invierno', '2 preguntas (10 pts)'],
+            ['Jornada 38 · Especial Traca Final', '2 preguntas (10 pts)'],
           ]}
         />
+        <p className="text-sm text-gray-600">
+          El admin publica las preguntas de cada tanda el martes o miércoles previo a esa jornada. El plazo para
+          responder cierra en el minuto 1 del primer partido de la jornada correspondiente.
+        </p>
       </Section>
 
       <Section
