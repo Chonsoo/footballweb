@@ -26,15 +26,12 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [open, setOpen] = useState(false)
-  const [betsOpen, setBetsOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
 
-  const betsRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
-  const betsActive = location.pathname.startsWith('/apuestas-')
   const favoriteTeam = LALIGA_TEAMS_2026_27.find((t) => t.id === profile?.favorite_team)
   const initialClosed = isInitialPhaseClosed()
   // Dentro del admin no tiene sentido mostrar las pestañas normales de la
@@ -45,7 +42,6 @@ export default function Navbar() {
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (betsRef.current && !betsRef.current.contains(e.target as Node)) setBetsOpen(false)
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileMenuOpen(false)
     }
     document.addEventListener('mousedown', onClickOutside)
@@ -54,7 +50,6 @@ export default function Navbar() {
 
   function closeAll() {
     setOpen(false)
-    setBetsOpen(false)
     setProfileMenuOpen(false)
   }
 
@@ -86,44 +81,14 @@ export default function Navbar() {
               Clasificación
             </NavLink>
 
-            <div ref={betsRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setBetsOpen((v) => !v)}
-                className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded whitespace-nowrap ${
-                  betsActive ? 'bg-gold-500 text-brand-950 shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                Apuestas
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {betsOpen && (
-                <div className="absolute left-0 top-full z-20 mt-1 w-48 rounded border border-gray-200 bg-white py-1 shadow-lg">
-                  {!initialClosed && (
-                    <NavLink
-                      to="/apuestas-iniciales"
-                      onClick={() => setBetsOpen(false)}
-                      className={({ isActive }) =>
-                        `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
-                      }
-                    >
-                      Apuestas iniciales
-                    </NavLink>
-                  )}
-                  <NavLink
-                    to="/apuestas-semana"
-                    onClick={() => setBetsOpen(false)}
-                    className={({ isActive }) =>
-                      `block px-3 py-2 text-sm ${isActive ? 'bg-brand-50 font-medium text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`
-                    }
-                  >
-                    Apuestas flash
-                  </NavLink>
-                </div>
-              )}
-            </div>
+            {!initialClosed && (
+              <NavLink to="/apuestas-iniciales" className={linkClass}>
+                Apuestas iniciales
+              </NavLink>
+            )}
+            <NavLink to="/apuestas-semana" className={linkClass}>
+              Apuestas flash
+            </NavLink>
 
             <NavLink to="/oraculo" className={linkClass}>
               El oráculo

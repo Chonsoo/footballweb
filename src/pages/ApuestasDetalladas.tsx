@@ -133,7 +133,7 @@ export default function ApuestasDetalladas() {
         onChange={(e) => setSearch(e.target.value)}
         // text-base (16px) en vez de text-sm: por debajo de 16px, iOS Safari
         // hace zoom automático de toda la página al enfocar el campo.
-        className="w-full max-w-xs rounded-lg bg-white/90 px-3 py-2 text-base backdrop-blur-sm sm:text-sm"
+        className="w-full rounded-lg bg-white/90 px-3 py-2 text-base backdrop-blur-sm sm:max-w-xs sm:text-sm"
       />
 
       <div className="flex flex-col gap-2">
