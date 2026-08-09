@@ -45,7 +45,7 @@ export const BLOCK_SCORING_HINTS: Record<number, string[]> = {
   ],
   4: [
     'Todo o nada: acierta si el resultado real queda por encima o por debajo de la línea marcada.',
-    'Aciertas: te llevas los puntos de la pregunta. Fallas: no sumas nada.',
+    'Cada pregunta vale 3 pts: aciertas y te los llevas, fallas y no sumas nada.',
   ],
   // Bloque 5 (El 11 de Abuelonchos): no es una pregunta de apuestas iniciales
   // como los demás, así que aquí "Cómo funciona" explica las reglas de

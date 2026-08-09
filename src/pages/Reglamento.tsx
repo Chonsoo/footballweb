@@ -37,9 +37,16 @@ const B3_TABLE: [string, string][] = [
 ]
 
 const B4_TABLE: [string, string][] = [
-  ['¿El Pichichi marcará más de 26.5 goles?', '5 pts'],
-  ['¿El campeón superará los 88.5 puntos?', '5 pts'],
-  ['¿Habrá más de 4.5 destituciones de entrenadores?', '5 pts'],
+  ['¿El máximo goleador de LaLiga marcará más de 26.5 goles?', '3 pts'],
+  ['¿El equipo campeón superará los 89.5 puntos?', '3 pts'],
+  ['¿Habrá más de 8.5 destituciones de entrenadores durante la temporada?', '3 pts'],
+  ['¿Habrá más de 10.5 tarjetas sumando los dos Clásicos de liga?', '3 pts'],
+  ['¿El portero Zamora logrará más de 18.5 porterías a cero?', '3 pts'],
+  ['¿Habrá algún equipo con una racha de más de 7.5 victorias consecutivas?', '3 pts'],
+  ['¿El último clasificado de LaLiga sumará más de 23.5 puntos?', '3 pts'],
+  ['¿El mejor recién ascendido logrará más de 44.5 puntos?', '3 pts'],
+  ['¿Habrá algún partido en la liga con más de 8.5 goles entre los dos equipos?', '3 pts'],
+  ['¿Habrá más de 3.5 jugadores españoles entre los 10 máximos goleadores?', '3 pts'],
 ]
 
 const FANTASY_BONUS_TABLE: [string, number][] = [
@@ -341,7 +348,7 @@ export default function Reglamento() {
       >
         <p className="text-sm text-gray-600">Todo o nada: aciertas si el resultado real queda por encima o por debajo de la línea marcada.</p>
         <Table2 head={['Pregunta', 'Puntos']} rows={B4_TABLE} />
-        <p className="text-xs text-gray-500">Máximo teórico del bloque: 3 × 5 pts = 15 pts.</p>
+        <p className="text-xs text-gray-500">Máximo teórico del bloque: 10 × 3 pts = 30 pts.</p>
       </Section>
 
       <FantasySection open={isOpen('fantasy')} onToggle={toggle} buttonRef={refFor('fantasy')}>
