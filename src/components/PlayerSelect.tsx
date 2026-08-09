@@ -7,8 +7,6 @@ import { playerHasNationality, getNationalityInfo } from '../lib/nationalityFlag
 
 const SILHOUETTE = '/badges/player-silhouette.png'
 
-const PANEL_MAX_HEIGHT = 288 // px, coincide con max-h-72
-
 // Avatar pequeño (solo foto real) para cada fila del desplegable. Aparte
 // (no inline en el map) para que el estado de "la foto no cargó" sea por
 // jugador y no se contamine entre filas. Si no hay foto real no se pinta la
@@ -136,31 +134,28 @@ export default function PlayerSelect({
 
   // Compartida entre la apertura y el "seguimiento" del botón mientras la
   // página aún se está moviendo (ver el efecto de scroll/resize más abajo).
+  // Siempre abre hacia ABAJO -- nunca hacia arriba: probamos antes a
+  // desplazar la página nosotros mismos al abrir para dejar hueco, pero eso
+  // se sumaba al scroll que hace el propio navegador al enfocar el buscador
+  // (autoFocus abre el teclado y el navegador desplaza la página solo para
+  // que el campo quede visible por encima), y las dos correcciones no
+  // cuadraban entre sí. Ahora no tocamos el scroll nosotros: el panel se
+  // coloca donde esté el botón en ese momento y, si el navegador desplaza la
+  // página después por el teclado, el efecto de "seguimiento" de abajo lo
+  // realinea solo.
   function computePanelRect(): PanelRect | null {
     if (!btnRef.current) return null
     const rect = btnRef.current.getBoundingClientRect()
-    const spaceBelow = window.innerHeight - rect.bottom
-    const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
     return {
       left: rect.left,
       width: rect.width,
-      top: openUp ? null : rect.bottom + 4,
-      bottom: openUp ? window.innerHeight - rect.top + 4 : null,
+      top: rect.bottom + 4,
+      bottom: null,
     }
   }
 
   function toggleOpen() {
-    if (!open && btnRef.current) {
-      // Preferimos abrir siempre hacia abajo -- si no cabe entero en el
-      // viewport actual, desplazamos la página lo justo para que quepa, en
-      // vez de abrir hacia arriba (que tapa la pregunta de encima y resulta
-      // menos intuitivo que simplemente hacer scroll).
-      const rect = btnRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      const needed = PANEL_MAX_HEIGHT + 16
-      if (spaceBelow < needed) {
-        window.scrollBy(0, needed - spaceBelow)
-      }
+    if (!open) {
       const finalRect = computePanelRect()
       if (finalRect) setPanelRect(finalRect)
     }

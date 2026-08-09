@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { TierItem } from '../lib/database.types'
 
-// Alto máximo del desplegable (con scroll interno para listas largas, como
-// los 12 equipos "sin competición europea").
-const PANEL_MAX_HEIGHT = 224 // px, coincide con max-h-56
-
 interface PanelRect {
   left: number
   width: number
@@ -45,16 +41,21 @@ export default function TeamSelect({
 
   // Compartida entre la apertura y el "seguimiento" del botón mientras la
   // página aún se está moviendo (ver el efecto de scroll/resize más abajo).
+  // Siempre abre hacia ABAJO -- nunca hacia arriba: probamos antes a
+  // desplazar la página nosotros mismos al abrir para dejar hueco, pero eso
+  // se sumaba al scroll que hace el propio navegador al enfocar un campo
+  // cercano (el teclado desplaza la página sola), y las dos correcciones no
+  // cuadraban entre sí. Ahora no tocamos el scroll nosotros: el panel se
+  // coloca donde esté el botón en ese momento y, si el navegador desplaza la
+  // página después, el efecto de "seguimiento" de abajo lo realinea solo.
   function computePanelRect(): PanelRect | null {
     if (!btnRef.current) return null
     const rect = btnRef.current.getBoundingClientRect()
-    const spaceBelow = window.innerHeight - rect.bottom
-    const openUp = spaceBelow < PANEL_MAX_HEIGHT + 16
     return {
       left: rect.left,
       width: rect.width,
-      top: openUp ? null : rect.bottom + 4,
-      bottom: openUp ? window.innerHeight - rect.top + 4 : null,
+      top: rect.bottom + 4,
+      bottom: null,
     }
   }
 
@@ -94,18 +95,8 @@ export default function TeamSelect({
     }
   }, [open])
 
-  // Preferimos abrir siempre hacia abajo -- si no cabe entero en el viewport
-  // actual, desplazamos la página lo justo para que quepa, en vez de abrir
-  // hacia arriba (que tapa la pregunta de encima y resulta menos intuitivo
-  // que simplemente hacer scroll).
   function toggleOpen() {
-    if (!open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      const needed = PANEL_MAX_HEIGHT + 16
-      if (spaceBelow < needed) {
-        window.scrollBy(0, needed - spaceBelow)
-      }
+    if (!open) {
       const finalRect = computePanelRect()
       if (finalRect) setPanelRect(finalRect)
     }
