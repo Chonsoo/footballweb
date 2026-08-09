@@ -686,8 +686,9 @@ $$;
 
 -- Clasificación general: puntos de season_answers (bloques 1-4 + apuestas
 -- flash) más un bonus por puesto en la Liga fantasy (no los puntos fantasy
--- en sí, sino puntos de premio según el puesto: 1º 25, 2º 21, 3º 17, 4º 12,
--- 5º 7, 6º 5, 7º 3, 8º 2, 9º 1, el resto 0) más el bonus fijo de +10 del
+-- en sí, sino puntos de premio según el puesto, caída suave de 5 en 5: 1º
+-- 45, 2º 40, 3º 35, 4º 30, 5º 25, 6º 20, 7º 15, 8º 10, 9º 5, 10º 2, el resto
+-- 0) más el bonus fijo de +10 del
 -- huevo de pascua si están los 5 pasos hechos. Empates en total_points
 -- desempatan por block1_points y luego por fantasy_points (puntos reales de
 -- la liga Fantasy, no el bonus) -- solo si coinciden en los tres se
@@ -709,15 +710,16 @@ fantasy_bonus as (
     user_id,
     fantasy_points,
     case fantasy_rank
-      when 1 then 25
-      when 2 then 21
-      when 3 then 17
-      when 4 then 12
-      when 5 then 7
-      when 6 then 5
-      when 7 then 3
-      when 8 then 2
-      when 9 then 1
+      when 1 then 45
+      when 2 then 40
+      when 3 then 35
+      when 4 then 30
+      when 5 then 25
+      when 6 then 20
+      when 7 then 15
+      when 8 then 10
+      when 9 then 5
+      when 10 then 2
       else 0
     end as bonus_points
   from fantasy_ranked

@@ -51,16 +51,17 @@ const B4_TABLE: [string, string][] = [
 ]
 
 const FANTASY_BONUS_TABLE: [string, number][] = [
-  ['1º', 25],
-  ['2º', 21],
-  ['3º', 17],
-  ['4º', 12],
-  ['5º', 7],
-  ['6º', 5],
-  ['7º', 3],
-  ['8º', 2],
-  ['9º', 1],
-  ['10º en adelante', 0],
+  ['1º', 45],
+  ['2º', 40],
+  ['3º', 35],
+  ['4º', 30],
+  ['5º', 25],
+  ['6º', 20],
+  ['7º', 15],
+  ['8º', 10],
+  ['9º', 5],
+  ['10º', 2],
+  ['11º en adelante', 0],
 ]
 
 function Table2({ head, rows }: { head: [string, string]; rows: [string, string][] }) {
@@ -326,7 +327,7 @@ export default function Reglamento() {
         </p>
         <p className="text-xs text-gray-500">
           Máximo teórico del bloque: 5 × 10 (premios fijos) + 10 (Fiasco) + 15 (oro del Underdog) + 15 (oro del
-          Carnicero) = 100 pts.
+          Carnicero) = 90 pts.
         </p>
       </Section>
 

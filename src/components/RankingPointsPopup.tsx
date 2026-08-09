@@ -25,7 +25,7 @@ interface CategoryRow {
 // un participante, por bloque de "Apuestas iniciales" (desplegables, con lo
 // que puso en cada uno) + Apuestas flash, más el bonus por puesto en la Liga
 // fantasy (no son los puntos fantasy en sí, sino puntos de premio según el
-// puesto: 1º 25, 2º 21, 3º 17... -- ver fantasyRankBonus). Estos son los
+// puesto: 1º 45, 2º 40, 3º 35... -- ver fantasyRankBonus). Estos son los
 // únicos orígenes que suman al total de esta clasificación general (vista
 // public.leaderboard, migración 031).
 export default function RankingPointsPopup({ userId, username, totalPoints, onClose }: Props) {
