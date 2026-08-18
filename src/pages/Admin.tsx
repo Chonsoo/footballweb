@@ -1826,6 +1826,8 @@ function FantasyPlayersSection() {
   const [laligaSelected, setLaligaSelected] = useState<string[]>([])
   const [laligaLoading, setLaligaLoading] = useState(false)
   const [laligaErrors, setLaligaErrors] = useState<string[]>([])
+  const [playerActionError, setPlayerActionError] = useState<string | null>(null)
+  const [deactivatedInLineups, setDeactivatedInLineups] = useState<{ name: string; owners: string[] }[]>([])
 
   async function load() {
     setLoading(true)
@@ -2047,6 +2049,17 @@ function FantasyPlayersSection() {
       }
     }
 
+    // De los que se acaban de marcar inactivos (ya no están en la plantilla),
+    // avisar de cuáles siguen en el once de alguien: NO se borran ni se les
+    // quita de ningún once, pero el admin debe saber que esos participantes
+    // tienen en su equipo a un jugador que ya no juega ahí.
+    const stillInLineups = await fetchLineupOwners(toDeactivate.map((p) => p.api_player_id))
+    setDeactivatedInLineups(
+      toDeactivate
+        .filter((p) => (stillInLineups.get(p.api_player_id) ?? []).length > 0)
+        .map((p) => ({ name: p.name, owners: stillInLineups.get(p.api_player_id) ?? [] }))
+    )
+
     setSaving(false)
     setBulkText('')
     setLastImportSummary(
@@ -2055,9 +2068,85 @@ function FantasyPlayersSection() {
     await load()
   }
 
+  // Antes esto borraba la fila a pelo y se tragaba el error en silencio: si el
+  // jugador ya estaba en el once de alguien o tenía estadísticas, la base de
+  // datos lo impedía (claves foráneas sin "on delete cascade") y el botón
+  // parecía no hacer nada.
+  //
+  // Ahora se "retira" en vez de borrarse: se le quita de los onces donde esté,
+  // se borran sus estadísticas y se queda inactivo, pero su fila se conserva
+  // (ver migración 043). Antes de confirmar se avisa de a quién afecta, con
+  // nombres, porque a esas personas les queda un hueco en su once.
   async function removePlayer(p: FantasyPlayer) {
-    if (!confirm(`¿Borrar a ${p.name}? Esto no se puede deshacer.`)) return
-    await supabase.from('fantasy_players').delete().eq('api_player_id', p.api_player_id)
+    setPlayerActionError(null)
+    const owners = await fetchLineupOwners([p.api_player_id])
+    const names = owners.get(p.api_player_id) ?? []
+
+    const warning =
+      names.length > 0
+        ? `\n\nOJO: lo tienen en su once ${names.join(', ')}. Se le quitará del once y les quedará ese puesto vacío.`
+        : ''
+    if (!confirm(`¿Retirar a ${p.name}? Se le quita de los onces, se borran sus estadísticas y queda inactivo.${warning}`))
+      return
+
+    const { error } = await supabase.rpc('retire_fantasy_player', { p_player_id: p.api_player_id })
+    if (error) {
+      setPlayerActionError(`No se pudo retirar a ${p.name}: ${error.message}`)
+      return
+    }
+    setPlayerActionError(null)
+    await load()
+  }
+
+  // Para unos ids de jugador, quién los tiene en su once (id -> nombres de
+  // usuario). Se hace en 3 consultas simples en vez de un join anidado de
+  // PostgREST: es más predecible y no depende de cómo se llamen las
+  // relaciones. Devuelve un mapa vacío si algo falla -- es solo para el
+  // aviso, no debe bloquear la acción principal.
+  async function fetchLineupOwners(playerIds: number[]): Promise<Map<number, string[]>> {
+    const result = new Map<number, string[]>()
+    if (playerIds.length === 0) return result
+
+    const { data: slots } = await supabase
+      .from('fantasy_lineup_players')
+      .select('player_id, lineup_id')
+      .in('player_id', playerIds)
+    const slotRows = (slots as { player_id: number; lineup_id: string }[]) ?? []
+    if (slotRows.length === 0) return result
+
+    const { data: lineups } = await supabase
+      .from('fantasy_lineups')
+      .select('id, user_id')
+      .in('id', [...new Set(slotRows.map((s) => s.lineup_id))])
+    const lineupRows = (lineups as { id: string; user_id: string }[]) ?? []
+    const userByLineup = new Map(lineupRows.map((l) => [l.id, l.user_id]))
+
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', [...new Set(lineupRows.map((l) => l.user_id))])
+    const nameByUser = new Map(((profs as { id: string; username: string }[]) ?? []).map((p) => [p.id, p.username]))
+
+    for (const s of slotRows) {
+      const username = nameByUser.get(userByLineup.get(s.lineup_id) ?? '')
+      if (!username) continue
+      const list = result.get(s.player_id) ?? []
+      if (!list.includes(username)) list.push(username)
+      result.set(s.player_id, list)
+    }
+    return result
+  }
+
+  async function toggleActive(p: FantasyPlayer) {
+    const { error } = await supabase
+      .from('fantasy_players')
+      .update({ active: !p.active })
+      .eq('api_player_id', p.api_player_id)
+    if (error) {
+      setPlayerActionError(`No se pudo actualizar a ${p.name}: ${error.message}`)
+      return
+    }
+    setPlayerActionError(null)
     await load()
   }
 
@@ -2162,6 +2251,23 @@ function FantasyPlayersSection() {
         {lastImportSummary && parseErrors.length === 0 && (
           <p className="mt-2 rounded bg-green-50 p-2 text-xs text-green-700">{lastImportSummary}</p>
         )}
+
+        {deactivatedInLineups.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 rounded bg-amber-50 p-2 text-xs text-amber-800">
+            <p className="font-semibold">
+              Estos jugadores ya no están en la plantilla, pero NO se han borrado porque alguien los tiene en su once:
+            </p>
+            {deactivatedInLineups.map((d) => (
+              <p key={d.name}>
+                <strong>{d.name}</strong> — en el once de {d.owners.join(', ')}
+              </p>
+            ))}
+            <p className="text-amber-700">
+              Se han marcado inactivos (ya no se pueden elegir), pero siguen en esos onces. Si quieres quitarlos de
+              verdad, búscalos abajo y pulsa "Retirar".
+            </p>
+          </div>
+        )}
       </div>
 
       <div>
@@ -2174,9 +2280,12 @@ function FantasyPlayersSection() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar…"
-            className="w-48 rounded border border-gray-300 px-2 py-1 text-sm"
+            className="w-48 rounded border border-gray-300 px-2 py-1 text-base sm:text-sm"
           />
         </div>
+        {playerActionError && (
+          <p className="mb-2 rounded bg-red-50 p-2 text-xs text-red-700">{playerActionError}</p>
+        )}
         {loading ? (
           <p className="text-sm text-gray-500">Cargando…</p>
         ) : (
@@ -2185,7 +2294,12 @@ function FantasyPlayersSection() {
             {filtered.map((p) => {
               const team = LALIGA_TEAMS_2026_27.find((t) => t.id === p.team_id)
               return (
-                <div key={p.api_player_id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-gray-50 px-3 py-2 text-sm">
+                <div
+                  key={p.api_player_id}
+                  className={`flex flex-wrap items-center justify-between gap-2 rounded px-3 py-2 text-sm ${
+                    p.active ? 'bg-gray-50' : 'bg-gray-100 opacity-60'
+                  }`}
+                >
                   <span className="flex items-center gap-2">
                     {team?.badge && <img src={team.badge} alt="" className="h-5 w-5 object-contain" />}
                     <strong>{p.name}</strong>
@@ -2195,10 +2309,22 @@ function FantasyPlayersSection() {
                     {p.eligible_abuelonchos && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">Veterano 👴</span>
                     )}
+                    {!p.active && (
+                      <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">Inactivo</span>
+                    )}
                   </span>
-                  <button onClick={() => removePlayer(p)} className="text-xs text-red-600 hover:underline">
-                    Borrar
-                  </button>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <button onClick={() => toggleActive(p)} className="text-xs text-gray-600 hover:underline">
+                      {p.active ? 'Desactivar' : 'Reactivar'}
+                    </button>
+                    <button
+                      onClick={() => removePlayer(p)}
+                      title="Quitarlo de los onces, borrar sus estadísticas y dejarlo inactivo"
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Retirar
+                    </button>
+                  </span>
                 </div>
               )
             })}

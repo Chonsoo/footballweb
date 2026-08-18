@@ -524,6 +524,38 @@ create policy "fantasy_player_stats: admin write"
   using (public.is_admin(auth.uid()))
   with check (public.is_admin(auth.uid()));
 
+-- "Retirar" un jugador desde el panel de admin (ver migración 043): no borra
+-- su fila (así no se rompen claves foráneas ni el histórico), pero lo quita
+-- de los onces donde esté, borra sus estadísticas y lo deja inactivo. Va por
+-- función security definer porque el admin no puede escribir en
+-- fantasy_lineup_players de otros usuarios (su RLS solo permite el once
+-- propio y desbloqueado).
+create or replace function public.retire_fantasy_player(p_player_id int)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin(auth.uid()) then
+    raise exception 'Solo un administrador puede retirar jugadores';
+  end if;
+
+  delete from public.fantasy_lineup_players where player_id = p_player_id;
+  delete from public.fantasy_player_stats where player_id = p_player_id;
+
+  update public.easter_egg_progress
+  set captain_player_id = null
+  where captain_player_id = p_player_id;
+
+  update public.fantasy_players
+  set active = false
+  where api_player_id = p_player_id;
+end;
+$$;
+
+revoke all on function public.retire_fantasy_player(int) from public;
+grant execute on function public.retire_fantasy_player(int) to authenticated;
+
 create or replace function public.fantasy_calculate_points(
   p_position text,
   p_minutes int,
