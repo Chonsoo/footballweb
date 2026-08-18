@@ -14,9 +14,43 @@
 //
 // Uso: GET /api/laliga-matchday-stats?matchday=1
 
-import { OUR_TEAM_BY_SLUG } from './_laliga-teams'
-
 const SUBSCRIPTION_KEY = process.env.LALIGA_SUBSCRIPTION_KEY || 'c13c3a8e2f6b46da9c5c425cf61fab3e'
+
+// slug de equipo en laliga.com -> nuestro id interno (ver src/lib/teamData.ts).
+//
+// Ojo: la tabla equivalente está duplicada en api/laliga-players.ts a
+// propósito. Se intentó compartirla en un fichero aparte y las funciones
+// dejaron de arrancar en Vercel (FUNCTION_INVOCATION_FAILED al instante), así
+// que cada función serverless se mantiene autocontenida, sin imports locales.
+// Si cambias una, cambia la otra.
+//
+// Se incluyen además los alias que usa la ficha de un partido, que no siempre
+// coincide con el slug de la plantilla (p.ej. el Espanyol).
+const OUR_TEAM_BY_SLUG: Record<string, string> = {
+  'real-madrid': 'real-madrid',
+  'fc-barcelona': 'barcelona',
+  'atletico-de-madrid': 'atletico-madrid',
+  'athletic-club': 'athletic-club',
+  'villarreal-cf': 'villarreal',
+  'real-betis': 'real-betis',
+  'real-sociedad': 'real-sociedad',
+  'rayo-vallecano': 'rayo-vallecano',
+  'rc-celta': 'celta-vigo',
+  'c-a-osasuna': 'osasuna',
+  'ca-osasuna': 'osasuna',
+  'getafe-cf': 'getafe',
+  'd-alaves': 'alaves',
+  'rcd-espanyol': 'espanyol',
+  'rcd-espanyol-de-barcelona': 'espanyol',
+  'valencia-cf': 'valencia',
+  'sevilla-fc': 'sevilla',
+  'levante-ud': 'levante',
+  'elche-c-f': 'elche',
+  'elche-cf': 'elche',
+  'r-racing-club': 'racing-santander',
+  'rc-deportivo': 'deportivo-coruna',
+  'malaga-cf': 'malaga',
+}
 const SEASON_YEAR = 2026
 const SUBSCRIPTION_SLUG = 'laliga-easports-2026'
 
@@ -160,9 +194,26 @@ async function fetchMatchList(matchday: number): Promise<MatchSummary[]> {
     }))
 }
 
-// Descarga la ficha de un partido y devuelve el estado de cada jugador.
-async function fetchMatchPlayers(match: MatchSummary): Promise<PlayerState[]> {
-  const resp = await fetch(`https://www.laliga.com/partido/${match.slug}`, {
+interface MatchPage {
+  info: MatchSummary
+  page: {
+    events?: MatchEvent[]
+    data?: { lineups?: { home?: TeamLineup; away?: TeamLineup } }
+    match?: {
+      home_team?: { id?: number; slug?: string }
+      away_team?: { id?: number; slug?: string }
+      home_score?: number | null
+      away_score?: number | null
+      status?: string
+    }
+  }
+}
+
+// Descarga la ficha de un partido una sola vez y devuelve tanto sus datos
+// generales (equipos, marcador) como el bloque de la página, para no tener que
+// pedirla dos veces.
+async function fetchMatchPage(slug: string): Promise<MatchPage> {
+  const resp = await fetch(`https://www.laliga.com/partido/${slug}`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PorraAbueloncha/1.0)' },
   })
   if (!resp.ok) throw new Error(`la ficha respondió ${resp.status}`)
@@ -171,16 +222,30 @@ async function fetchMatchPlayers(match: MatchSummary): Promise<PlayerState[]> {
   const raw = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/)
   if (!raw) throw new Error('no se encontró __NEXT_DATA__ en la ficha (¿han cambiado la web?)')
 
-  const parsed = JSON.parse(raw[1]) as {
-    props?: {
-      pageProps?: {
-        events?: MatchEvent[]
-        data?: { lineups?: { home?: TeamLineup; away?: TeamLineup } }
-        match?: { home_team?: { id?: number }; away_team?: { id?: number } }
-      }
-    }
+  const parsed = JSON.parse(raw[1]) as { props?: { pageProps?: MatchPage['page'] } }
+  const page = parsed.props?.pageProps ?? {}
+  const m = page.match
+  return {
+    info: {
+      slug,
+      homeSlug: m?.home_team?.slug ?? '',
+      awaySlug: m?.away_team?.slug ?? '',
+      homeScore: m?.home_score ?? null,
+      awayScore: m?.away_score ?? null,
+      status: m?.status ?? 'Unknown',
+    },
+    page,
   }
-  const page = parsed.props?.pageProps
+}
+
+async function fetchMatchInfo(slug: string): Promise<MatchSummary> {
+  const { info } = await fetchMatchPage(slug)
+  return info
+}
+
+// Reconstruye el estado de cada jugador de un partido a partir de su ficha.
+async function fetchMatchPlayers(match: MatchSummary): Promise<PlayerState[]> {
+  const { page } = await fetchMatchPage(match.slug)
   const lineups = page?.data?.lineups
   if (!lineups?.home?.starts || !lineups?.away?.starts) {
     throw new Error('la ficha no trae alineaciones (puede que el partido no se haya jugado todavía)')
@@ -309,6 +374,15 @@ function toStats(p: PlayerState, cleanSheet: boolean): PlayerMatchStats {
   }
 }
 
+// Vercel corta las funciones por tiempo. Descargar las 10 fichas de una
+// jornada en una sola petición se pasaba del límite (FUNCTION_INVOCATION_FAILED),
+// así que este endpoint tiene dos modos y es el navegador quien va pidiendo
+// los partidos de uno en uno:
+//
+//   ?matchday=1            -> solo la LISTA de partidos de esa jornada
+//   ?match=<slug-partido>  -> las estadísticas de ESE partido
+export const config = { maxDuration: 30 }
+
 export default async function handler(
   req: { query: Record<string, string | string[] | undefined> },
   res: {
@@ -316,54 +390,50 @@ export default async function handler(
     setHeader: (name: string, value: string) => void
   }
 ) {
-  const raw = req.query.matchday
-  const matchday = Number(Array.isArray(raw) ? raw[0] : raw)
-  if (!Number.isInteger(matchday) || matchday < 1 || matchday > 38) {
-    res.status(400).json({ error: 'Falta el parámetro ?matchday=1..38' })
-    return
-  }
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)
+  const matchSlug = one(req.query.match)
 
   try {
-    const matches = await fetchMatchList(matchday)
-    if (matches.length === 0) {
-      res.status(200).json({ matchday, players: [], matches: [], warnings: ['No se encontraron partidos de esa jornada.'] })
+    res.setHeader('Cache-Control', 'no-store')
+
+    // --- Modo 2: un partido concreto ---
+    if (matchSlug) {
+      const info = await fetchMatchInfo(matchSlug)
+      const states = await fetchMatchPlayers(info)
+      const players = states.map((p) => {
+        const isHome = p.teamSlug === info.homeSlug
+        const conceded = isHome ? info.awayScore : info.homeScore
+        return toStats(p, conceded === 0)
+      })
+      const unknownTeams = [...new Set(states.map((p) => p.teamSlug))].filter((slug) => !OUR_TEAM_BY_SLUG[slug])
+      res.status(200).json({
+        match: matchSlug,
+        players,
+        warnings: unknownTeams.map((t) => `Equipo desconocido "${t}" (añádelo al mapa OUR_TEAM_BY_SLUG de este fichero)`),
+      })
       return
     }
 
-    const players: PlayerMatchStats[] = []
-    const warnings: string[] = []
-    const matchReports: { slug: string; ok: boolean; status: string; detail?: string }[] = []
-
-    // En serie a propósito: son 10 fichas y no queremos parecer un robot
-    // agresivo contra laliga.com ni pasarnos del tiempo límite de la función.
-    for (const m of matches) {
-      const label = `${m.homeSlug} vs ${m.awaySlug}`
-      if (m.homeScore == null || m.awayScore == null || m.status !== 'FullTime') {
-        matchReports.push({ slug: m.slug, ok: false, status: m.status, detail: 'todavía no ha terminado' })
-        warnings.push(`${label}: todavía no ha terminado, no se han cargado sus datos.`)
-        continue
-      }
-      try {
-        const statesInMatch = await fetchMatchPlayers(m)
-        for (const p of statesInMatch) {
-          const isHome = p.teamSlug === m.homeSlug
-          const conceded = isHome ? m.awayScore : m.homeScore
-          players.push(toStats(p, conceded === 0))
-          if (!OUR_TEAM_BY_SLUG[p.teamSlug]) {
-            const msg = `Equipo desconocido "${p.teamSlug}" (hay que añadirlo a api/_laliga-teams.ts)`
-            if (!warnings.includes(msg)) warnings.push(msg)
-          }
-        }
-        matchReports.push({ slug: m.slug, ok: true, status: m.status })
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : 'error desconocido'
-        matchReports.push({ slug: m.slug, ok: false, status: m.status, detail })
-        warnings.push(`${label}: ${detail}`)
-      }
+    // --- Modo 1: lista de partidos de la jornada ---
+    const rawDay = one(req.query.matchday)
+    const matchday = Number(rawDay)
+    if (!Number.isInteger(matchday) || matchday < 1 || matchday > 38) {
+      res.status(400).json({ error: 'Usa ?matchday=1..38 para listar, o ?match=<slug> para un partido' })
+      return
     }
 
-    res.setHeader('Cache-Control', 'no-store')
-    res.status(200).json({ matchday, players, matches: matchReports, warnings })
+    const matches = await fetchMatchList(matchday)
+    res.status(200).json({
+      matchday,
+      matches: matches.map((m) => ({
+        slug: m.slug,
+        home: m.homeSlug,
+        away: m.awaySlug,
+        status: m.status,
+        // Solo tiene sentido pedir los partidos ya terminados.
+        finished: m.status === 'FullTime' && m.homeScore != null && m.awayScore != null,
+      })),
+    })
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error desconocido' })
   }

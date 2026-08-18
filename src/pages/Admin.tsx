@@ -2423,6 +2423,7 @@ function FantasyStatsSection() {
   // hasta que el admin lo revisa y pulsa "Guardar todo".
   const [importing, setImporting] = useState(false)
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
   const [savingAll, setSavingAll] = useState(false)
 
   async function refreshPlayedMatchdays() {
@@ -2540,16 +2541,39 @@ function FantasyStatsSection() {
     setImporting(true)
     setMessage(null)
     setImportReport(null)
+    setImportProgress(null)
     try {
-      const resp = await fetch(`/api/laliga-matchday-stats?matchday=${matchdayNum}`)
-      const data = (await resp.json()) as {
-        players?: LaligaPlayerStats[]
-        warnings?: string[]
+      // Se pide partido a partido (y no la jornada entera de una vez) porque
+      // Vercel corta las funciones por tiempo: bajar las 10 fichas dentro de
+      // una sola petición se pasaba del límite.
+      const listResp = await fetch(`/api/laliga-matchday-stats?matchday=${matchdayNum}`)
+      const listData = (await listResp.json()) as {
+        matches?: { slug: string; home: string; away: string; status: string; finished: boolean }[]
         error?: string
       }
-      if (!resp.ok) throw new Error(data.error ?? `El servidor respondió ${resp.status}`)
+      if (!listResp.ok) throw new Error(listData.error ?? `El servidor respondió ${listResp.status}`)
 
-      const incoming = data.players ?? []
+      const allMatches = listData.matches ?? []
+      const finished = allMatches.filter((m) => m.finished)
+      const pending = allMatches.filter((m) => !m.finished)
+
+      const incoming: LaligaPlayerStats[] = []
+      const fetchWarnings: string[] = pending.map((m) => `${m.home} vs ${m.away}: aún no ha terminado, no se han cargado sus datos.`)
+
+      for (let i = 0; i < finished.length; i++) {
+        const m = finished[i]
+        setImportProgress({ done: i, total: finished.length })
+        try {
+          const r = await fetch(`/api/laliga-matchday-stats?match=${encodeURIComponent(m.slug)}`)
+          const d = (await r.json()) as { players?: LaligaPlayerStats[]; warnings?: string[]; error?: string }
+          if (!r.ok) throw new Error(d.error ?? `respondió ${r.status}`)
+          incoming.push(...(d.players ?? []))
+          fetchWarnings.push(...(d.warnings ?? []))
+        } catch (err) {
+          fetchWarnings.push(`${m.home} vs ${m.away}: ${err instanceof Error ? err.message : 'error'}`)
+        }
+      }
+      setImportProgress({ done: finished.length, total: finished.length })
       // Índices para cruzar: por id de laliga (fiable) y, si no, por nombre
       // normalizado dentro del mismo equipo.
       const byLaligaId = new Map<number, LaligaPlayerStats>()
@@ -2590,11 +2614,12 @@ function FantasyStatsSection() {
       }
 
       setRows(nextRows)
-      setImportReport({ matched, notFound, warnings: data.warnings ?? [] })
+      setImportReport({ matched, notFound, warnings: fetchWarnings })
     } catch (err) {
       setMessage(`No se pudo importar: ${err instanceof Error ? err.message : 'error desconocido'}`)
     } finally {
       setImporting(false)
+      setImportProgress(null)
     }
   }
 
@@ -2704,7 +2729,11 @@ function FantasyStatsSection() {
             title="Trae minutos, goles, asistencias y tarjetas reales de esta jornada. Solo rellena la tabla: no guarda nada hasta que pulses Guardar todo."
             className="rounded bg-gray-800 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
           >
-            {importing ? 'Trayendo de LaLiga.com…' : 'Cargar datos desde LaLiga.com'}
+            {importing
+              ? importProgress
+                ? `Trayendo partidos… ${importProgress.done}/${importProgress.total}`
+                : 'Buscando partidos…'
+              : 'Cargar datos desde LaLiga.com'}
           </button>
 
           <button

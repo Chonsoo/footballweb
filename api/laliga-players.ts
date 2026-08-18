@@ -14,9 +14,41 @@
 // sitio público (viaja en claro en las peticiones que hace su web), no es un
 // secreto nuestro — pero por si la rotan, se puede sobreescribir con la
 // variable de entorno LALIGA_SUBSCRIPTION_KEY en Vercel sin tocar código.
-import { TEAM_SLUGS } from './_laliga-teams'
-
 const SUBSCRIPTION_KEY = process.env.LALIGA_SUBSCRIPTION_KEY || 'c13c3a8e2f6b46da9c5c425cf61fab3e'
+
+// Nuestro id interno de equipo (el que usa toda la app, ver src/lib/teamData.ts)
+// -> slug real que espera la API de laliga.com. No siempre coinciden: p.ej.
+// "barcelona" en nuestro sistema es "fc-barcelona" en la suya, y varios
+// slugs "obvios" (villarreal, valencia, sevilla, alaves, espanyol, osasuna,
+// getafe, levante, malaga) están ocupados por un equipo distinto (el
+// filial de LaLiga Promises), así que hay que usar el slug largo real.
+//
+// Ojo: esta tabla está duplicada en api/laliga-matchday-stats.ts a propósito.
+// Se intentó compartirla en un fichero aparte y las funciones dejaron de
+// arrancar en Vercel (FUNCTION_INVOCATION_FAILED al instante), así que cada
+// función serverless se mantiene autocontenida. Si cambias una, cambia la otra.
+const TEAM_SLUGS: Record<string, string> = {
+  'real-madrid': 'real-madrid',
+  barcelona: 'fc-barcelona',
+  'atletico-madrid': 'atletico-de-madrid',
+  'athletic-club': 'athletic-club',
+  villarreal: 'villarreal-cf',
+  'real-betis': 'real-betis',
+  'real-sociedad': 'real-sociedad',
+  'rayo-vallecano': 'rayo-vallecano',
+  'celta-vigo': 'rc-celta',
+  osasuna: 'c-a-osasuna',
+  getafe: 'getafe-cf',
+  alaves: 'd-alaves',
+  espanyol: 'rcd-espanyol',
+  valencia: 'valencia-cf',
+  sevilla: 'sevilla-fc',
+  levante: 'levante-ud',
+  elche: 'elche-c-f',
+  'racing-santander': 'r-racing-club',
+  'deportivo-coruna': 'rc-deportivo',
+  malaga: 'malaga-cf',
+}
 
 const POSITION_MAP: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = {
   portero: 'POR',
