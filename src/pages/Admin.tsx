@@ -2347,6 +2347,37 @@ interface FantasyStatRow {
   clean_sheet: boolean
 }
 
+// Lo que devuelve /api/laliga-matchday-stats por cada jugador que participó
+// en la jornada (todos los de LaLiga, no solo los que alguien tiene en su 11).
+interface LaligaPlayerStats {
+  laliga_id: number | null
+  name: string
+  nickname: string
+  team_id: string | null
+  minutes: number
+  goals: number
+  assists: number
+  yellow_cards: number
+  red_cards: number
+  own_goals: number
+  clean_sheet: boolean
+}
+
+interface ImportReport {
+  matched: number
+  notFound: string[]
+  warnings: string[]
+}
+
+// El id de jugador de laliga.com viaja dentro de la url de su foto
+// (.../p176245/...), que es justo lo que guardamos en photo_url al importar
+// las plantillas -- así se pueden cruzar por id en vez de por nombre, que es
+// mucho menos frágil (hay apodos, acentos y nombres repetidos).
+function laligaIdFromPhotoUrl(url: string | null | undefined): number | null {
+  const m = url?.match(/\/p(\d+)\//)
+  return m ? Number(m[1]) : null
+}
+
 const EMPTY_FANTASY_ROW: FantasyStatRow = {
   minutes: 0,
   goals: 0,
@@ -2388,6 +2419,11 @@ function FantasyStatsSection() {
   // Qué jornadas están marcadas como jugadas -- para pintar en verde los
   // botones J1..J38 de arriba, no solo la que está seleccionada ahora mismo.
   const [playedMatchdays, setPlayedMatchdays] = useState<Set<number>>(new Set())
+  // Importación desde laliga.com: se rellena la tabla pero NO se guarda nada
+  // hasta que el admin lo revisa y pulsa "Guardar todo".
+  const [importing, setImporting] = useState(false)
+  const [importReport, setImportReport] = useState<ImportReport | null>(null)
+  const [savingAll, setSavingAll] = useState(false)
 
   async function refreshPlayedMatchdays() {
     const { data } = await supabase.from('fantasy_matchdays').select('number').eq('played', true)
@@ -2496,6 +2532,98 @@ function FantasyStatsSection() {
     setSavedPoints((p) => ({ ...p, [player.api_player_id]: (data as { points: number }).points }))
   }
 
+  // Trae las estadísticas reales de la jornada desde laliga.com y RELLENA la
+  // tabla de abajo, sin guardar nada: el admin revisa y decide. Solo se
+  // rellenan los jugadores que alguien tiene en su once (los demás no salen
+  // en esta pantalla y no hace falta guardarlos).
+  async function importFromLaliga() {
+    setImporting(true)
+    setMessage(null)
+    setImportReport(null)
+    try {
+      const resp = await fetch(`/api/laliga-matchday-stats?matchday=${matchdayNum}`)
+      const data = (await resp.json()) as {
+        players?: LaligaPlayerStats[]
+        warnings?: string[]
+        error?: string
+      }
+      if (!resp.ok) throw new Error(data.error ?? `El servidor respondió ${resp.status}`)
+
+      const incoming = data.players ?? []
+      // Índices para cruzar: por id de laliga (fiable) y, si no, por nombre
+      // normalizado dentro del mismo equipo.
+      const byLaligaId = new Map<number, LaligaPlayerStats>()
+      const byNameTeam = new Map<string, LaligaPlayerStats>()
+      for (const p of incoming) {
+        if (p.laliga_id != null) byLaligaId.set(p.laliga_id, p)
+        for (const label of [p.name, p.nickname]) {
+          const key = `${p.team_id ?? ''}|${normalizeText(label ?? '')}`
+          if (label && !byNameTeam.has(key)) byNameTeam.set(key, p)
+        }
+      }
+
+      const nextRows: Record<number, FantasyStatRow> = {}
+      const notFound: string[] = []
+      let matched = 0
+
+      for (const player of players) {
+        const laligaId = laligaIdFromPhotoUrl(player.photo_url)
+        const hit =
+          (laligaId != null ? byLaligaId.get(laligaId) : undefined) ??
+          byNameTeam.get(`${player.team_id ?? ''}|${normalizeText(player.name)}`) ??
+          (player.full_name ? byNameTeam.get(`${player.team_id ?? ''}|${normalizeText(player.full_name)}`) : undefined)
+
+        if (!hit) {
+          notFound.push(player.name)
+          continue
+        }
+        matched += 1
+        nextRows[player.api_player_id] = {
+          minutes: hit.minutes,
+          goals: hit.goals,
+          assists: hit.assists,
+          yellow_cards: hit.yellow_cards,
+          red_cards: hit.red_cards,
+          own_goals: hit.own_goals,
+          clean_sheet: hit.clean_sheet,
+        }
+      }
+
+      setRows(nextRows)
+      setImportReport({ matched, notFound, warnings: data.warnings ?? [] })
+    } catch (err) {
+      setMessage(`No se pudo importar: ${err instanceof Error ? err.message : 'error desconocido'}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  // Guarda de golpe la fila de TODOS los jugadores de la lista (los que no
+  // jugaron se guardan a cero, que es justo lo que toca: 0 puntos).
+  async function saveAll() {
+    setSavingAll(true)
+    setMessage(null)
+    const payload = players.map((p) => ({
+      matchday_num: matchdayNum,
+      player_id: p.api_player_id,
+      player_position: p.player_position,
+      ...rowFor(p.api_player_id),
+    }))
+    const { data, error } = await supabase
+      .from('fantasy_player_stats')
+      .upsert(payload, { onConflict: 'matchday_num,player_id' })
+      .select('player_id, points')
+    setSavingAll(false)
+    if (error) {
+      setMessage(`Error guardando: ${error.message}`)
+      return
+    }
+    const next: Record<number, number> = {}
+    for (const r of (data as { player_id: number; points: number }[]) ?? []) next[r.player_id] = r.points
+    setSavedPoints((p) => ({ ...p, ...next }))
+    setMessage(`Guardados los datos de ${payload.length} jugador(es) ✓`)
+  }
+
   async function toggleMatchdayPlayed() {
     setSavingMatchday(true)
     setMessage(null)
@@ -2568,7 +2696,45 @@ function FantasyStatsSection() {
           >
             {savingMatchday ? 'Guardando…' : matchday?.played ? '✓ Jornada jugada (pulsa para desmarcar)' : 'Marcar jornada como jugada'}
           </button>
+
+          <button
+            type="button"
+            onClick={importFromLaliga}
+            disabled={importing || loadingPlayers}
+            title="Trae minutos, goles, asistencias y tarjetas reales de esta jornada. Solo rellena la tabla: no guarda nada hasta que pulses Guardar todo."
+            className="rounded bg-gray-800 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {importing ? 'Trayendo de LaLiga.com…' : 'Cargar datos desde LaLiga.com'}
+          </button>
+
+          <button
+            type="button"
+            onClick={saveAll}
+            disabled={savingAll || players.length === 0}
+            className="rounded bg-brand-700 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {savingAll ? 'Guardando…' : 'Guardar todo'}
+          </button>
         </div>
+
+        {importReport && (
+          <div className="mt-2 flex flex-col gap-1 rounded bg-amber-50 p-2 text-xs text-amber-800">
+            <p className="font-semibold text-amber-900">
+              Datos cargados en la tabla (todavía SIN guardar): {importReport.matched} jugador(es) emparejados.
+              Revísalos y pulsa "Guardar todo".
+            </p>
+            {importReport.notFound.length > 0 && (
+              <p>
+                Sin datos en esta jornada (se quedan a cero, normalmente porque no jugaron):{' '}
+                {importReport.notFound.join(', ')}
+              </p>
+            )}
+            {importReport.warnings.map((w, i) => (
+              <p key={i}>{w}</p>
+            ))}
+          </div>
+        )}
+
         {message && <p className="mt-2 text-xs text-red-600">{message}</p>}
       </div>
 
