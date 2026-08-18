@@ -2364,7 +2364,11 @@ interface LaligaPlayerStats {
 }
 
 interface ImportReport {
+  // Alineados por alguien (los que se ven en la tabla y se pueden revisar)
   matched: number
+  // El resto de jugadores de la base que también jugaron esa jornada: no se
+  // pintan, pero se guardan para tener su histórico si alguien los ficha.
+  matchedExtra: number
   notFound: string[]
   warnings: string[]
 }
@@ -2406,7 +2410,11 @@ const EMPTY_FANTASY_ROW: FantasyStatRow = {
 const TOTAL_MATCHDAYS = 38
 
 function FantasyStatsSection() {
+  // "players" = los que alguien tiene en su once (los que se revisan en la
+  // tabla). "allPlayers" = todos los de la base, para poder guardar también
+  // el histórico de los que hoy no tiene nadie.
   const [players, setPlayers] = useState<FantasyPlayer[]>([])
+  const [allPlayers, setAllPlayers] = useState<FantasyPlayer[]>([])
   const [loadingPlayers, setLoadingPlayers] = useState(true)
   const [matchdayNum, setMatchdayNum] = useState(1)
   const [rows, setRows] = useState<Record<number, FantasyStatRow>>({})
@@ -2424,6 +2432,9 @@ function FantasyStatsSection() {
   const [importing, setImporting] = useState(false)
   const [importReport, setImportReport] = useState<ImportReport | null>(null)
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
+  // Filas de jugadores que NO tiene nadie en su once: no se muestran en la
+  // tabla (no hay nada que revisar ahí), pero sí se guardan.
+  const [extraRows, setExtraRows] = useState<Record<number, FantasyStatRow>>({})
   const [savingAll, setSavingAll] = useState(false)
 
   async function refreshPlayedMatchdays() {
@@ -2450,19 +2461,18 @@ function FantasyStatsSection() {
         pickedIds = new Set(((picks as { player_id: number }[]) ?? []).map((p) => p.player_id))
       }
 
-      if (pickedIds.size === 0) {
-        setPlayers([])
-        setLoadingPlayers(false)
-        return
-      }
-
+      // Se cargan TODOS los jugadores, no solo los alineados: en pantalla solo
+      // se revisan los que alguien tiene en su once, pero al guardar se
+      // registran las estadísticas de todos los que jugaron esa jornada. Así,
+      // si alguien ficha a un jugador más adelante, su histórico ya está.
       const { data } = await supabase
         .from('fantasy_players')
         .select('*')
-        .in('api_player_id', [...pickedIds])
         .order('player_position')
         .order('name')
-      setPlayers((data as FantasyPlayer[]) ?? [])
+      const everyone = (data as FantasyPlayer[]) ?? []
+      setAllPlayers(everyone)
+      setPlayers(everyone.filter((p) => pickedIds.has(p.api_player_id)))
       setLoadingPlayers(false)
     }
     loadPlayers()
@@ -2586,23 +2596,31 @@ function FantasyStatsSection() {
         }
       }
 
+      const pickedIds = new Set(players.map((p) => p.api_player_id))
       const nextRows: Record<number, FantasyStatRow> = {}
+      const nextExtraRows: Record<number, FantasyStatRow> = {}
       const notFound: string[] = []
       let matched = 0
+      let matchedExtra = 0
 
-      for (const player of players) {
+      // Se recorren TODOS los jugadores de la base, no solo los alineados: los
+      // que nadie tiene en su once no se pintan en la tabla, pero su fila se
+      // guarda igual para tener el histórico completo.
+      for (const player of allPlayers) {
         const laligaId = laligaIdFromPhotoUrl(player.photo_url)
         const hit =
           (laligaId != null ? byLaligaId.get(laligaId) : undefined) ??
           byNameTeam.get(`${player.team_id ?? ''}|${normalizeText(player.name)}`) ??
           (player.full_name ? byNameTeam.get(`${player.team_id ?? ''}|${normalizeText(player.full_name)}`) : undefined)
 
+        const isPicked = pickedIds.has(player.api_player_id)
         if (!hit) {
-          notFound.push(player.name)
+          // Solo se avisa de los alineados: que un jugador que nadie tiene no
+          // haya jugado esta jornada no es información útil.
+          if (isPicked) notFound.push(player.name)
           continue
         }
-        matched += 1
-        nextRows[player.api_player_id] = {
+        const row: FantasyStatRow = {
           minutes: hit.minutes,
           goals: hit.goals,
           assists: hit.assists,
@@ -2611,10 +2629,18 @@ function FantasyStatsSection() {
           own_goals: hit.own_goals,
           clean_sheet: hit.clean_sheet,
         }
+        if (isPicked) {
+          matched += 1
+          nextRows[player.api_player_id] = row
+        } else {
+          matchedExtra += 1
+          nextExtraRows[player.api_player_id] = row
+        }
       }
 
       setRows(nextRows)
-      setImportReport({ matched, notFound, warnings: fetchWarnings })
+      setExtraRows(nextExtraRows)
+      setImportReport({ matched, matchedExtra, notFound, warnings: fetchWarnings })
     } catch (err) {
       setMessage(`No se pudo importar: ${err instanceof Error ? err.message : 'error desconocido'}`)
     } finally {
@@ -2628,12 +2654,22 @@ function FantasyStatsSection() {
   async function saveAll() {
     setSavingAll(true)
     setMessage(null)
+    // Los alineados van siempre (incluso a cero: no jugar también es un dato).
     const payload = players.map((p) => ({
       matchday_num: matchdayNum,
       player_id: p.api_player_id,
       player_position: p.player_position,
       ...rowFor(p.api_player_id),
     }))
+    // Y además, los que no tiene nadie pero sí jugaron esta jornada, para
+    // conservar su histórico por si alguien los ficha más adelante.
+    const positionById = new Map(allPlayers.map((p) => [p.api_player_id, p.player_position]))
+    for (const [idStr, row] of Object.entries(extraRows)) {
+      const id = Number(idStr)
+      const position = positionById.get(id)
+      if (!position) continue
+      payload.push({ matchday_num: matchdayNum, player_id: id, player_position: position, ...row })
+    }
     const { data, error } = await supabase
       .from('fantasy_player_stats')
       .upsert(payload, { onConflict: 'matchday_num,player_id' })
@@ -2646,7 +2682,12 @@ function FantasyStatsSection() {
     const next: Record<number, number> = {}
     for (const r of (data as { player_id: number; points: number }[]) ?? []) next[r.player_id] = r.points
     setSavedPoints((p) => ({ ...p, ...next }))
-    setMessage(`Guardados los datos de ${payload.length} jugador(es) ✓`)
+    const extras = payload.length - players.length
+    setMessage(
+      extras > 0
+        ? `Guardado ✓: ${players.length} alineado(s) y ${extras} jugador(es) más (histórico)`
+        : `Guardado ✓: ${payload.length} jugador(es)`
+    )
   }
 
   async function toggleMatchdayPlayed() {
@@ -2749,9 +2790,16 @@ function FantasyStatsSection() {
         {importReport && (
           <div className="mt-2 flex flex-col gap-1 rounded bg-amber-50 p-2 text-xs text-amber-800">
             <p className="font-semibold text-amber-900">
-              Datos cargados en la tabla (todavía SIN guardar): {importReport.matched} jugador(es) emparejados.
-              Revísalos y pulsa "Guardar todo".
+              Datos cargados (todavía SIN guardar): {importReport.matched} alineado(s) en la tabla de abajo
+              {importReport.matchedExtra > 0 && `, y ${importReport.matchedExtra} jugador(es) más que no tiene nadie`}.
+              Revisa la tabla y pulsa "Guardar todo".
             </p>
+            {importReport.matchedExtra > 0 && (
+              <p>
+                Esos {importReport.matchedExtra} no se muestran (no hay nada que revisar), pero se guardan igual para
+                tener su histórico por si alguien los ficha más adelante.
+              </p>
+            )}
             {importReport.notFound.length > 0 && (
               <p>
                 Sin datos en esta jornada (se quedan a cero, normalmente porque no jugaron):{' '}
